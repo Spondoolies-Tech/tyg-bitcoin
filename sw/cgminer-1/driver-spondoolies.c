@@ -22,7 +22,7 @@
 
 #include "compat.h"
 #include "miner.h"
-#include "miner_gate_lib.h"
+#include "mg_proto_parser.h"
 #include "driver-spondoolies.h"
 
 extern int opt_g_threads;

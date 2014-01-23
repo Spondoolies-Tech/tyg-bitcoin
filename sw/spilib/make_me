@@ -6,9 +6,9 @@
 #gcc -g -O0 -rdynamic miner_gate.c minergate_lib.c hammer_kit.c  spilib.c  -o miner_gate 
 
 
-arm-none-linux-gnueabi-g++ -g -O0 -fpermissive -rdynamic miner_gate/zabbix_log.c miner_gate/i2c.c miner_gate/dc2dc.c miner_gate/json.c miner_gate/miner_gate.c miner_gate/mg_proto_parser.cpp miner_gate/scaling_manager.c miner_gate/hammer_lib.c miner_gate/nvm.c miner_gate/squid.cpp miner_gate/sha256.c miner_gate/real_time_queue.c  -o miner_gate_arm -lpthread -static-libstdc++ -static-libgcc -I./miner_gate
+arm-none-linux-gnueabi-g++ -g -O0 -fpermissive -rdynamic miner_gate/zabbix_log.c miner_gate/i2c.c miner_gate/dc2dc.c miner_gate/json.c miner_gate/miner_gate.c miner_gate/mg_proto_parser.c miner_gate/scaling_manager.c miner_gate/hammer_lib.c miner_gate/nvm.c miner_gate/squid.cpp miner_gate/sha256.c miner_gate/real_time_queue.c  -o miner_gate_arm -lpthread -static-libstdc++ -static-libgcc -I./miner_gate
 
-arm-none-linux-gnueabi-g++ -g -O0 -fpermissive  -rdynamic miner_gate_tester/miner_gate_tester.c miner_gate/mg_proto_parser.cpp miner_gate/sha256.c -o miner_gate_test_arm -lpthread -static-libstdc++ -static-libgcc -I./miner_gate -I./miner_gate_tester
+arm-none-linux-gnueabi-g++ -g -O0 -fpermissive  -rdynamic miner_gate_tester/miner_gate_tester.c miner_gate/mg_proto_parser.c miner_gate/sha256.c -o miner_gate_test_arm -lpthread -static-libstdc++ -static-libgcc -I./miner_gate -I./miner_gate_tester
 
 cd hammer_reg
 ./make_me

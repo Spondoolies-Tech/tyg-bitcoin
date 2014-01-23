@@ -4,7 +4,7 @@
 
 
 #include "miner.h"
-#include "miner_gate_lib.h"
+#include "mg_proto_parser.h"
 
 
 #define MAX_SPOND_JOBS 10

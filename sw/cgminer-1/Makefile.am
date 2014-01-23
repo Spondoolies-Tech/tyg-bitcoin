@@ -86,7 +86,7 @@ endif
 
 
 if HAS_SPONDOOLIES
-cgminer_SOURCES += driver-spondoolies.c miner_gate_lib.c
+cgminer_SOURCES += driver-spondoolies.c mg_proto_parser.c
 endif
 
 if HAS_MODMINER
