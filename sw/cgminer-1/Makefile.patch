@@ -1,0 +1,63 @@
+--- Makefile.orig	2013-09-26 12:22:00.640000275 +0200
++++ Makefile	2013-09-26 18:32:03.852000282 +0200
+@@ -162,7 +162,7 @@
+          $(am__cd) "$$dir" && rm -f $$files; }; \
+   }
+ SCRIPTS = $(bin_SCRIPTS)
+-DEFAULT_INCLUDES = -I.
++DEFAULT_INCLUDES = -I. -I/home/vladik/work/spondoolies/buildroot-2013.05/output/build/libcurl-7.28.1/include
+ depcomp = $(SHELL) $(top_srcdir)/depcomp
+ am__depfiles_maybe = depfiles
+ am__mv = mv -f
+@@ -268,10 +268,10 @@
+ BITSIZEOF_SIZE_T = 
+ BITSIZEOF_WCHAR_T = 
+ BITSIZEOF_WINT_T = 
+-CC = gcc
++CC = arm-none-linux-gnueabi-gcc
+ CCDEPMODE = depmode=gcc3
+ CFLAGS = -g -O2
+-CPP = gcc -E
++CPP = arm-none-linux-gnueabi-gcc -E
+ CPPFLAGS = 
+ CYGPATH_W = echo
+ DEFS = -DHAVE_CONFIG_H
+@@ -374,14 +374,14 @@
+ LD = /usr/bin/ld
+ LDFLAGS = 
+ LIBCURL_CFLAGS =  
+-LIBCURL_LIBS = -lcurl  
++LIBCURL_LIBS = /home/vladik/work/spondoolies/buildroot-2013.05/output/build/libcurl-7.28.1/./lib/.libs/libcurl.a
+ LIBGNU_LIBDEPS = 
+ LIBGNU_LTLIBDEPS = 
+ LIBOBJS = 
+-LIBS = -lpthread 
++LIBS = -lpthread /home/vladik/work/spondoolies/buildroot-2013.05/output/build/openssl-1.0.1e/libssl.a /home/vladik/work/spondoolies/buildroot-2013.05/output/build/openssl-1.0.1e/libcrypto.a -L/home/vladik/work/spondoolies/buildroot-2013.05/output/build/zlib-1.2.7 -lz -ldl
+ LIBTOOL = $(SHELL) $(top_builddir)/libtool
+ LIBUSB_CFLAGS = 
+-LIBUSB_LIBS = compat/libusb-1.0/libusb/.libs/libusb-1.0.a -ludev
++LIBUSB_LIBS = compat/libusb-1.0/libusb/.libs/libusb-1.0.a /home/vladik/work/spondoolies/udev-182/./.libs/libudev.a
+ LIPO = 
+ LN_S = ln -s
+ LTLIBOBJS = 
+@@ -451,7 +451,7 @@
+ STDINT_H = 
+ STRIP = strip
+ UDEV_CFLAGS =  
+-UDEV_LIBS = -ludev  
++UDEV_LIBS = /home/vladik/work/spondoolies/udev-182/./.libs/libudev.a
+ UNDEFINE_STRTOK_R = 0
+ VERSION = 3.4.3
+ VMAJ = 3
+@@ -537,9 +537,9 @@
+ INCLUDES = $(PTHREAD_FLAGS) -fno-strict-aliasing $(JANSSON_INCLUDES) $(USBUTILS_INCLUDES)
+ bin_SCRIPTS = $(top_srcdir)/*.cl
+ cgminer_LDFLAGS = $(PTHREAD_FLAGS)
+-cgminer_LDADD = $(DLOPEN_FLAGS) -lcurl   compat/jansson/libjansson.a -lpthread \
++cgminer_LDADD = $(DLOPEN_FLAGS) /home/vladik/work/spondoolies/buildroot-2013.05/output/build/libcurl-7.28.1/./lib/.libs/libcurl.a   compat/jansson/libjansson.a -lpthread \
+ 		      \
+-		  compat/libusb-1.0/libusb/.libs/libusb-1.0.a -ludev  -lrt \
++		  compat/libusb-1.0/libusb/.libs/libusb-1.0.a /home/vladik/work/spondoolies/udev-182/./.libs/libudev.a  -lrt \
+ 		  -lm lib/libgnu.a ccan/libccan.a
+ 
+ cgminer_CPPFLAGS = -I$(top_builddir)/lib \

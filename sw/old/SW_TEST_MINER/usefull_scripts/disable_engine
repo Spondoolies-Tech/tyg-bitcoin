@@ -1,0 +1,4 @@
+#!/bin/sh
+_ REG 00000a64 1 # leader
+_ REG 00000a80 2 # enable
+

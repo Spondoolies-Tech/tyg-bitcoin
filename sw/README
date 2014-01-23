@@ -1,0 +1,106 @@
+SW architecture
+ blaze-fw - C file running on the blaze CPU. Responsible for:
+	     - handling uart commands in format "CMD[AABBCCDD] Command...". Output goes to UART.
+	         - Commands include:
+		 CMD[AABBCCDD] REG 00FFFF40      - read register 40 in broadcast
+		 CMD[AABBCCDD] REG 00FFFF40 AABB - write register 40 in broadcast to 0xAABB
+		 CMD[AABBCCDD] MEM 80000000      - read memory 80000000
+ 		 CMD[AABBCCDD] MEM 80000000 AABB - write memory 80000000 to 0xaabb
+ 		 CMD[AABBCCDD] MEM 80000000 AABB - write memory 80000000 to 0xaabb
+		 CMD[AABBCCDD] DO_WORK L:1F B64:4b1e5e4a29ab5f49FFFF001D M:339a90bcf0bf58637daccc90a8ca591ee9d8c8c3c803014f3687b1961bf91947  - give job to HW
+		 CMD[AABBCCDD] STATE - print state
+	     
+ 
+
+ host_sw
+		libraries and test applications needed to connect to FPGA.
+		spond_lib_fake.a - connects cpuminer to fake FPGA
+		spond_lib.a - connects cpuminer to real FPGA (not tested yet)
+		spond_test, spond_test_fake - testers for spond_lib_fake.a and spond_lib.a.
+
+
+
+ cpuminer2
+		Modified cpuminer to use spond_lib.a or spond_lib_fake.a (edit the maikefile.in to decide) for mining.
+
+		To mine to Zvisha's wallet: 
+			./minerd --url http://pool.50btc.com:8332 --userpass 1MhXfPFPAmrcVrFfbL9EFDvCfvwMdB1kHx:Password 
+
+ _ 
+		bash application that sends command to the ttyUSB0. To use:
+			_ REG 00ffff40
+			_ TARGET_SET 1122334455667788990011223344556677889900112233445566778899001122
+
+
+
+ 
+TO SHOW TEST VECTORS (GUY, FOR YOU):
+ - Load Application to 25 FPGA
+ - Open QuteCom on port /dev/ttyUSB0
+ - Run the following commands (ping board, then set NONCE range to search, then set target, then give work):
+
+Genesis block
+_ PING
+_ REG 000000b0 1DA00000
+_ REG 000000c0 1DAfffff
+_ TARGET_SET 0000000100000000000000000000000000000000000000000000000100000000
+_ DO_WORK B64:4b1e5e4a29ab5f49FFFF001D M:339a90bcf0bf58637daccc90a8ca591ee9d8c8c3c803014f3687b1961bf91947
+
+_ REG 000000b0 08c00000
+_ REG 000000c0 08e00000
+_ TARGET_SET 0000000100000000000000000000000000000000000000000000000100000000
+_ DO_WORK B64:22c90f9bb0bc6649ffff001d M:cc0e0fbc8efbb56de6fef9fc0fa3d4badd0535e20620a0c96407e432740ebd66
+
+You can change midstates or block to show negative results, or move NONCE range. 
+(Just dont make range more then 0x100000 or you will wait long time) 
+
+
+TO SHOW TEST MINING (GUY, FOR YOU):
+ - Disconnect the cutecom (IMPORTANT!) 
+ - Set range and target - dont choose range that bigger then 0xffffff00 or smaller then 0x100000 (IMPORTANT) or engine will overflow:
+_ REG 000000b0 010000000
+_ REG 000000c0 020000000
+_ TARGET_SET 0000000100000000000000000000000000000000000000000000000100000000
+cd cpuminer
+./minerd --url http://pool.50btc.com:8332 --userpass 1MhXfPFPAmrcVrFfbL9EFDvCfvwMdB1kHx:NoPassword
+
+You might need to run it 2-3 times to get it started without assertion (if it has finished jobs in pipe).
+
+Now open 2 new bash tabs (in same directory): 1 for logging and 1 for giving commands:
+in one do:
+tail -f run_log 
+in the other do:
+_ STATE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+To sets the build:
+1) Create helloworld C project
+2) link/copy git/sw/blaze_fw/blaze_fw.c to your helloworld.c 
+3) Make sure INTERUCTIVE_DUBUG_MODE is defined in blaze_fw.c.
+4) Run the file on board, open CUTECOM and read ADDR_BR_NO_ADDR:
+	_ REG 00ffff40
+Should be one.
+Then give address 0x12 to the device
+	_ REG 00ffff00 12
+Now 	
+	_ REG 00ffff40 
+should be zero since we had only one device.
+
+Regards`
+
+
+
+
+

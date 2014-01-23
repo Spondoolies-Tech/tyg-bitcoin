@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#_ SETPARTRANGE 003FFFFF
+_ SETPARTRANGE 07FFFFFF
+_ STOP
+_ STOP
+_ STOP
+_ STOP
+_ STOP
+_ STOP
+_ STOP
+_ LEADING0 19
+#sleep 1
+for (( ; ; ))
+do
+   R1=`printf "%04X" $RANDOM`
+   R2=`printf "%04X" $RANDOM`
+   #echo $MOREF
+   #_ DO_WORK B64:4b1e5e4a29ab5f49ffff001d M:339a90bcf0bf58637daccc90a8ca591ee9d8c8c3c803014f3687b1961bf91947
+   #echo " _ DO_WORK L:19 B64:4b1e5e4a29ab5f49${R1}${R2} M:339a90bcf0bf58637daccc90a8ca591ee9d8c8c3c803014f3687b1961bf91947" >> ~/fpga_test.log
+   _ DO_WORK B64:4b1e5e4a29ab5f49${R1}${R2} M:339a90bcf0bf58637daccc90a8ca591ee9d8c8c3c803014f3687b1961bf91947
+   _ DO_WORK B64:4b1e5e4a29ab5f49${R1}${R1} M:339a90bcf0bf58637daccc90a8ca591ee9d8c8c3c803014f3687b1961bf91947
+   _ DO_WORK B64:4b1e5e4a29ab5f49${R2}${R2} M:339a90bcf0bf58637daccc90a8ca591ee9d8c8c3c803014f3687b1961bf91947
+   sleep 1
+   _ STOP
+done
+

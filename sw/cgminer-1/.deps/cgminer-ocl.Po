@@ -1,0 +1,3 @@
+cgminer-ocl.o: ocl.c config.h
+
+config.h:

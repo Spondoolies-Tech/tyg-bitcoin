@@ -1,0 +1,20 @@
+--- ./compat/libusb-1.0/libtool.orig	2013-09-26 12:22:08.816000274 +0200
++++ ./compat/libusb-1.0/libtool	2013-09-26 18:00:51.624000273 +0200
+@@ -161,7 +161,7 @@
+ lock_old_archive_extraction=no
+ 
+ # A C compiler.
+-LTCC="gcc"
++LTCC="arm-none-linux-gnueabi-gcc"
+ 
+ # LTCC compiler flags.
+ LTCFLAGS="-g -O2"
+@@ -302,7 +302,7 @@
+ old_archive_cmds="\$AR \$AR_FLAGS \$oldlib\$oldobjs~\$RANLIB \$tool_oldlib"
+ 
+ # A language specific compiler.
+-CC="gcc"
++CC="arm-none-linux-gnueabi-gcc"
+ 
+ # Is the compiler the GNU compiler?
+ with_gcc=yes

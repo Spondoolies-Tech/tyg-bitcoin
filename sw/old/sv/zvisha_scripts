@@ -1,0 +1,126 @@
+# init both units to be same chip address
+#
+# SINGLE CPU
+_ REG 00FFFF40
+_ REG 00FFFF01 0
+_ REG 00FFFF40
+_ REG 00FFFF00 0
+_ REG 00FFFF40
+_ REG 00FFFF00 0
+_ REG 00FFFF40
+# 1 chip on system
+_ REG 00FFFF15 0
+
+
+# 2 CPUS
+_ REG 00FFFF40
+_ REG 00FFFF01 0
+_ REG 00FFFF40
+_ REG 00FFFF00 0
+_ REG 00FFFF40
+_ REG 00FFFF00 1
+_ REG 00FFFF40
+# 2 chip on system
+_ REG 00FFFF15 1
+
+
+
+# 8000 CPUS
+_ REG 00FFFF40
+_ REG 00FFFF01 0
+_ REG 00FFFF40
+_ REG 00FFFF00 0
+_ REG 00FFFF40
+_ REG 00FFFF00 1
+_ REG 00FFFF40
+# 2 chip on system
+_ REG 00FFFF15 16
+
+
+
+
+
+
+
+#set target
+_ TARGET_SET 00000000000001DE940000000000000000000000000000000000000000000000
+_ DO_WORK D:2194261a T:9395e64d M:bed17115 M:228ea4732a3c9ba860c009cda7252b9161a5e75ec8c582a5f106abb3af41f790
+_ STATE
+_ STATE
+_ STATE
+
+
+
+
+
+# GET CHIPS OUT OF RESET
+# READ GPIO
+# set to read
+_ MEM 40000004 1
+# get data
+_ MEM 40000000
+
+# set to write
+_ MEM 40000004 0
+# set data - reset
+_ MEM 40000000 3
+
+# READ GPIO
+# set to read
+_ MEM 40000004 1
+# get data
+_ MEM 40000000
+
+
+
+
+
+
+
+# GET CHIPS OUT OF RESET
+# READ GPIO
+# set to read
+_ MEM 40000004 1
+# get data
+_ MEM 40000000
+
+# set to write
+_ MEM 40000004 0
+# set data - reset
+_ MEM 40000000 3
+
+# READ GPIO
+# set to read
+_ MEM 40000004 1
+# get data
+_ MEM 40000000
+
+
+
+# GET CHIPS OUT OF RESET
+# READ GPIO
+# set to read
+CMD[000045e2] 40000004 1
+# get data
+CMD[000045e2] 40000000
+
+# set to write
+CMD[000045e2] 40000004 0
+# set data - reset
+CMD[000045e2] 40000000 3
+
+# READ GPIO
+# set to read
+CMD[000045e2] 40000004 1
+# get data
+CMD[000045e2] 40000000
+
+
+
+
+
+
+
+
+
+

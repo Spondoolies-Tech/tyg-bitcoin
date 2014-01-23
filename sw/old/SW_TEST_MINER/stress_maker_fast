@@ -1,0 +1,34 @@
+#!/bin/bash
+# 25 1 per 32 jobs
+# 24 1 per 16 jobs
+# 23 1 per 8 jobs
+# 22 1 per 4 jobs
+# 21 1 per 2 jobs
+# 20 1
+# 1F 2
+# 1E 4 
+# 1D 8
+# 1C 16
+# 1B 32
+# 1A 64
+# 19 128
+# 18 
+# 17
+# 16
+# 15
+
+
+#_ SETPARTRANGE 02FFFFFF
+_ RSTCNT
+_ SETPARTRANGE 2FFFFFFF
+_ STOP
+_ LEADING0 1C
+for (( ; ; ))
+do
+   R1=`printf "%04X" $RANDOM`
+   R2=`printf "%04X" $RANDOM`
+   _ DO_WORK B64:4b1e5e4a29ab5f49${R1}${R2} M:139a90bcf0bf58637daccc90a8ca591ee9d8c8c3c803014f3687b1961bf91941
+   sleep 2
+# _ STOP
+done
+

@@ -1,0 +1,35 @@
+The Spondoolies system will be made of the following components:
+
+-Miners
+-Proxy servers running proxy applications.
+-Control server with Mysql and Web-interface
+
+None of the components will ever have private keys of the wallets. The money will be stored initially in our account 
+at the pool-operator or in temporary mining wallet, and in the end of each day it will be transfered to company storage wallets,
+where multiple keys will be needed to transfer them to other account.
+
+
+
+Miners can work in 2 modes:
+- Standalone mode    - CG miner
+- With proxy - CG miner with modifications to talk to our proxy server
+
+
+2 types of wallets 
+- Mining wallets - never keep more then 1 day worth of mining
+- Storage wallets - for long time BC storage, needs multiple signatures
+
+
+Proxy server proccess
+- Takes job-template (getworktemplate or stratum) from Pool (3rd party), devides job-templates to registered miners (stratum).
+- Proxy servers are HARD-CODED with the MINING WALLETS and can not be configured to mine to other wallets.
+Proxy servers will accept requests only from preconfigured IP ranges (pools, miners and control server).
+
+
+Control server (Mysql backend + Web front end)
+- Monitoring (mySQL + Web Interface) performance (by saving reports in mysql)
+- Configuring miners and proxy proccesses (mySQL + Web Interface) - saving in Mysql and sending configuration to miners. 
+
+The control servers will be located in the cluster or in the cloud.
+
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo $@ END >> /dev/ttyUSB0
+perl -MTime::HiRes -e 'Time::HiRes::usleep 150000'

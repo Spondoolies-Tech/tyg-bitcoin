@@ -1,0 +1,41 @@
+./spi_reg s 10 ffffff
+./spi_reg s 11 fffffe
+
+#Override pll
+./spi_reg h FFFF 18 1
+./spi_reg h FFFF 1a 1
+
+#set interrupts
+./spi_reg h FFFF 30 0
+./spi_reg h FFFF 31 FFFF
+./spi_reg h FFFF 31 0
+
+#reseting engines
+./spi_reg h FFFF 04 FFFFFFFF
+./spi_reg h FFFF 05 FFFFFFFF
+./spi_reg h FFFF 80 FFFFFFFF
+
+#read engines cnt  should be 2
+./spi_reg h FFFF 71  
+
+ #set nonce range
+./spi_reg h FFFF C3 0x80000000
+./spi_reg h FFFF B0 0x0
+./spi_reg h FFFF B1 0x80000000
+
+
+#Unallocate all chip addresses
+./spi_reg h FFFF 1 0
+#(should be = 0)
+
+#Allocate chip addresses (1)
+./spi_reg h FFFF 0 aa
+#Address allocated 1 # should be = 1
+./spi_reg h FFFF 72
+
+
+
+#give job
+
+
+

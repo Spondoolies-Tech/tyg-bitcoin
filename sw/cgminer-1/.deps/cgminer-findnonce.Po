@@ -1,0 +1,3 @@
+cgminer-findnonce.o: findnonce.c config.h
+
+config.h:
