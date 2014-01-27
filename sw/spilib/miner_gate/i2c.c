@@ -47,7 +47,9 @@ static pthread_mutex_t i2cm_trans  = PTHREAD_MUTEX_INITIALIZER;
 85                                      uint8_t command, uint16_t value);
 
 */
-    
+
+#define SLEEP_TIME_I2C 50000
+
 static char buf[10] = {0};
 void passert(int cond, const char *s);
 
@@ -66,6 +68,7 @@ uint8_t i2c_read(uint8_t addr) {
     pthread_mutex_lock(&i2cm);
     i2c_set_address(addr);
     res = i2c_smbus_read_byte(file);
+	usleep(SLEEP_TIME_I2C);
     pthread_mutex_unlock(&i2cm);
     return res;
 }
@@ -74,6 +77,7 @@ void i2c_write(uint8_t addr, uint8_t value){
       pthread_mutex_lock(&i2cm);    
       i2c_set_address(addr);
       i2c_smbus_write_byte(file, value);
+	  usleep(SLEEP_TIME_I2C);
       pthread_mutex_unlock(&i2cm);        
 }
 
@@ -83,6 +87,7 @@ uint8_t i2c_read_byte(uint8_t addr, uint8_t command) {
     i2c_set_address(addr);
     __s32 r = i2c_smbus_read_byte_data(file, command);
     //printf("i2c[%x:%x] -> %x\n",addr, command, r);
+    usleep(SLEEP_TIME_I2C);
     pthread_mutex_unlock(&i2cm);
     return r;
 }
@@ -93,6 +98,7 @@ uint16_t i2c_read_w(uint8_t addr) {
     i2c_set_address(addr);
     res = i2c_smbus_read_word_data(file , 0);
     pthread_mutex_unlock(&i2cm);
+	usleep(SLEEP_TIME_I2C);
     return res;
 }
 
@@ -100,6 +106,7 @@ void i2c_write_w(uint8_t addr, uint16_t value){
       pthread_mutex_lock(&i2cm);    
       i2c_set_address(addr);
       i2c_smbus_write_word_data(file,0 ,value);
+	  usleep(SLEEP_TIME_I2C);
       pthread_mutex_unlock(&i2cm);        
 }
 
@@ -108,6 +115,7 @@ void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value){
     pthread_mutex_lock(&i2cm);    
     i2c_set_address(addr);
     i2c_smbus_write_byte_data(file, command, value);
+	usleep(SLEEP_TIME_I2C);
     pthread_mutex_unlock(&i2cm);        
 }
 
@@ -117,6 +125,7 @@ uint16_t i2c_read_word(uint8_t addr, uint8_t command) {
     __s32 r = i2c_smbus_read_word_data(file, command);
     //printf("i2c[%x:%x] -> %x\n",addr, command, r);
     pthread_mutex_unlock(&i2cm);
+	usleep(SLEEP_TIME_I2C);
     return r;
 }
 
@@ -124,6 +133,7 @@ void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value) {
     pthread_mutex_lock(&i2cm);        
     i2c_set_address(addr);
     i2c_smbus_write_word_data(file, command, value);
+	usleep(SLEEP_TIME_I2C);
     pthread_mutex_unlock(&i2cm);        
 }
 

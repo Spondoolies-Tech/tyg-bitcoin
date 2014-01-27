@@ -24,7 +24,7 @@
  //usleep(1000000);
  //return 0;
 
-
+#define PRIMARY_I2C_SWITCH 0x70
 
 void i2c_init();
 uint8_t i2c_read(uint8_t addr);

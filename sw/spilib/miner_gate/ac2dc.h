@@ -2,9 +2,8 @@
 #define _____AC2DC__4544R_H____
 
 
+
 /*
-
-
  typedef enum {
     ASIC_VOLTAGE_555   =  0,
     ASIC_VOLTAGE_585   =  1,
