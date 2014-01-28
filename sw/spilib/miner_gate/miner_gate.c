@@ -29,6 +29,7 @@
 #include "squid.h"
 #include "i2c.h"
 #include "dc2dc.h"
+#include "ac2dc.h"
 
 
 using namespace std;
@@ -457,7 +458,7 @@ int main(int argc, char *argv[])
     spond_delete_nvm();
  }
 
-    
+  
  struct sockaddr_un address;
  int socket_fd, connection_fd;
  socklen_t address_length = sizeof(address);
@@ -469,6 +470,21 @@ int main(int argc, char *argv[])
  i2c_init();
  dc2dc_init();
  //read_mgmt_temp();
+
+
+ /*
+ int power = ac2dc_get_temperature(0);
+ printf("Current temp1 = %d\n",power);
+
+
+ power = ac2dc_get_temperature(1);
+ printf("Current temp1 = %d\n",power);
+
+
+ power = ac2dc_get_temperature(2);
+ printf("Current temp1 = %d\n",power);
+*/			
+
 
  //return 0;
 

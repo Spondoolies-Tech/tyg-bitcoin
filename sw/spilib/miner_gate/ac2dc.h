@@ -2,6 +2,9 @@
 #define _____AC2DC__4544R_H____
 
 
+int ac2dc_get_power();
+int ac2dc_get_temperature(int id);
+
 
 /*
  typedef enum {

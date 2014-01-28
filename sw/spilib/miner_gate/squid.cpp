@@ -209,7 +209,7 @@ void init_spi() {
 	 int ret = 0;
     fd = open(device, O_RDWR);
     if (fd < 0)
-      pabort("can't open device");
+      pabort("can't open spi device. Did you init eeprom?\n");
 
 
     /*
