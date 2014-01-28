@@ -1,5 +1,13 @@
 #!/bin/sh
 
+usage ()
+{
+	fn=$0
+	fn="${fn##*/}"
+	echo "Usage: $fn [-q|--quiet] [-a|--all] [-p|--pnr] [-m|--model] [-r|-revision] [-s|--serial]"
+	exit 1
+}
+
 	OUT_Q=0
 	OUT_A=0
 	OUT_P=0
@@ -17,9 +25,12 @@ fi
 while [ $# -gt 0 ] ;
 do
 	key="$1"
-	#echo "key $key"
+#	echo "key $key"
 	shift
 	case $key in
+	    -h|--help)
+	    usage
+	    ;;
 	    -a|--all)
 	    OUT_A=1
 	    ;;
