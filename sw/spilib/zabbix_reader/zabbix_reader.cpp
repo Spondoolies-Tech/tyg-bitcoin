@@ -33,6 +33,25 @@ int main(int argc, char *argv[]) {
 		return -1;		
     }
 
+#if 1
+		zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
+		zabbix_log.version = MG_ZABBIX_LOG_VERSION;
+		zabbix_log.ac2dc_current = 0xbc;
+		zabbix_log.ac2dc_temp = 0xbd;
+
+		for(int l = 0; l < LOOP_COUNT ; l++) {
+			zabbix_log.loops[l].voltage = 1;
+			zabbix_log.loops[l].current = 1;
+			zabbix_log.loops[l].temp = 1;
+		}
+
+		for(int l = 0; l < HAMMERS_COUNT ; l++) {
+			zabbix_log.asics[l].freq = 1;
+			zabbix_log.asics[l].temp = 1;
+		}
+#endif
+
+
 	if (zabbix_log.magic != MG_ZABBIX_LOG_MAGIC) {
 		printf("zabbix log MAGIC wrong, %x instead of %x\n", zabbix_log.magic , MG_ZABBIX_LOG_MAGIC);
 		return -1;
@@ -43,6 +62,20 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
+
+	printf("zabbix_log.ac2dc_current = %x\n", zabbix_log.ac2dc_current);
+	printf("zabbix_log.ac2dc_temp = %x\n", zabbix_log.ac2dc_temp);
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+		printf("loop[%x].voltage = %x\n", l, zabbix_log.loops[l].voltage);
+		printf("loop[%x].current = %x\n", l, zabbix_log.loops[l].current);
+		printf("loop[%x].temp = %x\n", l, zabbix_log.loops[l].temp);
+	}
+
+	for(int l = 0; l < HAMMERS_COUNT ; l++) {
+		printf("asic[%x].freq = %x\n", l, zabbix_log.asics[l].freq);
+		printf("asic[%x].temp = %x\n", l, zabbix_log.asics[l].temp);
+	}
+	
 	
 }
 
