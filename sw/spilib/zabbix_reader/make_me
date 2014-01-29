@@ -1,1 +1,2 @@
 g++ zabbix_reader.cpp -o zabbix_reader
+g++ zabbix_fakewriter.cpp -o zabbix_fakewriter

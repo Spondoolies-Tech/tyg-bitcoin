@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 		return -1;		
     }
 
-#if 1
+#if 0
 		zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
 		zabbix_log.version = MG_ZABBIX_LOG_VERSION;
 		zabbix_log.ac2dc_current = 0xbc;
