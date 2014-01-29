@@ -1,0 +1,21 @@
+#arm-none-linux-gnueabi-gcc spi_reg.c spilib.c -o spi_reg -g -O0
+#arm-none-linux-gnueabi-gcc hammer_kit.c hammer_tester.c spilib.c -o hammer_test -g -O0
+#gcc -g -O0 miner_gate.c minergate_lib.c   -o server 
+#gcc -g -O0 minergatec.c minergate_lib.c   -o client  
+
+#gcc -g -O0 -rdynamic miner_gate.c minergate_lib.c hammer_kit.c  spilib.c  -o miner_gate 
+
+GPP_CMD="arm-none-linux-gnueabi-g++ -g -O0 -fpermissive -rdynamic"
+LINK_LIB="-lpthread -static-libstdc++ -static-libgcc"
+
+$GPP_CMD ac2dcvpd.c i2c.c  ../miner_gate/squid.cpp ../miner_gate/ac2dc.c -o ac2dcvpd ${LINK_LIB} -I../miner_gate
+
+
+# cd hammer_reg
+# ./make_me
+# cd ../
+
+
+mv ./ac2dcvpd ~/shared/ 
+
+
