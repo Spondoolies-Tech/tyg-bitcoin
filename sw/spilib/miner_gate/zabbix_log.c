@@ -36,6 +36,8 @@ void dump_zabbix_stats() {
     {
     	fwrite(&zabbix_log,1,sizeof(zabbix_log),fp); 
         fclose(fp);
+    } else {
+		printf("Failed to save zabbix log\n");
     }
 }
 
