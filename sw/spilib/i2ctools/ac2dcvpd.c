@@ -22,13 +22,6 @@
 using namespace std;
 pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-#define ACTION_READ_BYTE   0
-#define ACTION_READ_WORD   1
-#define ACTION_WRITE_BYTE  2
-#define ACTION_WRITE_WORD  3
-
-
 int usage(char * app ,int exCode ,const char * errMsg = NULL)
 {
     if (NULL != errMsg )
@@ -41,7 +34,7 @@ int usage(char * app ,int exCode ,const char * errMsg = NULL)
     printf ("       -q : quiet mode, values only w/o headers\n"); 
     printf ("       -a : print all VPD params as one string\n"); 
     printf ("       -p : print part number\n"); 
-    printf ("       -m : print model ID\n"); 
+    printf ("       -m : print model IDl\n"); 
     printf ("       -r : print revision number\n"); 
     printf ("       -s : print serial number\n"); 
 
@@ -110,22 +103,24 @@ int main(int argc, char *argv[])
 	if (callUsage)
 		return usage(argv[0] , 0);
 
-    	i2c_init();
+   	i2c_init();
 
-    	ac2dc_vpd_info_t vpd = {}; // allocte, and initializero
+   	ac2dc_vpd_info_t vpd = {}; // allocte, and initializero
 		
-	ac2dc_get_vpd(&vpd);
+	rc	= ac2dc_get_vpd(&vpd);
 
-	if (print_all)
-		printf("%s%s%s%s\n",quiet?"":h_all,vpd.pnr,vpd.model,vpd.serial);
-	if (print_pnr)
-		printf("%s%s\n",quiet?"":h_pnr,vpd.pnr);
-	if (print_mod)
-		printf("%s%s\n",quiet?"":h_mod,vpd.model);
-	if (print_rev)
-		printf("%s%s\n",quiet?"":h_rev,vpd.revision);
-	if (print_ser)
-		printf("%s%s\n",quiet?"":h_ser,vpd.serial);
-
-	return 0;
+	if (0 == rc)
+	{
+		if (print_all)
+			printf("%s%s%s%s\n",quiet?"":h_all,vpd.pnr,vpd.model,vpd.serial);
+		if (print_pnr)
+			printf("%s%s\n",quiet?"":h_pnr,vpd.pnr);
+		if (print_mod)
+			printf("%s%s\n",quiet?"":h_mod,vpd.model);
+		if (print_rev)
+			printf("%s%s\n",quiet?"":h_rev,vpd.revision);
+		if (print_ser)
+			printf("%s%s\n",quiet?"":h_ser,vpd.serial);
+	}
+	return rc;
 }

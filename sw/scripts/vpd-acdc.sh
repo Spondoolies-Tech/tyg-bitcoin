@@ -80,9 +80,9 @@ fi
 
 PNR=`./read-acdc-eep.sh 52 66`
 MODEL=`./read-acdc-eep.sh 87 90`
-SERIAL=`./read-acdc-eep.sh 93 96`
+SERIAL=`./read-acdc-eep.sh 91 100`
 REVISION=`./read-acdc-eep.sh 97 98`
-ALL="${PNR} ${MODEL} ${REVISION} ${SERIAL}"   
+ALL="${PNR}${MODEL}${SERIAL}"   
 ./i2cset -y 0 0x70 0x00
 
 if [ $OUT_Q -eq 0 ] ; then

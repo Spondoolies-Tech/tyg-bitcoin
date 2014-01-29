@@ -26,14 +26,13 @@
 
 #define PRIMARY_I2C_SWITCH 0x70
 
-void i2c_init();
-uint8_t i2c_read(uint8_t addr);
-void i2c_write(uint8_t addr, uint8_t value);
-
-uint8_t i2c_read_byte(uint8_t addr, uint8_t command);
-void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value);
-uint16_t i2c_read_word(uint8_t addr, uint8_t command);
-void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value);
+void i2c_init( int * pError = NULL);
+uint8_t i2c_read(uint8_t addr, int * pError = NULL);
+void i2c_write(uint8_t addr, uint8_t value, int * pError = NULL);
+uint8_t i2c_read_byte(uint8_t addr, uint8_t command, int * pError = NULL);
+void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value, int * pError = NULL);
+uint16_t i2c_read_word(uint8_t addr, uint8_t command, int * pError = NULL);
+void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value, int * pError = NULL);
 
 
 uint16_t read_mgmt_temp();
