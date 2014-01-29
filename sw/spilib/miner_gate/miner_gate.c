@@ -471,7 +471,13 @@ int main(int argc, char *argv[])
  dc2dc_init();
  //read_mgmt_temp();
 
-
+ while (1) {
+ 	printf("Current power::: = %d\n",ac2dc_get_power());
+		printf("Current tmp0::: = %d\n",ac2dc_get_temperature(0));
+			printf("Current tmp1::: = %d\n",ac2dc_get_temperature(1));
+				printf("Current tmp2::: = %d\n",ac2dc_get_temperature(2));
+	sleep(1);
+ }
  /*
  int power = ac2dc_get_temperature(0);
  printf("Current temp1 = %d\n",power);

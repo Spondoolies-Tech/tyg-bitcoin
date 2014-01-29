@@ -4,13 +4,34 @@
 #include "i2c.h"
 
 
+int ac2dc_getint(int source) {
+	int n = (source & 0xF800) >> 11;
+	// This is shitty 2s compliment on 5 bits.
+	if (n&0x10) {
+		n = (n^0x1F)+1;
+	} 
+	int y = (source & 0x07FF);
+	return (y*1000)/(1<<n);
+
+}
 
 
+// Return Watts
 int ac2dc_get_power() {
 	i2c_write(PRIMARY_I2C_SWITCH, 0x01); 
-	int power = i2c_read_word(AC2DC_I2C_EEPROM_DEVICE, AC2DC_I2C_READ_POUT_WORD)*1000/512;
+	int power = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD));
 	i2c_write(PRIMARY_I2C_SWITCH, 0x00);
-    return power;
+    return power/1000;
+}
+
+
+
+// Return Watts
+int ac2dc_get_temperature(int sensor) {
+	i2c_write(PRIMARY_I2C_SWITCH, 0x01); 
+	int temp = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD + sensor));
+	i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+    return temp/1000;
 }
 
 

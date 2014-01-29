@@ -3,7 +3,7 @@
 
 
 int ac2dc_get_power();
-int ac2dc_get_temperature(int id);
+int ac2dc_get_temperature(int sensor); //0,1,2
 
 
 /*

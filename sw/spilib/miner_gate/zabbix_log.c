@@ -18,8 +18,17 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include "zabbix_log.h"
 
 
+
+
+#if 1 
+
+void dump_zabbix_stats() {
+}
+
+#else
 #define MAX_ZABBIX_LOG 200000
 #define ZABBIX_VERSION 1
 
@@ -132,19 +141,6 @@ void dump_zabbix_stats() {
             json_append_element(asic_temp,json_mknumber(ham->temperature));
             json_append_element(asic_wins,json_mknumber(ham->solved_jobs));
 
-
-
-
-            /*
-            zabbix_add("h[%x].enbl %x\n", ham->address, ham->present);
-            zabbix_add("h[%x].corner %x\n", ham->address, ham->corner);                
-            zabbix_add("h[%x].freq %x\n", ham->address, ham->freq);
-            zabbix_add("h[%x].max_freq %x\n", ham->address, ham->max_freq);
-            zabbix_add("h[%x].engines_on %x\n", ham->address, ham->enabled_engines_mask);
-            zabbix_add("h[%x].engines_work %x\n", ham->address, ham->working_engines_mask);                
-            zabbix_add("h[%x].temp %x\n", ham->address, ham->temperature);
-            zabbix_add("h[%x].wins %x\n", ham->address, ham->solved_jobs);
-            */
             //miner_box.loop[l].dc2dc.current += ham->freq;
             // miner_box.ac2dc_top_current += ham->freq;
           } 
@@ -165,6 +161,6 @@ void dump_zabbix_stats() {
 }
 
 void create_zabbix_log();
-
+#endif
 
 
