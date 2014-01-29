@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 #include <unistd.h>
-#include <dc2dc.h>
+#include "dc2dc.h"
 
 
 #define NVM_VERSION (0xCAF10000 + sizeof(SPONDOOLIES_NVM))

@@ -24,8 +24,19 @@
 
 
 #if 1 
+MG_ZABBIX_LOG zabbix_log;
+
+void update_zabbix_stats() {
+}
+
 
 void dump_zabbix_stats() {
+	FILE *fp = fopen("./zabbix_log.bin", "w");
+    if (fp != NULL)
+    {
+    	fwrite(&zabbix_log,1,sizeof(zabbix_log),fp); 
+        fclose(fp);
+    }
 }
 
 #else
