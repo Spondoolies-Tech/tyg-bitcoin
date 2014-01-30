@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# Handle SPI.
+#
+
+
+start_spi()
+{
+	# Do not rely on exact Cape Manager number.
+	cd /sys/devices/bone_capemgr.*
+	echo BB-SPI0 > slots
+}
+
+case "$1" in
+start)
+	echo "Starting SPI..."
+	start_spi
+	;;
+stop)
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+

@@ -1,0 +1,136 @@
+#!/bin/bash
+#
+# Really using BASHisms so explicitey demand BASH.
+#
+# Create Miner QEMU VM and connects it to QEMU bridge.
+#
+# Written by Vladik Goytin
+
+. ${HOME}/.miner/miner-vm.conf
+
+# VM number
+vmnum=
+
+usage_msg="
+Create a QEMU VM and connect it to QEMU bridge.
+
+Usage: $0 --vmnum=<VM number>
+
+ 	--vmnum		-- VM number (1, 2, ...)
+ 			   This number affects MAC address and TUN/TAP device
+ 			   number
+
+Examples:
+ 	$0 --vmnum=3
+ 		-- create VM number 3 with MAC address ${VM_MAC_BASE}:03
+ 		   and TAP device ${QEMU_BRIDGE_VM_IFACE}3 connected to bridge ${QEMU_BRIDGE}
+"
+
+error_header='
+
+	*** ERROR ***
+
+'
+
+ignore_exit()
+{
+	# Avoid calling itself again in case of SIGTERM or error.
+	trap - EXIT
+}
+
+
+# $1 -- message to print
+print_message()
+{
+	cat<<-EOF
+	$1
+	EOF
+}
+
+# $1 -- message to print
+error()
+{
+	print_message "${error_header}${BASH_COMMAND} failed"
+	ignore_exit
+	exit 1
+}
+
+usage()
+{
+	print_message "${usage_msg}"
+	exit 1
+}
+
+
+cleanup()
+{
+	sudo tunctl -d ${QEMU_BRIDGE_VM_IFACE}${vmnum}
+	ignore_exit
+	exit 0
+}
+
+
+find_qemu_bridge()
+{
+	bridge_ip=`/sbin/ifconfig ${QEMU_BRIDGE}`
+	echo ${bridge_ip} | grep -q ' inet addr:' ||
+		{ echo "${QEMU_BRIDGE}: No IP address or does not exist"; exit 1; }
+}
+
+
+add_tap_device()
+{
+	sudo tunctl -u ${USER} -t ${QEMU_BRIDGE_VM_IFACE}${vmnum}
+	sudo ifconfig ${QEMU_BRIDGE_VM_IFACE}${vmnum} up
+	sudo brctl addif ${QEMU_BRIDGE} ${QEMU_BRIDGE_VM_IFACE}${vmnum}
+}
+
+run_vm()
+{
+	mac_last_octet=`printf "%02x" ${vmnum}`
+	${QEMU} -M ${MACHINE} -nographic -sd ${VM_SDCARD_IMAGE}			\
+		-net nic,vlan=0,macaddr=${VM_MAC_BASE}:${mac_last_octet}	\
+		-net tap,vlan=0,ifname=${QEMU_BRIDGE_VM_IFACE}${vmnum},script=no
+}
+
+siginit()
+{
+	set -e
+	trap cleanup EXIT
+	trap cleanup TERM
+	trap error ERR
+}
+
+parse_args()
+{
+	opts="help,vmnum:,"
+	temp=`getopt -o h --long ${opts} -n miner-vm -- $@`
+	[ $? -ne 0 ] && usage $@
+
+	eval set -- "$temp"
+
+	params=0
+	while :
+	do
+		case $1 in
+		-h|--help)		usage; exit 0; shift ;;
+		--vmnum)		vmnum=$2; shift 2 ;;
+		--)			shift; break 2 ;;  # exit loop
+		* )			echo "unknown parameter $1"; return 1 ;;
+		esac
+		params=$(( params + 1 ))
+	done
+
+	[ x${vmnum} != x ]
+}
+
+main()
+{
+	parse_args $@ || usage
+	siginit
+	find_qemu_bridge
+	add_tap_device
+	run_vm
+}
+
+main $@

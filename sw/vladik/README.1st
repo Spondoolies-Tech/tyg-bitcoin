@@ -1,0 +1,21 @@
+Buildroot
+=========
+Download buildroot-2013.05.tar.xz and its counterpart MD5 sum file
+buildroot-2013.05.tar.xz.md5 ffrom Dropbox.
+
+Verify that the Buildroot archive is correct:
+
+	md5sum -c buildroot-2013.05.tar.xz.md5
+
+If the test is correct open file buildroot-2013.05.tar.xz here:
+
+	tar xf buildroot-2013.05.tar.xz
+
+In order to create full image U-Boot and Linux kernel should be
+added to this directory. See below where to place those corresponding
+repositories.
+
+	Project			Directory
+	=================================
+	U-Boot			u-boot
+	Linux kernel		kernel/kernel

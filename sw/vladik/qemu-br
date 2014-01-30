@@ -1,0 +1,137 @@
+#!/bin/bash
+#
+# Really using BASHisms so explicitey demand BASH.
+#
+# Control QEMU bridge.
+#
+# Written by Vladik Goytin
+
+. ${HOME}/.miner/miner-vm.conf
+
+# VM number
+create=
+remove=
+actions=0
+
+usage_msg="
+Control QEMU bridge.
+
+Usage: $0 --create|--remove
+
+ 	--create	-- create QEMU bridge
+ 	--remove	-- remove QEMU bridge
+
+ 	NOTE: all required parameters read from configuration file
+ 	      ${HOME}/.miner/miner-vm.conf
+
+Examples:
+ 	$0 --create
+ 		-- create QEMU bridge
+
+ 	$0 --remove
+ 		-- remove QEMU bridge
+"
+
+error_header='
+
+	*** ERROR ***
+
+'
+
+ignore_exit()
+{
+	# Avoid calling itself again in case of SIGTERM or error.
+	trap - EXIT
+}
+
+
+# $1 -- message to print
+print_message()
+{
+	cat<<-EOF
+	$1
+	EOF
+}
+
+# $1 -- message to print
+error()
+{
+	print_message "${error_header}${BASH_COMMAND} failed"
+	ignore_exit
+	exit 1
+}
+
+usage()
+{
+	print_message "${usage_msg}"
+	exit 1
+}
+
+
+cleanup()
+{
+	ignore_exit
+	exit 0
+}
+
+
+create_qemu_bridge()
+{
+	brctl addbr ${QEMU_BRIDGE}
+	ifconfig ${QEMU_BRIDGE} ${QEMU_BRIDGE_IP}
+}
+
+
+remove_qemu_bridge()
+{
+	ifconfig ${QEMU_BRIDGE} 0.0.0.0 down
+	brctl delbr ${QEMU_BRIDGE}
+}
+
+
+siginit()
+{
+	set -e
+	trap cleanup EXIT
+	trap cleanup TERM
+	trap error ERR
+}
+
+parse_args()
+{
+	opts="help,create,remove"
+	temp=`getopt -o h --long ${opts} -n miner-vm -- $@`
+	[ $? -ne 0 ] && usage $@
+
+	eval set -- "$temp"
+
+	params=0
+	while :
+	do
+		case $1 in
+		-h|--help)		usage; exit 0; shift ;;
+		--create)		create=y;
+					actions=$((actions+1))
+					shift ;;
+		--remove)		remove=y;
+					actions=$((actions+1))
+					shift ;;
+		--)			shift; break 2 ;;  # exit loop
+		* )			echo "unknown parameter $1"; return 1 ;;
+		esac
+		params=$(( params + 1 ))
+	done
+
+	[ ${actions} -eq 1 ]
+}
+
+main()
+{
+	parse_args $@ || usage
+	[ `id -u` -eq 0 ] || { echo 'Must be root'; exit 1; }
+	siginit
+	[ x${create} = xy ] && create_qemu_bridge
+	[ x${remove} = xy ] && remove_qemu_bridge
+}
+
+main $@
