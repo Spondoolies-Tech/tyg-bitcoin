@@ -138,7 +138,7 @@ on rootfs and rootfs needs several files from kernel. So first we need
 to compile the kernel without rootfs (initramfs): slim kernel.
 
 
-Slim kernel
+Slim kernel - !!needed for buildroot"
 -----------
 Between kernel and rootfs there is a circular dependency: kernel depends
 on rootfs and rootfs needs several files from kernel. So first we need 
@@ -146,8 +146,9 @@ to compile the kernel without rootfs (initramfs): slim kernel.
 Slim kernel should only be prepared once.
 
 	cd kernel
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- distclean
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies_defconfig
-	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi-
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- -j4
 
 
 Configure full image
@@ -155,7 +156,7 @@ Configure full image
 
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- menuconfig
 
-Enter General setup, select Initial RAM filesystem and RAM disk.
+Enter General setup, select "Initial RAM filesystem and RAM disk".
 In Initramfs source file enter string ../../buildroot-2013.05/output/images/rootfs.cpio.lzma.
 Select Support initial ramdisks compressed using LZMA and unselect
 Support initial ramdisks compressed using gzip.
@@ -163,9 +164,9 @@ Support initial ramdisks compressed using gzip.
 
 Build full image
 ----------------
-Full image kernel implies rootfs (buildroot) is already done.
+!! Full image kernel implies rootfs (buildroot) is already done. !!
 
-	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- uImage
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- uImage -j4
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies.dtb
 
 The results are in arch/arm/boot/uImage and arch/arm/boot/dts/spondoolies.dtb.
