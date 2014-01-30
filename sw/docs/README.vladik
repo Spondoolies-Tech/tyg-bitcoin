@@ -1,14 +1,14 @@
 Terms
 =====
 Root directory -- root directory on host Linux PC where all
-   development is done
+development is done
 
 Overo QEMU image creation
 =========================
 Use script create-sd-card-image.sh in order to create SD Card image.
 Run it from root directory as follows:
 
-./create-sd-card-image.sh
+	./create-sd-card-image.sh
 
 It should create overo-sdcard.img which contains MLO and U-Boot for Overo board.
 
@@ -34,7 +34,7 @@ Linux
 -----
 Install TFTP server
 
-apt-get install atftpd
+	apt-get install atftpd
 
 and configure it (working directory).
 
@@ -44,26 +44,19 @@ shoule use isc-dhcp-server which is very powerfull but more complicated.
 See its description here: https://wiki.debian.org/DHCP_Server
 
 
-
-
-
-
-
-
-
-
-
+U-Boot
+======
 
 Configuration
 =============
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- distclean
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- am335x_evm_config
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- distclean
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- am335x_evm_config
 (possible to edit CONFIG_BOOTCOMMAND in am335x_evm.h)
 
 
 Compilation
 ===========
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi-
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi-
 
 
 The Results
@@ -99,15 +92,6 @@ Then copy U-Boot itself:
 
 
 
-
-
-
-
-
-
-
-
-
 Buildroot image creation
 ========================
 
@@ -115,19 +99,19 @@ Install buildroot
 -----------------
 Go to root directory and unpack it:
 
-tar xf buildroot-2013.05.tar.xz
+	tar xf buildroot-2013.05.tar.xz
 
 Configure
 ---------
 Go to buildroot directory and copy config file:
 
-cd buildroot-2013.05
-cp ../config/buildroot-2013.05-spondoolies.bbb .config
+	cd buildroot-2013.05
+	cp ../config/buildroot-2013.05-spondoolies.bbb .config
 
 Build image
 -----------
 
-make
+	make
 
 
 Customization
@@ -142,16 +126,16 @@ Installation
 ------------
 Go to root directory and unpack archive kernel.tgz:
 
-tar xf linux-3.8.13-spon.tar.xz
+	tar xf linux-3.8.13-spon.tar.xz
 
 Build image
 -----------
 
-cd kernel/kernel
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- mrproper
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies_defconfig
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- uImage
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies.dtb
+	cd kernel/kernel
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- mrproper
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies_defconfig
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- uImage
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies.dtb
 
 The results are in arch/arm/boot/uImage and arch/arm/boot/dts/spondoolies.dtb.
 
