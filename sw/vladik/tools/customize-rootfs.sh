@@ -41,10 +41,6 @@ zabbix_agent()
 	cp ${CUR_DIR}/../zabbix-2.0.8/src/zabbix_agent/zabbix_agentd usr/local/bin
 }
 
-cgminer()
-{
-	cp ${CUR_DIR}/../cgminer-3.4.3/cgminer usr/local/bin
-}
 
 
 spi_stuff()
@@ -57,11 +53,24 @@ spi_stuff()
 	cp -a ${CUR_DIR}/../add-ons/S60spi etc/init.d
 }
 
-fpga_stuff()
-{
+copy_all_spond_files() {
+	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
+	if [ ! -d "nvm" ]; then
+		mkdir nvm
+	fi
+	#FPGA
 	cp ${CUR_DIR}/../jtag/jam/jam usr/local/bin
 	cp ${CUR_DIR}/../jtag/fpga-load.sh usr/local/bin
+	if [ ! -d "spond-data" ]; then
+		mkdir spond-data
+	fi
+	cp ${CUR_DIR}/../add-ons/squid_top.jam spond-data
+	
+	#binaries
+	cp ${CUR_DIR}/../add-ons/miner_gate_arm usr/local/bin
+	cp ${CUR_DIR}/../add-ons/cgminer usr/local/bin
 }
+
 
 main()
 {
@@ -73,9 +82,10 @@ main()
 	cleanup
 	fix_mdev_conf
 #	zabbix_agent
-	cgminer
+	copy_all_spond_files
+#	cgminer
 	spi_stuff
-	fpga_stuff
+#	fpga_stuff
 }
 
 main $@

@@ -157,7 +157,7 @@ Configure full image
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- menuconfig
 
 Enter General setup, select "Initial RAM filesystem and RAM disk".
-In Initramfs source file enter string ../../buildroot-2013.05/output/images/rootfs.cpio.lzma.
+In Initramfs source file enter string "../../buildroot-2013.05/output/images/rootfs.cpio.lzma".
 Select Support initial ramdisks compressed using LZMA and unselect
 Support initial ramdisks compressed using gzip.
 
