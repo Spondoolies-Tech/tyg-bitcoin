@@ -1,0 +1,42 @@
+Configuration
+=============
+make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- distclean
+make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- am335x_evm_config
+
+
+Compilation
+===========
+make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi-
+
+
+The Results
+===========
+MLO, u-boot.img
+
+
+SD Card
+=======
+Create the 1st primary partition on the SD Card of 32MB size by using cfdisk:
+
+	cfdisk /dev/sdb
+
+The type of the partition is W95 FAT32 (type 0b)
+
+Now format tghe 1st partition of the SD Card:
+
+	mkdosfs /dev/sdb1
+
+
+Installation
+============
+Mount the 1st SD Card partition, say to /mnt/usb.
+The first file that must be copied is MLO:
+
+	cp MLO /mnt/usb
+
+Then copy U-Boot itself:
+
+	cp u-boot.img /mnt/usb
+
+
+Vladik, 14.12.2013
