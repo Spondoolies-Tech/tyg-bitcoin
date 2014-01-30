@@ -1,0 +1,6 @@
+Zabbix interface structure.
+
+
+minergate will periodically create file that will hold the runtime information in binary form. This document describes this binary form.
+
+The data will be stored in little endian, and it will be defined as the structure in zabbix_api.h in miner-gate. 

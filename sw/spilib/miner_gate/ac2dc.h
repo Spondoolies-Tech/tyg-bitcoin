@@ -3,7 +3,6 @@
 
 
 int ac2dc_get_power();
-int ac2dc_get_temperature(int id);
 unsigned char ac2dc_get_eeprom_quick(int offset,int * pError = 0);
 
 typedef struct {
@@ -14,6 +13,7 @@ typedef struct {
 } ac2dc_vpd_info_t;
 
 int ac2dc_get_vpd( ac2dc_vpd_info_t * pVpd);
+int ac2dc_get_temperature(int sensor); //0,1,2
 
 
 /*
