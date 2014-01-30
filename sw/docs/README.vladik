@@ -110,6 +110,7 @@ Go to buildroot directory and copy config file:
 
 Build image
 -----------
+Note, that rootfs building implies creation of slim kernel (see below).
 
 	make
 
@@ -124,16 +125,46 @@ Kernel
 
 Installation
 ------------
-Go to root directory and unpack archive kernel.tgz:
+Clone kernel repository to kernel/kernel directories:
 
-	tar xf linux-3.8.13-spon.tar.xz
+	cd sw/vladik
+	mkdir kernel
+	cd kernel
+	git clone https://github.com/Spondoolies-Tech/kernel.git
 
-Build image
+
+Between kernel and rootfs there is a circular dependecy: kernel depends
+on rootfs and rootfs needs several files from kernel. So first we need 
+to compile the kernel without rootfs (initramfs): slim kernel.
+
+
+Slim kernel
 -----------
+Between kernel and rootfs there is a circular dependency: kernel depends
+on rootfs and rootfs needs several files from kernel. So first we need 
+to compile the kernel without rootfs (initramfs): slim kernel.
+Slim kernel should only be prepared once.
 
-	cd kernel/kernel
-	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- mrproper
+	cd kernel
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies_defconfig
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi-
+
+
+Configure full image
+--------------------
+
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- menuconfig
+
+Enter General setup, select Initial RAM filesystem and RAM disk.
+In Initramfs source file enter string ../../buildroot-2013.05/output/images/rootfs.cpio.lzma.
+Select Support initial ramdisks compressed using LZMA and unselect
+Support initial ramdisks compressed using gzip.
+
+
+Build full image
+----------------
+Full image kernel implies rootfs (buildroot) is already done.
+
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- uImage
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies.dtb
 
