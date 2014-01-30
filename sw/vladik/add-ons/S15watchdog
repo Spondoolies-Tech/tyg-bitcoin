@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# Watchdog.
+#
+
+RESET_AFTER=5
+UPDATE_INTERVAL=2
+
+start_watchdog()
+{
+	watchdog -T ${RESET_AFTER} -t ${UPDATE_INTERVAL} /dev/watchdog0
+}
+
+stop_watchdog()
+{
+	pkill watchdog
+}
+
+
+case "$1" in
+start)
+	echo "Configure watchdog ..."
+	start_watchdog
+	;;
+stop)
+	stop_watchdog
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+

@@ -72,6 +72,11 @@ copy_all_spond_files() {
 }
 
 
+watchdog()
+{
+	cp -a ${CUR_DIR}/../add-ons/S15watchdog etc/init.d
+}
+
 main()
 {
 	set -e
@@ -86,6 +91,7 @@ main()
 #	cgminer
 	spi_stuff
 #	fpga_stuff
+	watchdog
 }
 
 main $@
