@@ -1,0 +1,3 @@
+cp /home/zvisha/all-gits/tyg-git/sw/vladik/image/* /media/zvisha/*/
+sleep 5
+umount /media/zvisha/*

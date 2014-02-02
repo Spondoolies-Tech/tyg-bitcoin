@@ -1,0 +1,17 @@
+/etc/init.d/S90spondoolies - start script
+/etc/init.d/S60spi
+
+
+/nvm/ - nvm directory
+
+/usr/local/bin/jtag
+/usr/local/bin/fpga-load.sh
+/usr/local/bin/miner_gate_arm
+/usr/local/bin/cgminer
+/usr/local/bin/mining_controller
+
+/spond-data/squid_top.jam
+
+lib/firmware/BB-SPIDEV0-00A0.dtbo
+lib/firmware/BB-SPI0-00A0.dtbo
+

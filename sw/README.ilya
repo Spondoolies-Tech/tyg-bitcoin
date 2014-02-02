@@ -1,0 +1,25 @@
+XenServer - ip 10.0.0.31
+
+- Open in browser ip, install XenServer in windows, open XenServer
+	- Create new pool of virtualisation servers(root/1<OCTEHYPKA)
+	- Server - ip of the station (10.0.0.31)
+	- check vyatta IP (10.0.0.9)
+
+
+How to generate user in vyatta: 
+	su (root/1<OCTEHYPKA); cd /etc/openvpn ; source ./vars ; ./build-key <remo-1>; 
+	download client from openvpn.net or 
+	for linux
+		"sudo apt-get install openvpn" 
+		sudo cp -R /usr/share/doc/openvpn/examples/sample-config-files/client.conf /etc/openvpn/ 
+		scp root@10.0.0.9://config/auth/keys/zvisha-1.* ~/vpn-keys/
+		scp root@10.0.0.9://config/auth/keys/ca.crt ~/vpn-keys/
+		gedit /etc/openvpn/client.conf 
+			(office server - 188.120.156.115), add path to vpn-keys
+		sudo openvpn --mktun --dev tun0
+		sudo service openvpn restart
+		ifconfig ; route -n ; ping 10.0.20.3
+		
+
+
+
