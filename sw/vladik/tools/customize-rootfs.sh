@@ -64,11 +64,16 @@ copy_all_spond_files() {
 	if [ ! -d "spond-data" ]; then
 		mkdir spond-data
 	fi
+	if [ ! -d "pids" ]; then
+		mkdir pids
+	fi
 	cp ${CUR_DIR}/../add-ons/squid_top.jam spond-data
 	
 	#binaries
 	cp ${CUR_DIR}/../add-ons/miner_gate_arm usr/local/bin
 	cp ${CUR_DIR}/../add-ons/cgminer usr/local/bin
+	cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
+	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
 }
 
 
@@ -86,11 +91,8 @@ main()
 	add_dropbear_keys
 	cleanup
 	fix_mdev_conf
-#	zabbix_agent
 	copy_all_spond_files
-#	cgminer
 	spi_stuff
-#	fpga_stuff
 	watchdog
 }
 

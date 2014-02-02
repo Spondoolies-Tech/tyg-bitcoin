@@ -1,0 +1,85 @@
+#!/bin/sh
+#
+# Handle SPI.
+#
+
+
+miner_gate_arm_watchdog () {
+	
+	/usr/local/bin/miner_gate_arm &
+	echo $! > /var/run/miner_gate_arm.pid
+
+
+	while true; do
+		pid=`cat /var/run/miner_gate_arm.pid`
+		if [ ! -e /proc/$pid -a /proc/$pid/exe ]; then
+	#	mail -s "Queue failed" failed@example.com <<EOF
+	#minergate on host $(hostname) failed and restarted
+	#EOF
+			echo "minergate died and restarted"
+			/usr/local/bin/miner_gate_arm &
+			echo $! > /var/run/miner_gate_arm.pid
+		fi
+		sleep 3;
+	done
+
+}
+
+
+
+load_fpga() {
+	cd /spond-data
+	/usr/local/bin/fpga-load.sh squid_top.jam
+}
+
+
+
+start_mg() {
+	if [ -f "/var/run/miner_gate_arm.pid" ]; then
+		echo "minergate is already running"
+	else
+		miner_gate_arm_watchdog &
+		echo $! > /var/run/miner_gate_arm_watchdog.pid
+	fi
+}
+
+
+stop_mg() {
+	if [ ! -f "/var/run/miner_gate_arm.pid" ]; then
+		echo "minergate not running"
+	else
+		pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
+		pid2=`cat /var/run/miner_gate_arm.pid`
+		kill $pid1
+		kill $pid2
+		rm /var/run/miner_gate_arm_watchdog.pid
+		rm /var/run/miner_gate_arm.pid
+	fi
+}
+
+
+
+case "$1" in
+start)
+	sleep 5
+	echo "Loading FPGA..."
+	load_fpga
+	start_mg
+	;;
+stop)
+	stop_mg
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+
