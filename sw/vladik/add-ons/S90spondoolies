@@ -63,7 +63,6 @@ start)
 	NORMALBOOT=1
 
 	if [ -e "/dev/mmcblk1p1" ]; then
-		ifconfig eth0 1.1.1.3
 		mkdir /mmc
 		mount /dev/mmcblk1p1 /mmc
 		if [ -e "/mmc/autorun" ]; then
@@ -77,16 +76,14 @@ start)
 	fi
 
 	if [ -e "/dev/mmcblk0p1" ]; then
-		ifconfig eth0 1.1.1.3
 		mkdir /sd
-		
 		mount /dev/mmcblk0p1 /sd
 		if [ -e "/sd/autorun" ]; then
 			NORMALBOOT=0
 			/sd/autorun
 		fi
 		if [ ! -e "/nvm" ]; then
-			ln -s /mmc /nvm
+			ln -s /sd /nvm
 		fi
 	fi
 
