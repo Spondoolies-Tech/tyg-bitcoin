@@ -1,3 +1,10 @@
+Vladik provides us with 3 git repositories - u-boot, kernel and in tyg-git directory 'vladik'. Kernel should be put in vladik/kernel/kernel, cgminer-3.4.3 should be linked to the directory holding the cgminer bynery.
+
+
+
+
+
+
 Terms
 =====
 Root directory -- root directory on host Linux PC where all
