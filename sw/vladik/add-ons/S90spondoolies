@@ -5,17 +5,14 @@
 
 
 miner_gate_arm_watchdog () {
-	
 	/usr/local/bin/miner_gate_arm &
 	echo $! > /var/run/miner_gate_arm.pid
+
 
 
 	while true; do
 		pid=`cat /var/run/miner_gate_arm.pid`
 		if [ ! -e /proc/$pid -a /proc/$pid/exe ]; then
-	#	mail -s "Queue failed" failed@example.com <<EOF
-	#minergate on host $(hostname) failed and restarted
-	#EOF
 			echo "minergate died and restarted"
 			/usr/local/bin/miner_gate_arm &
 			echo $! > /var/run/miner_gate_arm.pid
@@ -61,10 +58,49 @@ stop_mg() {
 
 case "$1" in
 start)
-	sleep 5
-	echo "Loading FPGA..."
-	load_fpga
-	start_mg
+	# bullshit
+	#sleep 5
+	NORMALBOOT=1
+
+	if [ -e "/dev/mmcblk1p1" ]; then
+		ifconfig eth0 1.1.1.3
+		mkdir /mmc
+		mount /dev/mmcblk1p1 /mmc
+		if [ -e "/mmc/autorun" ]; then
+			NORMALBOOT=0
+			/sd/autorun
+		fi
+
+		if [ ! -e "/nvm" ]; then
+			ln -s /mmc /nvm
+		fi
+	fi
+
+	if [ -e "/dev/mmcblk0p1" ]; then
+		ifconfig eth0 1.1.1.3
+		mkdir /sd
+		
+		mount /dev/mmcblk0p1 /sd
+		if [ -e "/sd/autorun" ]; then
+			NORMALBOOT=0
+			/sd/autorun
+		fi
+		if [ ! -e "/nvm" ]; then
+			ln -s /mmc /nvm
+		fi
+	fi
+
+	if [ ! -d "/nvm" ]; then
+		echo "making NVM dir"
+		mkdir /nvm
+	fi
+
+	echo "NORMALBOOT=${NORMALBOOT}"
+	if [ ${NORMALBOOT} -eq 1 ]; then 
+		echo "Loading FPGA..."
+		load_fpga
+		start_mg
+	fi
 	;;
 stop)
 	stop_mg

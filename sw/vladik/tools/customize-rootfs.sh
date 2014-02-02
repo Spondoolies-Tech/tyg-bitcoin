@@ -54,10 +54,10 @@ spi_stuff()
 }
 
 copy_all_spond_files() {
-	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
-	if [ ! -d "nvm" ]; then
-		mkdir nvm
-	fi
+	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d	
+	cp ${CUR_DIR}/usr/local/bin/
+	ln -s -f ../../../etc/init.d/S90spondoolies spond  
+	cp ${CUR_DIR}
 	#FPGA
 	cp ${CUR_DIR}/../jtag/jam/jam usr/local/bin
 	cp ${CUR_DIR}/../jtag/fpga-load.sh usr/local/bin
@@ -72,8 +72,9 @@ copy_all_spond_files() {
 	#binaries
 	cp ${CUR_DIR}/../add-ons/miner_gate_arm usr/local/bin
 	cp ${CUR_DIR}/../add-ons/cgminer usr/local/bin
-	cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
+	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
+	
 }
 
 
