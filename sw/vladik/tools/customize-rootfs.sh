@@ -48,16 +48,15 @@ spi_stuff()
 	cd lib/firmware
 	cp ${CUR_DIR}/../add-ons/BB-SPIDEV0-00A0.dtbo .
 	ln -s -f BB-SPIDEV0-00A0.dtbo BB-SPI0-00A0.dtbo
-
 	cd - 2>/dev/null
 	cp -a ${CUR_DIR}/../add-ons/S60spi etc/init.d
 }
 
 copy_all_spond_files() {
 	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d	
-	cp ${CUR_DIR}/usr/local/bin/
+	cd ${TARGET_DIR}/usr/local/bin/
 	ln -s -f ../../../etc/init.d/S90spondoolies spond  
-	cp ${CUR_DIR}
+	cd -
 	#FPGA
 	cp ${CUR_DIR}/../jtag/jam/jam usr/local/bin
 	cp ${CUR_DIR}/../jtag/fpga-load.sh usr/local/bin
