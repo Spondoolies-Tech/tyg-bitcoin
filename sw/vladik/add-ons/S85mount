@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# Handle SPI.
+#
+export PATH=$PATH:/usr/local/bin:/bin
+
+
+
+case "$1" in
+start)
+	# bullshit
+	if [ -e "/dev/mmcblk1p1" ]; then
+		mkdir /mmc
+		mount /dev/mmcblk1p1 /mmc
+		if [ ! -e "/nvm" ]; then
+			ln -s /mmc /nvm
+		fi
+	fi
+
+	if [ -e "/dev/mmcblk0p1" ]; then
+		mkdir /sd
+		mount /dev/mmcblk0p1 /sd
+		if [ ! -e "/nvm" ]; then
+			ln -s /sd /nvm
+		fi
+	fi
+
+	if [ ! -d "/nvm" ]; then
+		echo "making fake NVM dir"
+		mkdir /nvm
+	fi
+
+	mkdir /nfs
+	mount 1.1.1.2:/srv/tftp /nfs -o nolock
+	hname=`hostname`
+	if [ -e "/nfs/${hname}" ]; then 
+		cd 
+		ln -s "/nfs/${hname}" /my_nfs
+	fi 
+
+	;;
+stop)
+	stop_mg
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+

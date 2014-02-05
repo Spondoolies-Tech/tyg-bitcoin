@@ -3,7 +3,7 @@
 # Handle SPI.
 #
 
-
+export PATH=$PATH:/usr/local/bin:/bin
 miner_gate_arm_watchdog () {
 	/usr/local/bin/miner_gate_arm &
 	echo $! > /var/run/miner_gate_arm.pid
@@ -21,14 +21,6 @@ miner_gate_arm_watchdog () {
 	done
 
 }
-
-
-
-load_fpga() {
-	cd /spond-data
-	/usr/local/bin/fpga-load.sh squid_top.jam
-}
-
 
 
 start_mg() {
@@ -59,43 +51,26 @@ stop_mg() {
 case "$1" in
 start)
 	# bullshit
-	#sleep 5
 	NORMALBOOT=1
 
 	if [ -e "/dev/mmcblk1p1" ]; then
-		mkdir /mmc
-		mount /dev/mmcblk1p1 /mmc
 		if [ -e "/mmc/autorun" ]; then
 			NORMALBOOT=0
 			/sd/autorun
 		fi
-
-		if [ ! -e "/nvm" ]; then
-			ln -s /mmc /nvm
-		fi
 	fi
 
 	if [ -e "/dev/mmcblk0p1" ]; then
-		mkdir /sd
-		mount /dev/mmcblk0p1 /sd
 		if [ -e "/sd/autorun" ]; then
 			NORMALBOOT=0
 			/sd/autorun
 		fi
-		if [ ! -e "/nvm" ]; then
-			ln -s /sd /nvm
-		fi
-	fi
-
-	if [ ! -d "/nvm" ]; then
-		echo "making NVM dir"
-		mkdir /nvm
 	fi
 
 	echo "NORMALBOOT=${NORMALBOOT}"
 	if [ ${NORMALBOOT} -eq 1 ]; then 
 		echo "Loading FPGA..."
-		load_fpga
+		sleep 1
 		start_mg
 	fi
 	;;
