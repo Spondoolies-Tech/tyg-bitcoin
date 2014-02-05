@@ -12,6 +12,11 @@ start)
 	if [ -e "/dev/mmcblk1p1" ]; then
 		mkdir /mmc
 		mount /dev/mmcblk1p1 /mmc
+
+		if [ -e "/mmc/autorun" ]; then
+			/mmc/autorun
+		fi
+
 		if [ ! -e "/nvm" ]; then
 			ln -s /mmc /nvm
 		fi
@@ -20,6 +25,11 @@ start)
 	if [ -e "/dev/mmcblk0p1" ]; then
 		mkdir /sd
 		mount /dev/mmcblk0p1 /sd
+		
+		if [ -e "/sd/autorun" ]; then
+			/sd/autorun
+		fi
+
 		if [ ! -e "/nvm" ]; then
 			ln -s /sd /nvm
 		fi
@@ -37,6 +47,15 @@ start)
 		cd 
 		ln -s "/nfs/${hname}" /my_nfs
 	fi 
+
+	if [ -e "/my_nfs/autorun" ]; then
+		/my_nfs/autorun
+	fi	
+
+	if [ -e "/my_nfs/autorun-once" ]; then
+		/my_nfs/autorun-once
+		rm /my_nfs/autorun-once
+	fi
 
 	;;
 stop)

@@ -88,7 +88,7 @@ void spond_delete_nvm() {
 // Try and load from file.
 int load_nvm_ok() {
     //  TODO - LOAD
-    if (!nvm) {
+	if (!nvm) {
         nvm = (SPONDOOLIES_NVM*)malloc(sizeof(SPONDOOLIES_NVM));
         printf("Loading NVM\n");
         FILE* infile = fopen(NVM_FILE_NAME, "r");
@@ -121,16 +121,18 @@ int load_nvm_ok() {
     return 1;
 }
 
-
+extern int enable_scaling;
 void spond_save_nvm() {
-    nvm->dirty = 0;
-    nvm->crc32 = crc32(0, (const void *)nvm, sizeof(SPONDOOLIES_NVM)-sizeof(uint32_t));    
-    printf("------------------\nVER=%x  CRC=%x, try to save file %s:\n",nvm->nvm_version,nvm->crc32, NVM_FILE_NAME);
-    FILE* infile = fopen(NVM_FILE_NAME, "w");
-    fwrite(nvm, sizeof(SPONDOOLIES_NVM), 1, infile);
-    printf("Success, ---->> File %d\n", infile);
-    fclose(infile);
-    //  TODO - STORE
+	// dont store NVM in noscaling
+	if (nvm->dirty && (enable_scaling)) {
+	    nvm->dirty = 0;
+	    nvm->crc32 = crc32(0, (const void *)nvm, sizeof(SPONDOOLIES_NVM)-sizeof(uint32_t));    
+	    printf("------------------\nVER=%x  CRC=%x, try to save file %s:\n",nvm->nvm_version,nvm->crc32, NVM_FILE_NAME);
+	    FILE* infile = fopen(NVM_FILE_NAME, "w");
+	    fwrite(nvm, sizeof(SPONDOOLIES_NVM), 1, infile);
+	    printf("Success, ---->> File %d\n", infile);
+	    fclose(infile);
+	}
 }
 
 

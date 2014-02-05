@@ -25,17 +25,18 @@
 #include "hammer.h"
 #include <queue>
 #include "spond_debug.h"
-#include "assert.h"
 #include "squid.h"
 #include "i2c.h"
 #include "dc2dc.h"
 #include "ac2dc.h"
+#include <syslog.h>
 
 
 using namespace std;
 pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
 int drop_job_requests = 0;
 int noasic = 0;
+int enable_scaling = 1;
 
 // SERVER
 void compute_hash(const unsigned char * midstate, unsigned int mrkle_root,
@@ -110,7 +111,7 @@ void push_work_rsp(RT_JOB* work) {
     r.work_id_in_sw = work->work_id_in_sw;
     r.res = 0;
     adapter->work_minergate_rsp.push(r);
-    assert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE*2);
+    passert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE*2);
     pthread_mutex_unlock(&network_hw_mutex);
 }
 
@@ -230,7 +231,7 @@ int minergate_data_processor(minergate_data* md, void* adaptr, void* c2) {
             //printf("rsp ");
             minergate_do_job_rsp* rsp = ((minergate_do_job_rsp*)md_res->data) + i;
             int res = pull_work_rsp(rsp, adapter);
-            assert(res);
+            passert(res);
             
         }
 
@@ -240,7 +241,7 @@ int minergate_data_processor(minergate_data* md, void* adaptr, void* c2) {
         //DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
         int array_size = md->data_length / sizeof(minergate_do_job_req);
         DBG(DBG_NET,"Got %d minergate_do_job_req\n", array_size);
-        assert(md->data_length % sizeof(minergate_do_job_req) == 0);
+        passert(md->data_length % sizeof(minergate_do_job_req) == 0);
         
         for (i = 0; i < array_size; i++) { // walk the jobs
              //printf("j");
@@ -279,7 +280,7 @@ void* connection_handler_thread(void* adptr)
          //DBG(DBG_NET,"got:%d - %x\n", nbytes, *((char*)adapter->last_req));        
          if (nbytes) {
               //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
-              assert(adapter->last_req->magic == 0xcafe);
+              passert(adapter->last_req->magic == 0xcafe);
               if ((adapter->last_req->magic == 0xcafe)
                 && (adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE == nbytes)) {
                   //DBG(DBG_NET,"MESSAGE FROM CLIENT: %x\n", adapter->last_req->request_id);
@@ -440,12 +441,35 @@ int main(int argc, char *argv[])
  int test_mode = 0;
  int init_mode = 0;
  int s;
+ 
+ setlogmask (LOG_UPTO (LOG_INFO));
+ openlog ("minergate", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+ syslog (LOG_NOTICE, "minergate started");
+// syslog (LOG_INFO, "A tree falls in a forest");
+// syslog (LOG_ALERT, "Real issue - A tree falls in a forest");
+ 
+	
+ if ((argc > 1) && strcmp(argv[1],"--help") == 0) {
+    test_mode = 1;
+    printf ("--test = Test mode, remove NVM!!!\n");
+	printf ("--noscale = No scaling mode!!!\n");
+	printf ("--noasic = NO HW MODE!!!\n");
+	printf ("--init = Re-init mode!!!\n");
+    return 0;
+ }
+
 
  if ((argc > 1) && strcmp(argv[1],"--test") == 0) {
     test_mode = 1;
     printf ("Test mode, remove NVM!!!\n");
     spond_delete_nvm();
  }
+
+ if ((argc > 1) && strcmp(argv[1],"--noscale") == 0) {
+    enable_scaling = 0;
+    printf ("No scaling mode!!!\n");
+ }
+
 
  if ((argc > 1) && strcmp(argv[1],"--noasic") == 0) {
     printf ("NO HW MODE!!!!\n");
@@ -470,7 +494,6 @@ int main(int argc, char *argv[])
  i2c_init();
  dc2dc_init();
  //read_mgmt_temp();
-
 /*
  while (1) {
  	printf("Current power::: = %d\n",ac2dc_get_power());
@@ -484,19 +507,11 @@ int main(int argc, char *argv[])
  /*
  int power = ac2dc_get_temperature(0);
  printf("Current temp1 = %d\n",power);
-
-
  power = ac2dc_get_temperature(1);
  printf("Current temp1 = %d\n",power);
-
-
  power = ac2dc_get_temperature(2);
  printf("Current temp1 = %d\n",power);
 */			
-
-
- //return 0;
-
  // test SPI 
  int q_status = read_spi(ADDR_SQUID_PONG);
  passert((q_status == 0xDEADBEEF), "ERROR: no 0xdeadbeef in squid pong register!\n");
@@ -521,9 +536,9 @@ int main(int argc, char *argv[])
     dc2dc_set_voltage(0, ASIC_VOLTAGE_555); 
     sleep(3);
  */
+	 printf("--------------- %d\n", __LINE__);
 
- 
- if (!load_nvm_ok()) {
+ if (!load_nvm_ok() || !enable_scaling) {
     // Init NVM.
     // Finds good loops using broadcast reads. No addresses given.
     printf("CREATING NEW NVM!\n");
@@ -531,28 +546,29 @@ int main(int argc, char *argv[])
     spond_save_nvm();
  } 
 
+ printf("--------------- %d\n", __LINE__);
+
+
  if (!noasic) {
      if (!enable_nvm_loops_ok()) {
          // reinitialise
          printf("LOOP TEST FAILED, DELETE NVM AND RESTART\n");
          spond_delete_nvm();
          // Exits on error.
-         assert(0);
+         passert(0);
      }
  }
  
  printf("--------------- %d\n", __LINE__);
  // Allocates addresses, sets nonce range.
  if (!noasic) {
-    init_hammers(); 
+     init_hammers(); 
      allocate_addresses_to_devices();
      
      // Loads NVM, sets freq`, enables engines... 
-     //assert(total_devices);
+     //passert(total_devices);
      set_nonce_range_in_engines(0xFFFFFFFF); 
 
-     
-     printf("--------------- %d\n", __LINE__);
      // Set default frequencies.
      enable_voltage_freq_and_engines_default();
      enable_all_engines_all_asics();
@@ -570,18 +586,14 @@ int main(int argc, char *argv[])
  }
  printf("--------------- %d\n", __LINE__);
 
- // Save NVM
- if (nvm->dirty) {
-    spond_save_nvm();
- }
+ // Save NVM unless running without scaling
+ spond_save_nvm();
 
  printf("--------------- %d\n", __LINE__);
 
- if (!noasic) {
+ if ((!noasic) && enable_scaling) {
      // Enables NVM engines in ASICs.
-     enable_voltage_freq_and_engines_from_nvm();
-
-     
+     enable_voltage_freq_and_engines_from_nvm();     
      printf("init_scaling\n");
      init_scaling();
  }
@@ -592,7 +604,7 @@ int main(int argc, char *argv[])
  // test HAMMER read
  //passert(read_reg_broadcast(ADDR_VERSION), "No version found in ASICs");
  socket_fd = init_socket();
- assert(socket_fd > 0);
+ passert(socket_fd > 0);
  printf("done\n");
 
  printf("--------------- %d\n", __LINE__);
@@ -626,14 +638,14 @@ int main(int argc, char *argv[])
 
  if (!noasic) {
     s = pthread_create(&main_thread,NULL,squid_regular_state_machine,(void*)NULL);
-    assert (s == 0);
+    passert (s == 0);
  }
  while((connection_fd = accept(socket_fd, 
                               (struct sockaddr *) &address,
                                &address_length)) > -1) {
     // Only 1 thread supportd so far...    
     minergate_adapter* adapter = new minergate_adapter;
-    assert(adapter);
+    passert((int)adapter);
     adapter->adapter_id = 0;
     adapters[0] = adapter;
     adapter->connection_fd = connection_fd;
@@ -644,7 +656,7 @@ int main(int argc, char *argv[])
 
 
     s = pthread_create(&adapter->conn_pth,NULL,connection_handler_thread,(void*)adapter);
-    assert (s == 0);
+    passert (s == 0);
  }
  printf("Err %d:", connection_fd);
  passert(0,"Err");

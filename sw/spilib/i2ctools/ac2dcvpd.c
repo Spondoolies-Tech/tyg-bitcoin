@@ -12,7 +12,6 @@
 #include <pthread.h>
 //#include "hammer.h"
 #include <spond_debug.h>
-#include "assert.h"
 #include "squid.h"
 #include "i2c.h"
 #include "ac2dc.h"

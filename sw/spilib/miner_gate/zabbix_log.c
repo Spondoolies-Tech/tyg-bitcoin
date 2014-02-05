@@ -27,6 +27,23 @@
 MG_ZABBIX_LOG zabbix_log;
 
 void update_zabbix_stats() {
+	
+	zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
+	zabbix_log.version = MG_ZABBIX_LOG_VERSION;
+	zabbix_log.zabbix_logsize = sizeof(zabbix_log);
+	zabbix_log.ac2dc_current = rand();
+	zabbix_log.ac2dc_temp = rand();
+
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+		zabbix_log.loops[l].voltage = rand();
+		zabbix_log.loops[l].current = rand();
+		zabbix_log.loops[l].temp = rand();
+	}
+
+	for(int l = 0; l < HAMMERS_COUNT ; l++) {
+		zabbix_log.asics[l].freq = rand();
+		zabbix_log.asics[l].temp = rand();
+	}
 }
 
 
@@ -34,6 +51,7 @@ void dump_zabbix_stats() {
 	FILE *fp = fopen("./zabbix_log.bin", "w");
     if (fp != NULL)
     {
+    	update_zabbix_stats();
     	fwrite(&zabbix_log,1,sizeof(zabbix_log),fp); 
         fclose(fp);
     } else {
@@ -45,7 +63,7 @@ void dump_zabbix_stats() {
 #define MAX_ZABBIX_LOG 200000
 #define ZABBIX_VERSION 1
 
-#define zabbix_add(PARAM...) {buf_ptr += sprintf(buf+buf_ptr,PARAM);  assert(buf_ptr < MAX_ZABBIX_LOG);}
+#define zabbix_add(PARAM...) {buf_ptr += sprintf(buf+buf_ptr,PARAM);  passert(buf_ptr < MAX_ZABBIX_LOG);}
 
 int  buf_ptr = 0;
 char buf[MAX_ZABBIX_LOG + 100];
@@ -55,12 +73,12 @@ int log_id;
 /*
 void zabbix_add_int(const char* name, int var) {
   buf_ptr += sprintf(buf+buf_ptr,"%s %d\n",name,var);
-  assert(buf_ptr < MAX_ZABBIX_LOG);
+  passert(buf_ptr < MAX_ZABBIX_LOG);
 }
 
 static void zabbix_add_char(const char* name, char* var) {
   buf_ptr += sprintf(buf,"%s %s\n",name,var);
-  assert(buf_ptr < MAX_ZABBIX_LOG);
+  passert(buf_ptr < MAX_ZABBIX_LOG);
 }
 */
 
@@ -78,7 +96,7 @@ static void zabbix_dump_file(const char* file_name) {
 
     
   buf_ptr = 0;
-  assert(dmp == NULL);
+  passert(dmp == NULL);
 */
 }
 extern int last_alive_jobs;

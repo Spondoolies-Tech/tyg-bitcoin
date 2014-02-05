@@ -53,19 +53,19 @@ start)
 	# bullshit
 	NORMALBOOT=1
 
-	if [ -e "/dev/mmcblk1p1" ]; then
+	
 		if [ -e "/mmc/autorun" ]; then
 			NORMALBOOT=0
-			/sd/autorun
+			#/sd/autorun
 		fi
-	fi
+	
 
-	if [ -e "/dev/mmcblk0p1" ]; then
+	
 		if [ -e "/sd/autorun" ]; then
 			NORMALBOOT=0
-			/sd/autorun
+			#/sd/autorun
 		fi
-	fi
+	
 
 	echo "NORMALBOOT=${NORMALBOOT}"
 	if [ ${NORMALBOOT} -eq 1 ]; then 

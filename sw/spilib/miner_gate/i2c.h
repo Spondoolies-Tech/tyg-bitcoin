@@ -12,9 +12,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <assert.h>
 #include <stdint.h>
 #include <unistd.h>
+#include "spond_debug.h"
+
 //#include "i2cbusses.h"
 
 
