@@ -43,20 +43,22 @@ start)
 	mkdir /nfs
 	mount 1.1.1.2:/srv/tftp /nfs -o nolock
 	hname=`hostname`
-	if [ -e "/nfs/${hname}" ]; then 
-		cd 
-		ln -s "/nfs/${hname}" /my_nfs
+
+	if [ ! -e "/nfs/${hname}" ]; then 
+		mkdir "/nfs/${hname}"
 	fi 
+	cd /
+	ln -s "/nfs/${hname}" /my_nfs
+	date >> /my_nfs/boot_date
+	ifconfig eth0 | grep 'inet addr:' >> /my_nfs/my_ip
 
 	if [ -e "/my_nfs/autorun" ]; then
 		/my_nfs/autorun
 	fi	
-
 	if [ -e "/my_nfs/autorun-once" ]; then
 		/my_nfs/autorun-once
 		rm /my_nfs/autorun-once
 	fi
-
 	;;
 stop)
 	stop_mg

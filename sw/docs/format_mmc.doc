@@ -1,0 +1,21 @@
+#create BOOT disk
+sgdisk --delete=1 /dev/mmcblk1 
+sgdisk --new=1:2048:148000 /dev/mmcblk1 
+sgdisk --typecode=1:0700 /dev/mmcblk1 
+sgdisk --attributes=1:set:2 /dev/mmcblk1 
+mkdosfs /dev/mmcblk1p1
+mkdir /mmc1
+mount /dev/mmcblk1p1 /mmc1
+
+
+cp /sd/MLO /mmc1
+cp /sd/u-boot.img /mmc1
+cp /sd/spondoolies.dtb /mmc1
+cp /sd/uImage /mmc1
+umount /mmc1
+
+
+sgdisk --delete=2 /dev/mmcblk1 
+sgdisk --largest-new=2 /dev/mmcblk1 
+sgdisk --typecode=2:0700 /dev/mmcblk1 
+
