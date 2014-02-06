@@ -28,14 +28,14 @@ int main(int argc, char *argv[]) {
 		zabbix_log.ac2dc_temp = 0xbd;
 
 		for(int l = 0; l < LOOP_COUNT ; l++) {
-			zabbix_log.loops[l].voltage = 1;
-			zabbix_log.loops[l].current = 1;
-			zabbix_log.loops[l].temp = 1;
-		}
-
-		for(int l = 0; l < HAMMERS_COUNT ; l++) {
-			zabbix_log.asics[l].freq = 1;
-			zabbix_log.asics[l].temp = 1;
+			zabbix_log.loops[l].voltage = (rand() % 4 + 8) /10 ;
+			zabbix_log.loops[l].current = rand()%8 +16;
+			zabbix_log.loops[l].temp = rand() % 45 + 75;
+			for(int a = 0; a < HAMMERS_COUNT/LOOP_COUNT ; a++) {
+				zabbix_log.loops[l].asics[a].freq = (rand()%20+5)/10;  // .5 - 2.5
+				zabbix_log.loops[l].asics[a].temp = rand() % 45 + 75;
+				zabbix_log.loops[l].asics[a].wins = rand() % 8; // difficulty
+			}
 		}
 
 

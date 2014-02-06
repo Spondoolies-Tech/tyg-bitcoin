@@ -63,18 +63,19 @@ int main(int argc, char *argv[]) {
 	}
 
 
-	printf("zabbix_log.ac2dc_current = %x\n", zabbix_log.ac2dc_current);
-	printf("zabbix_log.ac2dc_temp = %x\n", zabbix_log.ac2dc_temp);
+	printf("ac2dc_current %x\n", zabbix_log.ac2dc_current);
+	printf("ac2dc_temp %x\n", zabbix_log.ac2dc_temp);
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-		printf("loop[%x].voltage = %x\n", l, zabbix_log.loops[l].voltage);
-		printf("loop[%x].current = %x\n", l, zabbix_log.loops[l].current);
-		printf("loop[%x].temp = %x\n", l, zabbix_log.loops[l].temp);
+		printf("loop%x.voltage %x\n", l, zabbix_log.loops[l].voltage);
+		printf("loop%x.current %x\n", l, zabbix_log.loops[l].current);
+		printf("loop%x.temp %x\n", l, zabbix_log.loops[l].temp);
+		for(int a = 0; a < (HAMMERS_COUNT/LOOP_COUNT); a++){
+			printf("loop%x.asic%x.freq %x\n", l, a, zabbix_log.loops[l].asics[a].freq);
+			printf("loop%x.asic%x.temp %x\n", l, a, zabbix_log.loops[l].asics[a].temp);
+			printf("loop%x.asic%x.wins %x\n", l, a, zabbix_log.loops[l].asics[a].wins);
+		}
 	}
 
-	for(int l = 0; l < HAMMERS_COUNT ; l++) {
-		printf("asic[%x].freq = %x\n", l, zabbix_log.asics[l].freq);
-		printf("asic[%x].temp = %x\n", l, zabbix_log.asics[l].temp);
-	}
 	
 	
 }
