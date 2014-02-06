@@ -14,7 +14,7 @@ int volt_to_vmargin[ASIC_VOLTAGE_COUNT] = {
 
 void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v) {
     printf("%d\n",v);
-    assert(v<ASIC_VOLTAGE_COUNT && v>=0);
+    passert(v<ASIC_VOLTAGE_COUNT && v>=0);
     i2c_write_word(0x1b, 0xd4, volt_to_vtrim[v]);
     i2c_write_byte(0x1b, 0x01, volt_to_vmargin[v]);
 }

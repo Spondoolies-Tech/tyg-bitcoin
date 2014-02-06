@@ -27,4 +27,8 @@ void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE);
 // Returns value like 810, 765 etc`
 int dc2dc_get_voltage(int loop);
 
+// return AMPERS
+int dc2dc_get_current(int loop);
+
+
 #endif

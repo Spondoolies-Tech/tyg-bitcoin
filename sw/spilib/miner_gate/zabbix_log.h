@@ -25,7 +25,10 @@ typedef struct mg_loop_log {
 
 typedef struct mg_zabbix_log {
 	uint16_t magic;
-	uint16_t version;
+	uint16_t version;	
+	uint16_t reserved;
+	uint16_t zabbix_logsize;
+	uint32_t time;    // seconds from some hippie period 
 	uint32_t dump_id; // autoincrement
 
 	uint8_t ac2dc_current;

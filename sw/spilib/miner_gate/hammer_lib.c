@@ -13,6 +13,8 @@
 #include "squid.h"
 #include "queue.h"
 #include <string.h>	
+#include "ac2dc.h"
+
 #include <spond_debug.h>	
 #include <sys/time.h>
 
@@ -187,7 +189,7 @@ void push_to_hw_queue(RT_JOB *work) {
 		current_leading = work->leading_zeroes;
 	}
 	*/
-	assert(work->work_id_in_hw < 0x100);
+	passert(work->work_id_in_hw < 0x100);
 	write_reg_broadcast(ADDR_JOB_ID, work->work_id_in_hw);
 	write_reg_broadcast(ADDR_COMMAND, BIT_CMD_LOAD_JOB);
     flush_spi_write();
@@ -253,7 +255,7 @@ int allocate_addresses_to_devices() {
     //  validate address reset
     reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
     if (reg == 0) {
-        assert(0);
+        passert(0);
     }
 
 
@@ -288,7 +290,7 @@ int allocate_addresses_to_devices() {
             } 
             // Dont remove this print - used by scripts!!!!
             printf("ASICS in loop %d: %d\n",l,asics_in_loop);
-            assert(read_reg_broadcast(ADDR_BR_NO_ADDR) == 0);
+            passert(read_reg_broadcast(ADDR_BR_NO_ADDR) == 0);
             write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm->good_loops));
         } else {
             printf("ASICS in loop %d: %d\n",l,0);;
@@ -296,7 +298,7 @@ int allocate_addresses_to_devices() {
     }
 
     // Validate all got address
-    assert(read_reg_broadcast(ADDR_BR_NO_ADDR) == 0);
+    passert(read_reg_broadcast(ADDR_BR_NO_ADDR) == 0);
     DBG(DBG_HW,"Number of ASICs found: %x\n", total_devices);
 	return total_devices;    
     
@@ -408,6 +410,7 @@ void fill_random_work(RT_JOB *work) {
 }*/
 
 void init_scaling();
+int update_top_current_measurments();
 
 int init_hammers() {
 	int i;
@@ -427,7 +430,6 @@ int init_hammers() {
 	return 0;
 }
 
-int update_top_current_measurments();
 
 // returns 1 on success
 int do_bist_ok(bool with_current_measurment) {
@@ -483,7 +485,7 @@ int do_bist_ok(bool with_current_measurment) {
 		write_reg_broadcast(ADDR_COMMAND, BIT_CMD_LOAD_JOB);
 		flush_spi_write();
 	} else {
-		assert(0);
+		passert(0);
 	}
 
     // TODO - update this timing to work.
@@ -613,7 +615,7 @@ void* squid_regular_state_machine(void* p) {
     
 	if (!do_bist_ok(true)) {
         printf("Init BIST failure!\n");
-        assert(0);
+        passert(0);
 	}
 	
 	struct timeval tv;
@@ -654,8 +656,8 @@ void* squid_regular_state_machine(void* p) {
                     write_reg_broadcast(ADDR_WIN_LEADING_0, cur_leading_zeroes);
                 }
 				actual_work = add_to_sw_rt_queue(&work);
-               // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
-               // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);                
+                // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
+                // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);                
 				push_to_hw_queue(actual_work);
 				last_second_jobs++;
                 last_alive_jobs++;
@@ -665,9 +667,7 @@ void* squid_regular_state_machine(void* p) {
             if (last_job_pushed.tv_usec > drift) {
                 last_job_pushed.tv_usec -= drift;
             }
-
             // Move latest job to complete queue
-            
 		}
 /*
         else {
@@ -685,6 +685,7 @@ void* squid_regular_state_machine(void* p) {
             //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
             last_second_jobs = 0;            
             print_adapter();
+			miner_box.ac2dc_current = ac2dc_get_power();
             // Once every X seconds.
             periodic_scaling_task();
 

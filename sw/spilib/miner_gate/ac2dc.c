@@ -18,9 +18,17 @@ int ac2dc_getint(int source) {
 
 // Return Watts
 int ac2dc_get_power() {
+	int err = 0;
+	static int warned = 0;
 	i2c_write(PRIMARY_I2C_SWITCH, 0x01); 
-	int power = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD));
+	int power = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD, &err));
 	i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+	if (err) {
+		if ((warned++) < 10)
+			psyslog("FAILED TO INIT DC2DC\n");
+		return 0;
+	} 
+		
     return power/1000;
 }
 
@@ -28,9 +36,18 @@ int ac2dc_get_power() {
 
 // Return Watts
 int ac2dc_get_temperature(int sensor) {
+	static int warned = 0;
+
+	int err = 0;
 	i2c_write(PRIMARY_I2C_SWITCH, 0x01); 
-	int temp = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD + sensor));
+	int temp = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD + sensor, &err));
 	i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+	if (err) {
+		if ((warned++) < 10)
+			psyslog("FAILED TO INIT DC2DC\n");
+		return 0;
+	} 
+		
     return temp/1000;
 }
 
@@ -139,7 +156,7 @@ int volt_to_vmargin[ASIC_VOLTAGE_COUNT] = {
 
 void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v) {
     printf("%d\n",v);
-    assert(v<ASIC_VOLTAGE_COUNT && v>=0);
+    passert(v<ASIC_VOLTAGE_COUNT && v>=0);
     i2c_write_word(0x1b, 0xd4, volt_to_vtrim[v]);
     i2c_write_byte(0x1b, 0x01, volt_to_vmargin[v]);
 }

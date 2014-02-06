@@ -280,8 +280,8 @@ typedef struct {
 // Global power unit
 typedef struct {
     //uint32_t bypassed_loops; moved to NVM
-    uint32_t ac2dc_top_current;
-    uint8_t  ac2dc_temperature;
+    uint32_t ac2dc_current;
+    uint8_t  enable_scalingerature;
     HAMMER   hammer[HAMMERS_COUNT]; 
     LOOP     loop[LOOP_COUNT];
 } MINER_BOX;

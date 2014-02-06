@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <unistd.h>
-#include <assert.h>
 
 
 
@@ -104,8 +103,6 @@ void write_hammer_device(uint32_t cpu, uint32_t offset, uint32_t value);
 void write_hammer_broadcast(uint32_t offset, uint32_t value);
 void read_hammer_device(uint32_t cpu, uint32_t offset, uint32_t* p_value);
 void read_hammer_broadcast(uint32_t offset, uint32_t* p_value);
-void passert(int cond, const char *s);
-void pabort(const char *s);
 
 
 

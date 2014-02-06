@@ -28,7 +28,6 @@ the Free Software Foundation, either version 3 of the License, or
 #include <stdio.h>
 
 #include <unistd.h>
-#include <assert.h>
 #include <string.h>	
 #include "hammer.h"
 #include "spond_debug.h"

@@ -23,20 +23,21 @@ int main(int argc, char *argv[]) {
 
 
 	zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
-		zabbix_log.version = MG_ZABBIX_LOG_VERSION;
-		zabbix_log.ac2dc_current = 0xbc;
-		zabbix_log.ac2dc_temp = 0xbd;
+	zabbix_log.version = MG_ZABBIX_LOG_VERSION;
+	zabbix_log.zabbix_logsize = sizeof(zabbix_log);
+	zabbix_log.ac2dc_current = 0xbc;
+	zabbix_log.ac2dc_temp = 0xbd;
 
-		for(int l = 0; l < LOOP_COUNT ; l++) {
-			zabbix_log.loops[l].voltage = 1;
-			zabbix_log.loops[l].current = 1;
-			zabbix_log.loops[l].temp = 1;
-		}
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+		zabbix_log.loops[l].voltage = 1;
+		zabbix_log.loops[l].current = 1;
+		zabbix_log.loops[l].temp = 1;
+	}
 
-		for(int l = 0; l < HAMMERS_COUNT ; l++) {
-			zabbix_log.asics[l].freq = 1;
-			zabbix_log.asics[l].temp = 1;
-		}
+	for(int l = 0; l < HAMMERS_COUNT ; l++) {
+		zabbix_log.asics[l].freq = 1;
+		zabbix_log.asics[l].temp = 1;
+	}
 
 
 

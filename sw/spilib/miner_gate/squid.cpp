@@ -8,9 +8,10 @@
 #include <linux/spi/spidev.h>
 #include <netinet/in.h>
 #include <string.h>
-#include <execinfo.h>
 #include "hammer.h"
+#include "spond_debug.h"
 #include <time.h>
+#include <syslog.h>
 #include <spond_debug.h>
 
 
@@ -30,29 +31,8 @@ int spi_ioctls_read = 0;
 int spi_ioctls_write = 0;
 int enable_reg_debug = 0;
 
-#define SIZE 100
-void pabort(const char *s)
-{
-	 int j, nptrs;
-    void *buffer[SIZE];
-    char **strings;
-	printf("ERROR, ABORT, DYE!\n");
-    perror(s);
- 
-   nptrs = backtrace(buffer, SIZE);
-    strings = backtrace_symbols(buffer, nptrs);
-	 for (j = 0; j < nptrs; j++)
-        DBG(DBG_HW,"ERROR STACK: %s\n", strings[j]);
-	 
-  abort();
-}
 
- void passert(int cond, const char *s)
-{
-	if (!cond) {
-		 pabort(s);
-	}
-}
+
 
 
 
@@ -75,7 +55,7 @@ void read_spi_mult(uint8_t addr, int count, uint32_t values[])
 
   tx.addr = addr;
   tx.cmd  = count;
-  assert(count < 16);
+  passert(count < 16);
   memset(tx.i,0,16);
   spi_ioctls_read++;
   struct spi_ioc_transfer tr;
@@ -141,7 +121,7 @@ void write_spi_mult(uint8_t addr, int count, int values[])
   int ret;
   cpi_cmd  tx;
   cpi_cmd  rx;
-  assert(count < 64);
+  passert(count < 64);
   spi_ioctls_write++;
 
   tx.addr = addr;
@@ -165,7 +145,7 @@ void write_spi_mult(uint8_t addr, int count, int values[])
  
   if (ret < 1) {
     pabort("can't send spi message");
-	assert(0);
+	passert(0);
   }
 }
 
@@ -195,7 +175,7 @@ void write_spi(uint8_t addr, uint32_t data)
  
   if (ret < 1) {
     pabort("can't send spi message");
-	assert(0);
+	passert(0);
   }
 }
 
@@ -288,7 +268,7 @@ int hammer_serial_stack[64] = {0};
 int hammer_serial_stack_size = 0;
 
 void push_hammer_serial_packet_to_hw(uint32_t d1, uint32_t d2) {
-	assert(hammer_serial_stack_size < 64);
+	passert(hammer_serial_stack_size < 64);
 	hammer_serial_stack[hammer_serial_stack_size++] = d1;
 	hammer_serial_stack[hammer_serial_stack_size++] = d2;
 	if (hammer_serial_stack_size == 60) {
@@ -307,10 +287,10 @@ void flush_spi_write() {
 
 void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t* p_value) {
 	QUEUED_REG_ELEMENT *e = &cmd_queue[current_cmd_queue_ptr++];
-	assert(current_cmd_queue_ptr < MAX_FPGA_CMD_QUEUE);
-	assert(e->addr == 0);
-	assert(e->offset == 0);
-	assert(e->value == 0);
+	passert(current_cmd_queue_ptr < MAX_FPGA_CMD_QUEUE);
+	passert(e->addr == 0);
+	passert(e->offset == 0);
+	passert(e->value == 0);
 	e->addr = addr;
 	e->offset = offset;
 	e->p_value = p_value;
@@ -334,10 +314,10 @@ void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t* p_value) {
 void push_hammer_write(uint32_t addr, uint32_t offset, uint32_t value) {
 	/*
 	QUEUED_REG_ELEMENT *e = &cmd_queue[current_cmd_queue_ptr++];
-	assert(current_cmd_queue_ptr <= MAX_FPGA_CMD_QUEUE);
-	assert(e->addr == 0);
-	assert(e->value == 0);
-	assert(e->offset == 0);
+	passert(current_cmd_queue_ptr <= MAX_FPGA_CMD_QUEUE);
+	passert(e->addr == 0);
+	passert(e->value == 0);
+	passert(e->offset == 0);
 	e->addr = addr;
 	e->value = value;
 	e->offset = offset;
@@ -377,7 +357,7 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
         // TODO  - handle timeout?
         if (assert_serial_failures) {
             printf("FAILED TO READ 0x%x 0x%x\n",address,offset);
-            assert(0);
+            passert(0);
         } else {
             //printf("FAILED TO READ 0x%x 0x%x\n",address,offset);
             return 0;
@@ -419,7 +399,7 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
 #define FPGA_QUEUE_FINISHED 2
 int fpga_queue_status() {
 	if (current_cmd_queue_ptr == 0) {
-		assert(current_cmd_hw_queue_ptr == 0);
+		passert(current_cmd_hw_queue_ptr == 0);
 		return FPGA_QUEUE_FREE;
 	} else if (current_cmd_hw_queue_ptr == current_cmd_queue_ptr) {
 		return FPGA_QUEUE_FINISHED;
@@ -444,7 +424,7 @@ void squid_wait_hammer_reads() {
 			e->value = _read_reg_actual(e->addr, e->offset);
 			*(e->p_value) = e->value;
 		} else {
-			assert(0);
+			passert(0);
 		}
 		
 		if (current_cmd_hw_queue_ptr == current_cmd_queue_ptr) {

@@ -16,5 +16,6 @@ cp  ${CURDIR}/kernel/kernel/arch/arm/boot/uImage ${CURDIR}/image/
 cp  ${CURDIR}/kernel/kernel/arch/arm/boot/uImage ~/shared
 cp  ${CURDIR}/kernel/kernel/arch/arm/boot/dts/spondoolies.dtb ${CURDIR}/image/
 
+cp ${CURDIR}/image/* /srv/tftp/
 #cp ${CURDIR}/image/* /media/zvisha/52D7-DCF8/; umount /media/zvisha/52D7-DCF8
 echo "NOW DO:    cp ${CURDIR}/image/* /media/zvisha/*/; sleep 5 ; umount /media/zvisha/*"

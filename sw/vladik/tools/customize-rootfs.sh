@@ -50,10 +50,14 @@ spi_stuff()
 	ln -s -f BB-SPIDEV0-00A0.dtbo BB-SPI0-00A0.dtbo
 	cd - 2>/dev/null
 	cp -a ${CUR_DIR}/../add-ons/S60spi etc/init.d
+	cp -a ${CUR_DIR}/../add-ons/S30hostname etc/init.d
+	cp -a ${CUR_DIR}/../add-ons/.bashrc root
 }
 
 copy_all_spond_files() {
-	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d	
+	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
+	cp ${CUR_DIR}/../add-ons/S87squid etc/init.d	
+	cp ${CUR_DIR}/../add-ons/S85mount etc/init.d	
 	cd ${TARGET_DIR}/usr/local/bin/
 	ln -s -f ../../../etc/init.d/S90spondoolies spond  
 	cd -
@@ -69,8 +73,9 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../add-ons/squid_top.jam spond-data
 	
 	#binaries
-	cp ${CUR_DIR}/../add-ons/miner_gate_arm usr/local/bin
-	cp ${CUR_DIR}/../add-ons/cgminer usr/local/bin
+	cp ${CUR_DIR}/../../spilib/miner_gate_arm usr/local/bin
+	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
+	cp ${CUR_DIR}/../../cgminer-1/cgminer usr/local/bin
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
 	

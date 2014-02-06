@@ -5,8 +5,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h> 
-#include "assert.h"
 #include "squid.h"
+#include "spond_debug.h"
 
 
 int leading_zeroes  = 0x20;
@@ -21,10 +21,10 @@ void send_minergate_pkt(const minergate_packet* mp_req,
 	int 	nbytes;		
 	write(socket_fd, (const void*)mp_req, mp_req->data_length + MINERGATE_PACKET_HEADER_SIZE);
 	nbytes = read(socket_fd, (void*)mp_rsp, 40000);	
-	assert(nbytes > 0);
+	passert(nbytes > 0);
 	//printf("got %d(%d) bytes\n",mp_rsp->data_length, nbytes);
-	assert(mp_rsp->magic == 0xcafe);
-	assert((mp_rsp->data_length + MINERGATE_PACKET_HEADER_SIZE) == nbytes);
+	passert(mp_rsp->magic == 0xcafe);
+	passert((mp_rsp->data_length + MINERGATE_PACKET_HEADER_SIZE) == nbytes);
 }
 
 
@@ -65,7 +65,7 @@ int minergate_data_processor(minergate_data* md, void* c, void* c2) {
     if (md->data_id == MINERGATE_DATA_ID_DO_JOB_RSP) {        
            //DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
            int array_size = md->data_length / sizeof(minergate_do_job_rsp);
-           assert(md->data_length % sizeof(minergate_do_job_rsp) == 0);
+           passert(md->data_length % sizeof(minergate_do_job_rsp) == 0);
            int i;
            for (i = 0; i < array_size; i++) { // walk the jobs
                 //printf("j");
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
 
     
  int  socket_fd = init_socket();
- assert(socket_fd != 0);
+ passert(socket_fd != 0);
 
  
  
