@@ -87,27 +87,31 @@ typedef enum {
 
 
 typedef enum {
-   ASIC_CORNER_SS   =   0,
-   ASIC_CORNER_SSTT =   1,
-   ASIC_CORNER_TT   =   2,
-   ASIC_CORNER_TTFFG =  3,
-   ASIC_CORNER_FFG  =   4,
-   ASIC_CORNER_COUNT =  5,
+   ASIC_CORNER_NA   =   0,	
+   ASIC_CORNER_SS   =   1,
+   ASIC_CORNER_SSTT =   2,
+   ASIC_CORNER_TT   =   3,
+   ASIC_CORNER_TTFFG =  4,
+   ASIC_CORNER_FFG  =   5,
+   ASIC_CORNER_COUNT =  6,
 } ASIC_CORNER;
 
 
 
-
+// E*6+83
+#define ASIC_TEMP_MIN   77
+#define ASIC_TEMP_DELTA 6
 typedef enum {
-    ASIC_TEMP_83  = 0,
-    ASIC_TEMP_89  = 1,
-    ASIC_TEMP_95  = 2, 
-    ASIC_TEMP_101 = 3,
-    ASIC_TEMP_107 = 4,
-    ASIC_TEMP_113 = 5,
-    ASIC_TEMP_119 = 6,
-    ASIC_TEMP_125 = 7,
-    ASIC_TEMP_COUNT = 8,
+	ASIC_TEMP_77  = 0, // under the radar
+    ASIC_TEMP_83  = 1,
+    ASIC_TEMP_89  = 2,
+    ASIC_TEMP_95  = 3, 
+    ASIC_TEMP_101 = 4,
+    ASIC_TEMP_107 = 5,
+    ASIC_TEMP_113 = 6,
+    ASIC_TEMP_119 = 7,
+    ASIC_TEMP_125 = 8,
+    ASIC_TEMP_COUNT = 9,
 } ASIC_TEMP;
 
 

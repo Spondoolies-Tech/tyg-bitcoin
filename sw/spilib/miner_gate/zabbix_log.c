@@ -43,9 +43,9 @@ void update_zabbix_stats() {
 
 	int t = time(NULL);
 	for(int l = 0; l < HAMMERS_COUNT ; l++) {
-		zabbix_log.asics[l].freq = (miner_box.hammer[l].present)?miner_box.hammer[l].freq:0xff;
+		zabbix_log.asics[l].freq = miner_box.hammer[l].freq;
 		zabbix_log.asics[l].temp = miner_box.hammer[l].temperature;
-		zabbix_log.asics[l].working_engines = miner_box.hammer[l].passed_last_bist_engines;
+		zabbix_log.asics[l].working_engines = nvm->working_engines[l];
 		zabbix_log.asics[l].failed_bists = miner_box.hammer[l].failed_bists;
 		zabbix_log.asics[l].freq_time = t - miner_box.hammer[l].last_freq_up_time;
 	}

@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
 #endif
 	if (zabbix_log.zabbix_logsize != sizeof(zabbix_log)) {
 			printf("zabbix log SIZE is wrong, %x instead of %x\n", 
-				zabbix_log.zabbix_logsize , sizeof(zabbix_log));
+				(int)zabbix_log.zabbix_logsize , (int)sizeof(zabbix_log));
 			return -1;
 	}
 
@@ -73,13 +73,13 @@ int main(int argc, char *argv[]) {
 
 	printf("AC2DC.A %2x\n", zabbix_log.ac2dc_current);
 	printf("AC2DC.C %2x\n", zabbix_log.ac2dc_temp);
-	printf("DC2DC\n      |", zabbix_log.ac2dc_temp);
+	printf("DC2DC\n     |");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
 		printf("%3x ", l);
 	}
 	printf("\n------");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-		printf("---", l);
+		printf("---");
 	}
 	printf("\nVOLT |");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
@@ -98,16 +98,24 @@ int main(int argc, char *argv[]) {
 	}
 	printf("\n------");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-		printf("---", l);
+		printf("---");
 	}
 	printf("\n");
 
-	printf("ASIC Freq/Temp:\n", zabbix_log.ac2dc_temp);
+	printf("ASIC Freq/Temp/Uptime/Engines:\n");
+	printf("   |");
+	for(int l = 0; l < HAMMERS_PER_LOOP ; l++) {
+		printf(" Hz  C'   Up  E |");
+	}
 	for(int l = 0; l < HAMMERS_COUNT ; l++) {
 		if (l%HAMMERS_PER_LOOP == 0) {
 			printf("\n%2d |", l/HAMMERS_PER_LOOP);
 		}
-		printf("%2x-%2x ", zabbix_log.asics[l].freq, zabbix_log.asics[l].temp);
+		printf("%3d %3d %4d %2x|", 
+			zabbix_log.asics[l].freq*15, 
+			zabbix_log.asics[l].temp*ASIC_TEMP_DELTA+ASIC_TEMP_MIN,
+			zabbix_log.asics[l].freq_time%999,
+			zabbix_log.asics[l].working_engines);
 	}
 	
 	printf("\n");

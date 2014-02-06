@@ -274,6 +274,7 @@ int allocate_addresses_to_devices() {
             for (h = 0; h < HAMMERS_PER_LOOP ; h++){
                 uint16_t addr = (l*HAMMERS_PER_LOOP+h);
                 miner_box.hammer[l*HAMMERS_PER_LOOP + h].address = addr;
+				printf(ANSI_COLOR_MAGENTA "TODO TODO Find bad engines in ASICs!\n" ANSI_COLOR_RESET);
                 if (read_reg_broadcast(ADDR_BR_NO_ADDR)) {
                      write_reg_broadcast(ADDR_CHIP_ADDR, addr);
                      total_devices++;
@@ -286,6 +287,9 @@ int allocate_addresses_to_devices() {
 //                   printf("No ASIC found at position %x!\n", addr);
                      miner_box.hammer[l*HAMMERS_PER_LOOP + h].address = addr; 
                      miner_box.hammer[l*HAMMERS_PER_LOOP + h].present = 0;
+					 nvm->working_engines[l*HAMMERS_PER_LOOP + h] = 0;
+					 nvm->top_freq[l*HAMMERS_PER_LOOP + h] = ASIC_FREQ_0;
+					 nvm->asic_corner[l*HAMMERS_PER_LOOP + h] = ASIC_CORNER_NA;
                 }
             } 
             // Dont remove this print - used by scripts!!!!

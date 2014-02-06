@@ -28,21 +28,18 @@
 */
 
 // When ariving here (>=) cut the frequency drastically.
-int8_t CRITICAL_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {4,4,4,4,4};
+int8_t CRITICAL_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {4,4,4,4,4,4};
 // When under this (<) raise the frequency slowly
-int8_t BEST_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {3,3,3,3,3};
+int8_t BEST_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {3,3,3,3,3,3};
 
 // When under this (<) raise the frequency slowly
 //TODO
-int SAFE_FREQ_PER_CORNER[ASIC_CORNER_COUNT] = {ASIC_FREQ_210, ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210};
-int AC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1};
-int DC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1};
-//uint8_t SAFE_FREQ_PER_CORNER[ASIC_CORNER_COUNT] = {5,4,3,2,1};
-
-//int AC2DC_HIGH[ASIC_CORNER_COUNT] = {ASIC_VOLTAGE_765, ASIC_VOLTAGE_720,ASIC_VOLTAGE_630,ASIC_VOLTAGE_630,ASIC_VOLTAGE_630};
+int SAFE_FREQ_PER_CORNER[ASIC_CORNER_COUNT] = {ASIC_FREQ_210, ASIC_FREQ_210, ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210};
+int AC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1,1};
+int DC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1,1};
 
 DC2DC_VOLTAGE CORNER_TO_VOLTAGE_TABLE[ASIC_CORNER_COUNT] = 
-    {ASIC_VOLTAGE_765, ASIC_VOLTAGE_720, 
+    {ASIC_VOLTAGE_765, ASIC_VOLTAGE_765, ASIC_VOLTAGE_720, 
      ASIC_VOLTAGE_630, ASIC_VOLTAGE_630, ASIC_VOLTAGE_630};
 
 
@@ -184,7 +181,7 @@ int test_serial(int loopid) {
 		write_reg_broadcast(ADDR_VERSION, 0xAAAA);
 	}*/
 	
-	printf("--------------- %d\n", __LINE__);
+
     while((val1 = read_spi(ADDR_SQUID_STATUS)) & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) {
         val2 = read_spi(ADDR_SQUID_SERIAL_READ);
         i++;    
@@ -197,14 +194,14 @@ int test_serial(int loopid) {
         }
     }
 	
-	printf("--------------- %d\n", __LINE__);
+	
     //printf("Ok %d!\n", i);
 
 
     // test for connectivity
     int ver = read_reg_broadcast(ADDR_VERSION);
     
-	printf("--------------- %d\n", __LINE__);
+	
     //printf("XTesting loop, version = %x\n", ver);
     if (BROADCAST_READ_DATA(ver) != 0x3c) {
         //printf("Failed: Got version: %x!\n", ver);                
@@ -212,7 +209,7 @@ int test_serial(int loopid) {
         return 0;
     }
 	
-	printf("--------------- %d\n", __LINE__);
+
     printf("OK\n");
     assert_serial_failures = true;
     return 1;
@@ -220,8 +217,6 @@ int test_serial(int loopid) {
 
 
 int enable_nvm_loops_ok() {
-	
-	printf("------------%d--- %d\n", nvm, __LINE__);
     write_spi(ADDR_SQUID_LOOP_BYPASS, 0xFFFFFF);
     write_spi(ADDR_SQUID_LOOP_RESET, 0);
     write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
@@ -229,27 +224,27 @@ int enable_nvm_loops_ok() {
     write_spi(ADDR_SQUID_COMMAND, 0x0);   
     write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm->good_loops));
     int ok = test_serial(-1);
-	printf("--------------- %d\n", __LINE__);
+	
 
     if (!ok) {
       return 0;
     }
     
-	printf("--------------- %d\n", __LINE__);
+	
     for (int i = 0;i<LOOP_COUNT;i++) {
         printf("loop %d enabled = %d\n",i,!(nvm->loop_brocken[i]));
         miner_box.loop[i].enabled = !(nvm->loop_brocken[i]);
         miner_box.loop[i].id =i;
     }
 	
-	printf("--------------- %d\n", __LINE__);
+	
     return 1;
 }
       
 
 
 
-void enable_good_loops() {
+void discover_good_loops_update_nvm() {
     DBG(DBG_NET,"RESET SQUID\n");
     
     uint32_t good_loops = 0;
@@ -283,11 +278,17 @@ void enable_good_loops() {
                ret ++;
             } else {
                //printf("--11--\n");
-               nvm->loop_brocken[i] = true;            
-               //miner_box.loop[i].enabled = false;                
+               nvm->loop_brocken[i] = true; 
+               //miner_box.loop[i].enabled = false;
+               for (int h = i*HAMMERS_PER_LOOP; h < (i+1)*HAMMERS_PER_LOOP;h++) {
+				  //printf("remove ASIC 0x%x\n", h);
+				  nvm->working_engines[h] = 0;
+				  nvm->top_freq[h] = ASIC_FREQ_0;
+				  nvm->asic_corner[h] = ASIC_CORNER_NA;
+			   }
+			   printf("TODO: DISABLE DC2DC HERE!!!\n");
             }
         }
-        //printf("BYPASSING LOOPS: %x\n", ~(good_loops));
         nvm->good_loops = good_loops;
         write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm->good_loops));
         test_serial(-1);
@@ -327,30 +328,46 @@ void recompute_corners_and_voltage_update_nvm() {
   int i;
 
   printf(ANSI_COLOR_MAGENTA "Checking ASIC speed...!\n" ANSI_COLOR_RESET);
-  ASIC_FREQ corner_passage_freq_at_081v[ASIC_CORNER_COUNT] = {ASIC_FREQ_105, ASIC_FREQ_225, ASIC_FREQ_345, ASIC_FREQ_510, ASIC_FREQ_705};
+  ASIC_FREQ corner_passage_freq_at_081v[ASIC_CORNER_COUNT] = {ASIC_FREQ_105,ASIC_FREQ_105, ASIC_FREQ_225, ASIC_FREQ_345, ASIC_FREQ_510, ASIC_FREQ_705};
     
-  for (i = 0; i < ASIC_CORNER_COUNT; i++) {
+	printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
+  for (i = ASIC_CORNER_SS; i < ASIC_CORNER_COUNT; i++) {
      test_asics_in_freq(corner_passage_freq_at_081v[i], (ASIC_CORNER)i);
   }
 
   
   // We can assume all corners updated. Set all frequencies:
-  for (int l = 0; l < LOOP_COUNT; l++) {       
+  //printf("->>>--%x- %d %s\n",nvm->good_loops,  __LINE__, __FUNCTION__);
+  for (int l = 0; l < LOOP_COUNT; l++) {  
+  	if (nvm->good_loops & 1<<l) {
+		//printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
         int avarage_corner = 0;
         int working_asic_count = 0;
         // Compute corners to ASICs
         for (int h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
-            if (nvm->working_engines[i]) {
-                avarage_corner+=nvm->asic_corner[i];
+			//printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
+            if (nvm->working_engines[h]) {
+				//printf("->>>---%d %d %s\n", nvm->asic_corner[h],__LINE__, __FUNCTION__);
+                avarage_corner+=nvm->asic_corner[h];
                 working_asic_count++;
             }
         }
-  
+  		//printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
         //  compute avarage corner
-        avarage_corner = avarage_corner/working_asic_count;
-        nvm->loop_voltage[l] = CORNER_TO_VOLTAGE_TABLE[avarage_corner];
-        printf("avarage_corner per loop %d = %d\n", l, avarage_corner);
+        if (working_asic_count) {
+        	avarage_corner = avarage_corner/working_asic_count;
+        	nvm->loop_voltage[l] = CORNER_TO_VOLTAGE_TABLE[avarage_corner];
+        	printf("avarage_corner per loop %d = %d\n", l, avarage_corner);
+        } else {
+			nvm->loop_voltage[l] = ASIC_VOLTAGE_0;
+			printf("CLOSE LOOP???? TODO\n");
+        }
+  	 } else {
+		nvm->loop_voltage[l] = ASIC_VOLTAGE_0;
+		printf("CLOSE LOOP???? TODO\n");
+  	 }
    }
+   //printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
    nvm->dirty = 1;
 }
 
@@ -366,21 +383,21 @@ void create_default_nvm(int from_scratch, int check_loops) {
         set_voltage(i, ASIC_VOLTAGE_810);
    }
 
+    // See max rate under ASIC_VOLTAGE_810 
+	nvm->corners_computed = 0; 
+	nvm->bad_engines_found = 0;
+	for (i = 0; i < HAMMERS_COUNT; i++) {
+		nvm->working_engines[i] = 0xFF;	
+		nvm->asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
+		nvm->top_freq[i] = ASIC_FREQ_150;
+	}
+
+
    // Find good loops 
    if (check_loops) {
-     enable_good_loops();
+     discover_good_loops_update_nvm();
    }
 
-
-   // See max rate under ASIC_VOLTAGE_810 
-   printf(ANSI_COLOR_MAGENTA "TODO TODO Find bad engines in ASICs!\n" ANSI_COLOR_RESET);
-   nvm->corners_computed = 0; 
-   nvm->bad_engines_found = 0;
-   for (i = 0; i < HAMMERS_COUNT; i++) {
-       nvm->working_engines[i] = 0xFF;    
-       nvm->asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
-       nvm->top_freq[i] = ASIC_FREQ_150;
-   }
    
    nvm->dirty = 1;
 }
