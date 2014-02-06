@@ -436,7 +436,7 @@ uint32_t ac_current_handler() {
 
 uint32_t compute_spare_dc_points(int l) {
     // TODO
-    uint32_t spare_dc2dc_current = (AC2DC_HIGH - miner_box.loop[l].dc2dc.current);
+    uint32_t spare_dc2dc_current = (AC2DC_HIGH - miner_box.loop[l].dc2dc.dc_current);
     return spare_dc2dc_current;
 }
 
@@ -518,7 +518,7 @@ HAMMER* get_hammer(uint32_t addr) {
 int update_top_current_measurments() {
     miner_box.ac2dc_current = ac2dc_get_power(); 
     for (int i = 0; i < LOOP_COUNT; i++) {
-        miner_box.loop[i].dc2dc.current = dc2dc_get_current(i);
+        miner_box.loop[i].dc2dc.dc_current = dc2dc_get_current(i);
     }
     return 0;
 }
@@ -595,11 +595,11 @@ void solve_current_problems() {
 
 #if 1
   for (l = 0; l < LOOP_COUNT; l++) {
-     while (miner_box.loop[l].dc2dc.current >= DC2DC_CRITICAL) {
+     while (miner_box.loop[l].dc2dc.dc_current >= DC2DC_CRITICAL) {
        HAMMER* a = find_asic_to_reduce_dc_current(l);
        DBG(DBG_SCALING,"DC2DC OVER LIMIT, killing ASIC:%d!\n", a->address);
        try_set_asic_freq(a, SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]], 
-            &miner_box.ac2dc_current, &miner_box.loop[l].dc2dc.current);
+            &miner_box.ac2dc_current, &miner_box.loop[l].dc2dc.dc_current);
      }
   }
 
@@ -609,7 +609,7 @@ void solve_current_problems() {
        HAMMER* a = find_asic_to_reduce_ac_current();
        DBG(DBG_SCALING,"AC2DC OVER LIMIT, killing ASIC:%d %d!\n", a->address, a->freq);
        try_set_asic_freq(a, SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]], 
-            &miner_box.ac2dc_current, &miner_box.loop[HAMMER_TO_LOOP(a)].dc2dc.current);
+            &miner_box.ac2dc_current, &miner_box.loop[HAMMER_TO_LOOP(a)].dc2dc.dc_current);
   }
 #endif
 }
@@ -647,7 +647,7 @@ void periodic_scaling_task() {
     }
     
     for (int i = 0; i < LOOP_COUNT; i++) {          
-        if (miner_box.loop[i].dc2dc.current >= DC2DC_CRITICAL) {
+        if (miner_box.loop[i].dc2dc.dc_current >= DC2DC_CRITICAL) {
 		   critical_current = true; 
         }
     }
@@ -729,7 +729,7 @@ void print_asic(HAMMER* h) {
 
 void print_loop(int l) {
     LOOP* loop = & miner_box.loop[l];
-    DBG(DBG_SCALING,"   LOOP %x AMP:%d\n" , l, loop->dc2dc.current);
+    DBG(DBG_SCALING,"   LOOP %x AMP:%d\n" , l, loop->dc2dc.dc_current);
 
 }
 

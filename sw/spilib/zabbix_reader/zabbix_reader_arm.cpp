@@ -50,33 +50,67 @@ int main(int argc, char *argv[]) {
 			zabbix_log.asics[l].temp = 1;
 		}
 #endif
+	if (zabbix_log.zabbix_logsize != sizeof(zabbix_log)) {
+			printf("zabbix log SIZE is wrong, %x instead of %x\n", 
+				zabbix_log.zabbix_logsize , sizeof(zabbix_log));
+			return -1;
+	}
 
 
 	if (zabbix_log.magic != MG_ZABBIX_LOG_MAGIC) {
-		printf("zabbix log MAGIC wrong, %x instead of %x\n", zabbix_log.magic , MG_ZABBIX_LOG_MAGIC);
+		printf("zabbix log MAGIC is wrong, %x instead of %x\n", zabbix_log.magic , MG_ZABBIX_LOG_MAGIC);
 		return -1;
 	}
 
 	if (zabbix_log.version != MG_ZABBIX_LOG_VERSION) {
-		printf("zabbix log VERSION wrong, %x instead of %x\n", zabbix_log.version , MG_ZABBIX_LOG_VERSION);
+		printf("zabbix log VERSION is wrong, %x instead of %x\n", zabbix_log.version , MG_ZABBIX_LOG_VERSION);
 		return -1;
 	}
 
 
-	printf("zabbix_log.ac2dc_current = %x\n", zabbix_log.ac2dc_current);
-	printf("zabbix_log.ac2dc_temp = %x\n", zabbix_log.ac2dc_temp);
-	for(int l = 0; l < LOOP_COUNT ; l++) {
-		printf("loop[%x].voltage = %x\n", l, zabbix_log.loops[l].voltage);
-		printf("loop[%x].current = %x\n", l, zabbix_log.loops[l].current);
-		printf("loop[%x].temp = %x\n", l, zabbix_log.loops[l].temp);
-	}
 
+
+
+	printf("AC2DC.A %2x\n", zabbix_log.ac2dc_current);
+	printf("AC2DC.C %2x\n", zabbix_log.ac2dc_temp);
+	printf("DC2DC\n      |", zabbix_log.ac2dc_temp);
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+		printf("%3x ", l);
+	}
+	printf("\n------");
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+		printf("---", l);
+	}
+	printf("\nVOLT |");
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+		int j;
+		VOLTAGE_ENUM_TO_MILIVOLTS(zabbix_log.loops[l].voltage, j);
+		
+		printf("%3d ", j);
+	}
+	printf("\nCRNT |");
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+			printf("%3x ", zabbix_log.loops[l].current);
+	}
+	printf("\nTEMP |");
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+			printf("%3x ", zabbix_log.loops[l].temp);
+	}
+	printf("\n------");
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+		printf("---", l);
+	}
+	printf("\n");
+
+	printf("ASIC Freq/Temp:\n", zabbix_log.ac2dc_temp);
 	for(int l = 0; l < HAMMERS_COUNT ; l++) {
-		printf("asic[%x].freq = %x\n", l, zabbix_log.asics[l].freq);
-		printf("asic[%x].temp = %x\n", l, zabbix_log.asics[l].temp);
+		if (l%HAMMERS_PER_LOOP == 0) {
+			printf("\n%2d |", l/HAMMERS_PER_LOOP);
+		}
+		printf("%2x-%2x ", zabbix_log.asics[l].freq, zabbix_log.asics[l].temp);
 	}
 	
-	
+	printf("\n");
 }
 
 

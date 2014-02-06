@@ -76,6 +76,8 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../spilib/miner_gate_arm usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
 	cp ${CUR_DIR}/../../cgminer-1/cgminer usr/local/bin
+	cp ${CUR_DIR}/../../spilib/zabbix_reader/zabbix_reader_arm  usr/local/bin
+	cp ${CUR_DIR}/../../spilib/zabbix_reader/hammer_reg/reg usr/local/bin
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
 	

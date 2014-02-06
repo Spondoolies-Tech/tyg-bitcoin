@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
 
 	printf("zabbix_log.ac2dc_current = %x\n", zabbix_log.ac2dc_current);
 	printf("zabbix_log.ac2dc_temp = %x\n", zabbix_log.ac2dc_temp);
+	
 	for(int l = 0; l < LOOP_COUNT ; l++) {
 		printf("loop[%x].voltage = %x\n", l, zabbix_log.loops[l].voltage);
 		printf("loop[%x].current = %x\n", l, zabbix_log.loops[l].current);
