@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # host name prefix 
-HOST_PREF="miner"
+HOST_PREF="miner-"
 
 # mng board eeprom range start for box serial name
 START=28
