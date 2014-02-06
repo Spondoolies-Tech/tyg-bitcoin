@@ -6,7 +6,7 @@
 case "$1" in
 start)
 	echo "Setting hostname..."
-	./bin/hostname baba
+	./bin/hostname `eeprom-read-hostname.sh`
 	;;
 stop)
 	;;
