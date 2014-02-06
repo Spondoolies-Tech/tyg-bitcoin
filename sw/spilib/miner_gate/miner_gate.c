@@ -439,6 +439,7 @@ void reset_squid() {
 int main(int argc, char *argv[])
 {
  int test_mode = 0;
+ int testreset_mode = 0;
  int init_mode = 0;
  int s;
  
@@ -451,6 +452,7 @@ int main(int argc, char *argv[])
 	
  if ((argc > 1) && strcmp(argv[1],"--help") == 0) {
     test_mode = 1;
+	printf ("--testreset = Test asic reset!!!\n");
     printf ("--test = Test mode, remove NVM!!!\n");
 	printf ("--noscale = No scaling mode!!!\n");
 	printf ("--noasic = NO HW MODE!!!\n");
@@ -462,6 +464,13 @@ int main(int argc, char *argv[])
  if ((argc > 1) && strcmp(argv[1],"--test") == 0) {
     test_mode = 1;
     printf ("Test mode, remove NVM!!!\n");
+    spond_delete_nvm();
+ }
+
+ 
+ if ((argc > 1) && strcmp(argv[1],"--testreset") == 0) {
+    testreset_mode = 1;
+    printf ("Test reset mode, remove NVM!!!\n");
     spond_delete_nvm();
  }
 
@@ -599,6 +608,24 @@ int main(int argc, char *argv[])
  }
 
  printf("--------------- %d\n", __LINE__);
+
+
+ if (testreset_mode) {
+	// Reset ASICs
+	write_reg_broadcast(ADDR_GOT_ADDR, 0);
+	
+	// If someone not reseted (has address) - we have a problem
+	int reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
+    if (reg == 0) {
+		// Don't remove - used by tests
+        printf("RESET BAD\n");
+    } else {
+  	    // Don't remove - used by tests
+		printf("RESET GOOD\n");
+    }
+
+	return 0;
+ }
 
  
  // test HAMMER read
