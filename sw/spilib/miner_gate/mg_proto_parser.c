@@ -4,12 +4,13 @@
 */
 
 #include "mg_proto_parser.h"
-#include <assert.h>
+
+#include "spond_debug.h"
 
 void parse_minergate_packet(minergate_packet *mp, minergate_data_handler minergate_data_processor, void* context,void* context2) {
 
 	uint16_t current_ptr  = 0;
-	assert(mp->protocol_version == MINERGATE_PROTOCOL_VERSION);
+	passert(mp->protocol_version == MINERGATE_PROTOCOL_VERSION);
 	//printf("4.1\n");
 
 	while (current_ptr < mp->data_length) {
@@ -17,7 +18,7 @@ void parse_minergate_packet(minergate_packet *mp, minergate_data_handler minerga
 		minergate_data* md = (minergate_data*)(mp->data+current_ptr);
 		//printf("4.3\n");
 		//printf("-- %d:%x\n", current_ptr, md->magic);
-		assert(md->magic == 0xA5);
+		passert(md->magic == 0xA5);
 		(*minergate_data_processor)(md, context, context2);
 		current_ptr += md->data_length + MINERGATE_DATA_HEADER_SIZE;
 	}
@@ -30,7 +31,7 @@ void parse_minergate_packet(minergate_packet *mp, minergate_data_handler minerga
 minergate_packet *allocate_minergate_packet(int data_length, 
 											uint8_t requester_id, 
 											uint8_t request_id) {
-	assert(data_length < 0xFFFF + MINERGATE_PACKET_HEADER_SIZE);
+	passert(data_length < 0xFFFF + MINERGATE_PACKET_HEADER_SIZE);
 	minergate_packet *p  = (minergate_packet*)malloc(data_length + MINERGATE_PACKET_HEADER_SIZE);
     p->max_data_length = data_length;
 	p->requester_id = requester_id;
@@ -50,7 +51,7 @@ minergate_data* get_minergate_data(minergate_packet *mp, uint16_t data_length, u
 	md->data_id = data_id;
 	md->magic = 0xa5;
 	mp->data_length += data_length + MINERGATE_DATA_HEADER_SIZE;
-    assert(mp->data_length <= mp->max_data_length);
+    passert(mp->data_length <= mp->max_data_length);
 	return md;
 }
 

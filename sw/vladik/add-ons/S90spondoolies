@@ -1,0 +1,93 @@
+#!/bin/sh
+#
+# Handle SPI.
+#
+
+export PATH=$PATH:/usr/local/bin:/bin
+miner_gate_arm_watchdog () {
+	/usr/local/bin/miner_gate_arm &
+	echo $! > /var/run/miner_gate_arm.pid
+
+
+
+	while true; do
+		pid=`cat /var/run/miner_gate_arm.pid`
+		if [ ! -e /proc/$pid -a /proc/$pid/exe ]; then
+			echo "minergate died and restarted"
+			/usr/local/bin/miner_gate_arm &
+			echo $! > /var/run/miner_gate_arm.pid
+		fi
+		sleep 3;
+	done
+
+}
+
+
+start_mg() {
+	if [ -f "/var/run/miner_gate_arm.pid" ]; then
+		echo "minergate is already running"
+	else
+		miner_gate_arm_watchdog &
+		echo $! > /var/run/miner_gate_arm_watchdog.pid
+	fi
+}
+
+
+stop_mg() {
+	if [ ! -f "/var/run/miner_gate_arm.pid" ]; then
+		echo "minergate not running"
+	else
+		pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
+		pid2=`cat /var/run/miner_gate_arm.pid`
+		kill $pid1
+		kill $pid2
+		rm /var/run/miner_gate_arm_watchdog.pid
+		rm /var/run/miner_gate_arm.pid
+	fi
+}
+
+
+
+case "$1" in
+start)
+	# bullshit
+	NORMALBOOT=1
+
+	
+		if [ -e "/mmc/autorun" ]; then
+			NORMALBOOT=0
+			#/sd/autorun
+		fi
+	
+
+	
+		if [ -e "/sd/autorun" ]; then
+			NORMALBOOT=0
+			#/sd/autorun
+		fi
+	
+
+	echo "NORMALBOOT=${NORMALBOOT}"
+	if [ ${NORMALBOOT} -eq 1 ]; then 
+		echo "Loading FPGA..."
+		sleep 1
+		start_mg
+	fi
+	;;
+stop)
+	stop_mg
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+

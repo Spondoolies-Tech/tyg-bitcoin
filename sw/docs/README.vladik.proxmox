@@ -1,0 +1,54 @@
+
+Terms
+=====
+Root directory -- root directory on host Linux PC where all
+development is done
+
+Overo QEMU image creation
+=========================
+Use script create-sd-card-image.sh in order to create SD Card image.
+Run it from root directory as follows:
+
+	./create-sd-card-image.sh
+
+It should create overo-sdcard.img which contains MLO and U-Boot for Overo board.
+
+
+Overo kernel
+============
+
+
+
+DHCP and TFTP configuration
+===========================
+As the default work mode is to take kernel and rootfs from network
+DHCP and TFTP servers should be setup and configured.
+
+Windows
+-------
+On Windows use TFTPD32/64 which is a Windows program which provides both
+DHCP and TFTP servers. The configuration is trivial, just select network
+interface to work with and TFTP working directory.
+TFTPD32 URL is http://tftpd32.jounin.net/.
+
+Linux
+-----
+Install TFTP server
+
+	sudo apt-get install atftpd
+
+and configure it (working directory).
+
+Regarding DHCP there is difference between development and production machines.
+Development may use the simplest but limited udhcpd, while production server
+shoule use isc-dhcp-server which is very powerfull but more complicated.
+See its description here: https://wiki.debian.org/DHCP_Server
+
+
+
+
+
+
+
+
+

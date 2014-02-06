@@ -5,50 +5,11 @@ Vladik provides us with 3 git repositories - u-boot, kernel and in tyg-git direc
 
 
 
-Terms
-=====
-Root directory -- root directory on host Linux PC where all
-development is done
-
-Overo QEMU image creation
-=========================
-Use script create-sd-card-image.sh in order to create SD Card image.
-Run it from root directory as follows:
-
-	./create-sd-card-image.sh
-
-It should create overo-sdcard.img which contains MLO and U-Boot for Overo board.
-
-
-Overo kernel
-============
 
 
 
-DHCP and TFTP configuration
-===========================
-As the default work mode is to take kernel and rootfs from network
-DHCP and TFTP servers should be setup and configured.
 
-Windows
--------
-On Windows use TFTPD32/64 which is a Windows program which provides both
-DHCP and TFTP servers. The configuration is trivial, just select network
-interface to work with and TFTP working directory.
-TFTPD32 URL is http://tftpd32.jounin.net/.
 
-Linux
------
-Install TFTP server
-
-	apt-get install atftpd
-
-and configure it (working directory).
-
-Regarding DHCP there is difference between development and production machines.
-Development may use the simplest but limited udhcpd, while production server
-shoule use isc-dhcp-server which is very powerfull but more complicated.
-See its description here: https://wiki.debian.org/DHCP_Server
 
 
 U-Boot
@@ -155,7 +116,12 @@ Slim kernel should only be prepared once.
 	cd kernel
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- distclean
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies_defconfig
-	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- -j4
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- -j8
+
+
+
+GOTO !!!!!BUILDROOT!!!!!!
+
 
 
 Configure full image
@@ -163,17 +129,17 @@ Configure full image
 
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- menuconfig
 
-Enter General setup, select "Initial RAM filesystem and RAM disk".
-In Initramfs source file enter string "../../buildroot-2013.05/output/images/rootfs.cpio.lzma".
-Select Support initial ramdisks compressed using LZMA and unselect
-Support initial ramdisks compressed using gzip.
+General setup -> "Initial RAM filesystem and RAM disk".
+Initramfs source file = "../../buildroot-2013.05/output/images/rootfs.cpio.lzma".
+"Support initial ramdisks compressed using LZMA" = TRUE
+"Support initial ramdisks compressed using gzip" = FALSE
 
 
 Build full image
 ----------------
 !! Full image kernel implies rootfs (buildroot) is already done. !!
 
-	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- uImage -j4
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- uImage -j8
 	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies.dtb
 
 The results are in arch/arm/boot/uImage and arch/arm/boot/dts/spondoolies.dtb.

@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# Handle SPI.
+#
+
+export PATH=$PATH:/usr/local/bin:/bin
+
+
+load_fpga() {
+	cd /spond-data
+	/usr/local/bin/fpga-load.sh squid_top.jam
+}
+
+
+
+case "$1" in
+start)
+	NORMALBOOT=1
+	if [ -e "/sd/autorun" ]; then
+		NORMALBOOT=0
+	fi
+	if [ -e "/mmc/autorun" ]; then
+		NORMALBOOT=0
+	fi
+
+	if [ ${NORMALBOOT} -eq 1 ]; then 
+		echo "Loading FPGA..."
+		load_fpga
+	fi
+	;;
+stop)
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+

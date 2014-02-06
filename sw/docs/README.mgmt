@@ -1,0 +1,25 @@
+Server MGMT structure
+----------------------
+
+There will be MGMT server with limited access that manages the stations. The mgmt will be done using ssh and nfs.
+
+The mgmt server will have the following directories/files:
+/tftp                - for tftp boot
+/nfs/                - for station management
+/nfs/<station-name>  - created by each station. The mgmt server will put there autorun and autorun-once files and to get zabbix logs.
+
+/mgmt/                       - mgmt directory with configuration
+/mgmt/mining-profiles/       - mining profiles directory
+/mgmt/stations/stations.txt  - all stations with their admin-state(ADMIN-UP/ADMIN-DOWN/ADMIN-ANY/ADMIN-UNKNOWN), their operational-state (OPER-UP/OPER-DOWN) based  and their mining profile. Should not be edited manualy. It will also have IP and UPTIME.
+
+------------
+stations.txt - for each station we will have admin-state (ADMIN-UP - we expect it to be up, DOWN - we expect it to be down, ANY - it can be up or down, UNKNOWN - this station was not configured). UNKNOWN stations will be reported once every 1/2 hour. ADMIN-UP station that OPER-DOWN and ADMIN-DOWN stations that OPER-UP will be reported once every 1/2 hour.
+
+------------
+mini monitoring web server - mini-monitoring web server will show the state of all station (stations.txt) and access to their latest zabbix log in textual format.
+
+
+
+
+
+

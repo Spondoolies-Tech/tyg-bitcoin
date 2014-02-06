@@ -22,8 +22,8 @@
 */
 
 #include "json.h"
+#include "spond_debug.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,7 +105,7 @@ static void sb_puts(SB *sb, const char *str)
 static char *sb_finish(SB *sb)
 {
 	*sb->cur = 0;
-	assert(sb->start <= sb->cur && strlen(sb->start) == (size_t)(sb->cur - sb->start));
+	passert(sb->start <= sb->cur && strlen(sb->start) == (size_t)(sb->cur - sb->start));
 	return sb->start;
 }
 
@@ -227,7 +227,7 @@ static int utf8_read_char(const char *s, uchar_t *out)
 {
 	const unsigned char *c = (const unsigned char*) s;
 	
-	assert(utf8_validate_cz(s));
+	passert(utf8_validate_cz(s));
 
 	if (c[0] <= 0x7F) {
 		/* 00..7F */
@@ -266,7 +266,7 @@ static int utf8_write_char(uchar_t unicode, char *out)
 {
 	unsigned char *o = (unsigned char*) out;
 	
-	assert(unicode <= 0x10FFFF && !(unicode >= 0xD800 && unicode <= 0xDFFF));
+	passert(unicode <= 0x10FFFF && !(unicode >= 0xD800 && unicode <= 0xDFFF));
 
 	if (unicode <= 0x7F) {
 		/* U+0000..U+007F */
@@ -318,7 +318,7 @@ static void to_surrogate_pair(uchar_t unicode, uint16_t *uc, uint16_t *lc)
 {
 	uchar_t n;
 	
-	assert(unicode >= 0x10000 && unicode <= 0x10FFFF);
+	passert(unicode >= 0x10000 && unicode <= 0x10FFFF);
 	
 	n = unicode - 0x10000;
 	*uc = ((n >> 10) & 0x3FF) | 0xD800;
@@ -568,32 +568,32 @@ static void append_member(JsonNode *object, char *key, JsonNode *value)
 
 void json_append_element(JsonNode *array, JsonNode *element)
 {
-	assert(array->tag == JSON_ARRAY);
-	assert(element->parent == NULL);
+	passert(array->tag == JSON_ARRAY);
+	passert(element->parent == NULL);
 	
 	append_node(array, element);
 }
 
 void json_prepend_element(JsonNode *array, JsonNode *element)
 {
-	assert(array->tag == JSON_ARRAY);
-	assert(element->parent == NULL);
+	passert(array->tag == JSON_ARRAY);
+	passert(element->parent == NULL);
 	
 	prepend_node(array, element);
 }
 
 void json_append_member(JsonNode *object, const char *key, JsonNode *value)
 {
-	assert(object->tag == JSON_OBJECT);
-	assert(value->parent == NULL);
+	passert(object->tag == JSON_OBJECT);
+	passert(value->parent == NULL);
 	
 	append_member(object, json_strdup(key), value);
 }
 
 void json_prepend_member(JsonNode *object, const char *key, JsonNode *value)
 {
-	assert(object->tag == JSON_OBJECT);
-	assert(value->parent == NULL);
+	passert(object->tag == JSON_OBJECT);
+	passert(value->parent == NULL);
 	
 	value->key = json_strdup(key);
 	prepend_node(object, value);
@@ -974,7 +974,7 @@ static void skip_space(const char **sp)
 
 static void emit_value(SB *out, const JsonNode *node)
 {
-	assert(tag_is_valid(node->tag));
+	passert(tag_is_valid(node->tag));
 	switch (node->tag) {
 		case JSON_NULL:
 			sb_puts(out, "null");
@@ -995,13 +995,13 @@ static void emit_value(SB *out, const JsonNode *node)
 			emit_object(out, node);
 			break;
 		default:
-			assert(false);
+			passert(false);
 	}
 }
 
 void emit_value_indented(SB *out, const JsonNode *node, const char *space, int indent_level)
 {
-	assert(tag_is_valid(node->tag));
+	passert(tag_is_valid(node->tag));
 	switch (node->tag) {
 		case JSON_NULL:
 			sb_puts(out, "null");
@@ -1022,7 +1022,7 @@ void emit_value_indented(SB *out, const JsonNode *node, const char *space, int i
 			emit_object_indented(out, node, space, indent_level);
 			break;
 		default:
-			assert(false);
+			passert(false);
 	}
 }
 
@@ -1110,7 +1110,7 @@ void emit_string(SB *out, const char *str)
 	const char *s = str;
 	char *b;
 	
-	assert(utf8_validate(str));
+	passert(utf8_validate(str));
 	
 	/*
 	 * 14 bytes is enough space to write up to two
@@ -1168,7 +1168,7 @@ void emit_string(SB *out, const char *str)
 					 * This should never happen when assertions are enabled
 					 * due to the assertion at the beginning of this function.
 					 */
-					assert(false);
+					passert(false);
 					if (escape_unicode) {
 						strcpy(b, "\\uFFFD");
 						b += 6;
@@ -1191,7 +1191,7 @@ void emit_string(SB *out, const char *str)
 					} else {
 						/* Produce a surrogate pair. */
 						uint16_t uc, lc;
-						assert(unicode <= 0x10FFFF);
+						passert(unicode <= 0x10FFFF);
 						to_surrogate_pair(unicode, &uc, &lc);
 						*b++ = '\\';
 						*b++ = 'u';

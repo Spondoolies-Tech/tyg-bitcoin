@@ -12,11 +12,15 @@
 typedef struct mg_asic_log {
 	uint8_t freq; // ASIC_FREQ
 	uint8_t temp; // ASIC_TEMP
+	uint8_t working_engines;
+	uint8_t failed_bists;
+	uint16_t  freq_time;
 } __attribute__((__packed__ )) MG_ASIC_LOG ;
 
 
 
 typedef struct mg_loop_log {
+	uint8_t enabled;    // ???	
 	uint8_t voltage; // DC2DC_VOLTAGE
 	uint8_t current; // ???
 	uint8_t temp;    // ???
@@ -25,7 +29,10 @@ typedef struct mg_loop_log {
 
 typedef struct mg_zabbix_log {
 	uint16_t magic;
-	uint16_t version;
+	uint16_t version;	
+	uint16_t reserved;
+	uint16_t zabbix_logsize;
+	uint32_t time;    // seconds from some hippie period 
 	uint32_t dump_id; // autoincrement
 
 	uint8_t ac2dc_current;

@@ -17,6 +17,9 @@
 #include "hammer.h"
 #include <sys/time.h>
 #include "nvm.h"
+#include "ac2dc.h"
+#include "ac2dc.h"
+
 
 /*
        Supported temp sensor settings:
@@ -25,21 +28,18 @@
 */
 
 // When ariving here (>=) cut the frequency drastically.
-int8_t CRITICAL_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {4,4,4,4,4};
+int8_t CRITICAL_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {4,4,4,4,4,4};
 // When under this (<) raise the frequency slowly
-int8_t BEST_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {3,3,3,3,3};
+int8_t BEST_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {3,3,3,3,3,3};
 
 // When under this (<) raise the frequency slowly
 //TODO
-int SAFE_FREQ_PER_CORNER[ASIC_CORNER_COUNT] = {ASIC_FREQ_210, ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210};
-int AC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1};
-int DC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1};
-//uint8_t SAFE_FREQ_PER_CORNER[ASIC_CORNER_COUNT] = {5,4,3,2,1};
-
-//int AC2DC_HIGH[ASIC_CORNER_COUNT] = {ASIC_VOLTAGE_765, ASIC_VOLTAGE_720,ASIC_VOLTAGE_630,ASIC_VOLTAGE_630,ASIC_VOLTAGE_630};
+int SAFE_FREQ_PER_CORNER[ASIC_CORNER_COUNT] = {ASIC_FREQ_210, ASIC_FREQ_210, ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210};
+int AC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1,1};
+int DC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1,1};
 
 DC2DC_VOLTAGE CORNER_TO_VOLTAGE_TABLE[ASIC_CORNER_COUNT] = 
-    {ASIC_VOLTAGE_765, ASIC_VOLTAGE_720, 
+    {ASIC_VOLTAGE_765, ASIC_VOLTAGE_765, ASIC_VOLTAGE_720, 
      ASIC_VOLTAGE_630, ASIC_VOLTAGE_630, ASIC_VOLTAGE_630};
 
 
@@ -51,6 +51,7 @@ void print_scaling();
 
 MINER_BOX miner_box = {0};
 extern SPONDOOLIES_NVM* nvm;
+extern int enable_scaling;
 
 int pull_work_req(RT_JOB* w);
 extern int drop_job_requests;
@@ -174,6 +175,13 @@ int test_serial(int loopid) {
     int val2;
     // This printfs used in tests! Don`t remove!!
     printf("Testing loop %d:", loopid);
+	// For benny - TODO remove
+	/*printf("FAKING IT :)\n");
+	for (int j = 0 ; j < 1000 ; j++) {
+		write_reg_broadcast(ADDR_VERSION, 0xAAAA);
+	}*/
+	
+
     while((val1 = read_spi(ADDR_SQUID_STATUS)) & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) {
         val2 = read_spi(ADDR_SQUID_SERIAL_READ);
         i++;    
@@ -185,18 +193,23 @@ int test_serial(int loopid) {
             return 0;          
         }
     }
+	
+	
     //printf("Ok %d!\n", i);
 
 
     // test for connectivity
     int ver = read_reg_broadcast(ADDR_VERSION);
     
+	
     //printf("XTesting loop, version = %x\n", ver);
     if (BROADCAST_READ_DATA(ver) != 0x3c) {
         //printf("Failed: Got version: %x!\n", ver);                
         printf("BAD DATA\n");
         return 0;
     }
+	
+
     printf("OK\n");
     assert_serial_failures = true;
     return 1;
@@ -211,23 +224,27 @@ int enable_nvm_loops_ok() {
     write_spi(ADDR_SQUID_COMMAND, 0x0);   
     write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm->good_loops));
     int ok = test_serial(-1);
+	
 
     if (!ok) {
       return 0;
     }
     
+	
     for (int i = 0;i<LOOP_COUNT;i++) {
         printf("loop %d enabled = %d\n",i,!(nvm->loop_brocken[i]));
         miner_box.loop[i].enabled = !(nvm->loop_brocken[i]);
         miner_box.loop[i].id =i;
     }
+	
+	
     return 1;
 }
       
 
 
 
-void enable_good_loops() {
+void discover_good_loops_update_nvm() {
     DBG(DBG_NET,"RESET SQUID\n");
     
     uint32_t good_loops = 0;
@@ -261,18 +278,24 @@ void enable_good_loops() {
                ret ++;
             } else {
                //printf("--11--\n");
-               nvm->loop_brocken[i] = true;            
-               //miner_box.loop[i].enabled = false;                
+               nvm->loop_brocken[i] = true; 
+               //miner_box.loop[i].enabled = false;
+               for (int h = i*HAMMERS_PER_LOOP; h < (i+1)*HAMMERS_PER_LOOP;h++) {
+				  //printf("remove ASIC 0x%x\n", h);
+				  nvm->working_engines[h] = 0;
+				  nvm->top_freq[h] = ASIC_FREQ_0;
+				  nvm->asic_corner[h] = ASIC_CORNER_NA;
+			   }
+			   printf("TODO: DISABLE DC2DC HERE!!!\n");
             }
         }
-        //printf("BYPASSING LOOPS: %x\n", ~(good_loops));
         nvm->good_loops = good_loops;
         write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm->good_loops));
         test_serial(-1);
     }
     nvm->dirty = 1;   
     printf("Found %d good loops\n",ret);
-    assert(ret);
+    passert(ret);
 
 }
 
@@ -305,30 +328,46 @@ void recompute_corners_and_voltage_update_nvm() {
   int i;
 
   printf(ANSI_COLOR_MAGENTA "Checking ASIC speed...!\n" ANSI_COLOR_RESET);
-  ASIC_FREQ corner_passage_freq_at_081v[ASIC_CORNER_COUNT] = {ASIC_FREQ_105, ASIC_FREQ_225, ASIC_FREQ_345, ASIC_FREQ_510, ASIC_FREQ_705};
+  ASIC_FREQ corner_passage_freq_at_081v[ASIC_CORNER_COUNT] = {ASIC_FREQ_105,ASIC_FREQ_105, ASIC_FREQ_225, ASIC_FREQ_345, ASIC_FREQ_510, ASIC_FREQ_705};
     
-  for (i = 0; i < ASIC_CORNER_COUNT; i++) {
+	printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
+  for (i = ASIC_CORNER_SS; i < ASIC_CORNER_COUNT; i++) {
      test_asics_in_freq(corner_passage_freq_at_081v[i], (ASIC_CORNER)i);
   }
 
   
   // We can assume all corners updated. Set all frequencies:
-  for (int l = 0; l < LOOP_COUNT; l++) {       
+  //printf("->>>--%x- %d %s\n",nvm->good_loops,  __LINE__, __FUNCTION__);
+  for (int l = 0; l < LOOP_COUNT; l++) {  
+  	if (nvm->good_loops & 1<<l) {
+		//printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
         int avarage_corner = 0;
         int working_asic_count = 0;
         // Compute corners to ASICs
         for (int h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
-            if (nvm->working_engines[i]) {
-                avarage_corner+=nvm->asic_corner[i];
+			//printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
+            if (nvm->working_engines[h]) {
+				//printf("->>>---%d %d %s\n", nvm->asic_corner[h],__LINE__, __FUNCTION__);
+                avarage_corner+=nvm->asic_corner[h];
                 working_asic_count++;
             }
         }
-  
+  		//printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
         //  compute avarage corner
-        avarage_corner = avarage_corner/working_asic_count;
-        nvm->loop_voltage[l] = CORNER_TO_VOLTAGE_TABLE[avarage_corner];
-        printf("avarage_corner per loop %d = %d\n", l, avarage_corner);
+        if (working_asic_count) {
+        	avarage_corner = avarage_corner/working_asic_count;
+        	nvm->loop_voltage[l] = CORNER_TO_VOLTAGE_TABLE[avarage_corner];
+        	printf("avarage_corner per loop %d = %d\n", l, avarage_corner);
+        } else {
+			nvm->loop_voltage[l] = ASIC_VOLTAGE_0;
+			printf("CLOSE LOOP???? TODO\n");
+        }
+  	 } else {
+		nvm->loop_voltage[l] = ASIC_VOLTAGE_0;
+		printf("CLOSE LOOP???? TODO\n");
+  	 }
    }
+   //printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
    nvm->dirty = 1;
 }
 
@@ -344,26 +383,23 @@ void create_default_nvm(int from_scratch, int check_loops) {
         set_voltage(i, ASIC_VOLTAGE_810);
    }
 
+    // See max rate under ASIC_VOLTAGE_810 
+	nvm->corners_computed = 0; 
+	nvm->bad_engines_found = 0;
+	for (i = 0; i < HAMMERS_COUNT; i++) {
+		nvm->working_engines[i] = 0xFF;	
+		nvm->asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
+		nvm->top_freq[i] = ASIC_FREQ_150;
+	}
+
+
    // Find good loops 
    if (check_loops) {
-     enable_good_loops();
+     discover_good_loops_update_nvm();
    }
 
-
-
-
-   // See max rate under ASIC_VOLTAGE_810 
-   printf(ANSI_COLOR_MAGENTA "TODO TODO Find bad engines in ASICs!\n" ANSI_COLOR_RESET);
-   nvm->corners_computed = 0; 
-   nvm->bad_engines_found = 0;
-   for (i = 0; i < HAMMERS_COUNT; i++) {
-       nvm->working_engines[i] = 0xFF;    
-       nvm->asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
-       nvm->top_freq[i] = ASIC_FREQ_150;
-   }
-
-   nvm->dirty = 1;        
- 
+   
+   nvm->dirty = 1;
 }
 
 
@@ -371,7 +407,7 @@ void create_default_nvm(int from_scratch, int check_loops) {
     
 void init_scaling() {
     // ENABLE ENGINES
-    
+    passert (enable_scaling);
 }
      
 
@@ -397,7 +433,7 @@ void stop_all_work() {
          push_work_rsp(&work);
      }
      
-     assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
+     passert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
 }
 
 
@@ -409,15 +445,15 @@ void resume_all_work() {
 
 uint32_t ac_current_handler() {
     // TODO
-    int spare_ac2dc_top_current = (AC2DC_HIGH - miner_box.ac2dc_top_current);
-    return spare_ac2dc_top_current;
+    int spare_ac2dc_current = (AC2DC_HIGH - miner_box.ac2dc_current);
+    return spare_ac2dc_current;
 
 }
 
 
 uint32_t compute_spare_dc_points(int l) {
     // TODO
-    uint32_t spare_dc2dc_current = (AC2DC_HIGH - miner_box.loop[l].dc2dc.current);
+    uint32_t spare_dc2dc_current = (AC2DC_HIGH - miner_box.loop[l].dc2dc.dc_current);
     return spare_dc2dc_current;
 }
 
@@ -495,13 +531,16 @@ HAMMER* get_hammer(uint32_t addr) {
 
 
 // Return 1 if needs urgent scaling
+
 int update_top_current_measurments() {
-    miner_box.ac2dc_top_current = AC2DC_HIGH; 
+    miner_box.ac2dc_current = ac2dc_get_power(); 
     for (int i = 0; i < LOOP_COUNT; i++) {
-        miner_box.loop[i].dc2dc.current = DC2DC_HIGH;
+        miner_box.loop[i].dc2dc.dc_current = dc2dc_get_current(i);
     }
     return 0;
 }
+
+
 
 bool can_be_throttled(HAMMER* a) {
     return (a->present && (a->freq > SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]]));
@@ -545,7 +584,7 @@ HAMMER* find_asic_to_reduce_ac_current() {
             }
         }
     }
-    assert(can_be_throttled(best));
+    passert(can_be_throttled(best));
     return best;
 }
 
@@ -558,7 +597,7 @@ HAMMER* find_asic_to_reduce_dc_current(int l) {
       HAMMER* a = &miner_box.hammer[l*HAMMERS_PER_LOOP + h];
       best = choose_asic_to_disable(best, a);
     }
-    assert(can_be_throttled(best));
+    passert(can_be_throttled(best));
     return best;
 }
 
@@ -573,20 +612,21 @@ void solve_current_problems() {
 
 #if 1
   for (l = 0; l < LOOP_COUNT; l++) {
-     while (miner_box.loop[l].dc2dc.current >= DC2DC_CRITICAL) {
+     while (miner_box.loop[l].dc2dc.dc_current >= DC2DC_CRITICAL) {
        HAMMER* a = find_asic_to_reduce_dc_current(l);
        DBG(DBG_SCALING,"DC2DC OVER LIMIT, killing ASIC:%d!\n", a->address);
        try_set_asic_freq(a, SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]], 
-            &miner_box.ac2dc_top_current, &miner_box.loop[l].dc2dc.current);
+            &miner_box.ac2dc_current, &miner_box.loop[l].dc2dc.dc_current);
      }
   }
 
  
-  while (miner_box.ac2dc_top_current >= AC2DC_CRITICAL) {
+  while (miner_box.ac2dc_current >= AC2DC_CRITICAL) {
+  	   printf("miner_box.ac2dc_current = %d\n", miner_box.ac2dc_current);
        HAMMER* a = find_asic_to_reduce_ac_current();
        DBG(DBG_SCALING,"AC2DC OVER LIMIT, killing ASIC:%d %d!\n", a->address, a->freq);
        try_set_asic_freq(a, SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]], 
-            &miner_box.ac2dc_top_current, &miner_box.loop[HAMMER_TO_LOOP(a)].dc2dc.current);
+            &miner_box.ac2dc_current, &miner_box.loop[HAMMER_TO_LOOP(a)].dc2dc.dc_current);
   }
 #endif
 }
@@ -605,6 +645,11 @@ void set_optimal_voltage() {
 // Stop handling requests
 // Called from the main HW handling thread every 1 second
 void periodic_scaling_task() {
+
+	if (!enable_scaling) {
+		return;
+	}
+
     struct timeval tv;
     struct timeval now;
     static struct timeval last_scaling = {0};    
@@ -614,13 +659,13 @@ void periodic_scaling_task() {
     usec+=(tv.tv_usec-last_scaling.tv_usec);
     bool critical_current = false;
 
-    if (miner_box.ac2dc_top_current >= AC2DC_CRITICAL) {
+    if (miner_box.ac2dc_current >= AC2DC_CRITICAL) {
         critical_current = true;
     }
     
-    for (int i = 0; i < LOOP_COUNT; i++) {
-        if (miner_box.loop[i].dc2dc.current >= DC2DC_CRITICAL) {
-           critical_current = true; 
+    for (int i = 0; i < LOOP_COUNT; i++) {          
+        if (miner_box.loop[i].dc2dc.dc_current >= DC2DC_CRITICAL) {
+		   critical_current = true; 
         }
     }
     
@@ -701,13 +746,13 @@ void print_asic(HAMMER* h) {
 
 void print_loop(int l) {
     LOOP* loop = & miner_box.loop[l];
-    DBG(DBG_SCALING,"   LOOP %x AMP:%d\n" , l, loop->dc2dc.current);
+    DBG(DBG_SCALING,"   LOOP %x AMP:%d\n" , l, loop->dc2dc.dc_current);
 
 }
 
 
 void print_miner_box() {
-    DBG(DBG_SCALING,"MINER AC:%x\n", miner_box.ac2dc_top_current);
+    DBG(DBG_SCALING,"MINER AC:%x\n", miner_box.ac2dc_current);
 }
 
 

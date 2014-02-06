@@ -248,15 +248,15 @@ typedef struct {
     uint8_t  working_engines_mask;  // non-broken engines
     uint8_t  enabled_engines_mask;  // currently enabled engines
     int      last_freq_up_time;        // time()
-    int      last_freq_down_time;      // time()
+   // int      last_freq_down_time;      // time()
     uint32_t solved_jobs;
 } HAMMER;
 
 
 // 24 dc2dc
 typedef struct {
-    uint8_t temp;
-    uint32_t current;
+    uint8_t dc_temp;
+    uint32_t dc_current;
 } DC2DC;
 
 
@@ -280,8 +280,8 @@ typedef struct {
 // Global power unit
 typedef struct {
     //uint32_t bypassed_loops; moved to NVM
-    uint32_t ac2dc_top_current;
-    uint8_t  ac2dc_temperature;
+    uint32_t ac2dc_current;
+	uint32_t ac2dc_temp;
     HAMMER   hammer[HAMMERS_COUNT]; 
     LOOP     loop[LOOP_COUNT];
 } MINER_BOX;

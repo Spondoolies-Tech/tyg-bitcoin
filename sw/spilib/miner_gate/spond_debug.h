@@ -1,6 +1,8 @@
 #ifndef ___SPOND_DBG____
 #define ___SPOND_DBG____
 
+#include <assert.h>
+#include <syslog.h>
 
 
 #define DBG_NET 0
@@ -19,6 +21,16 @@
 
 
 #define DBG(DBG_TYPE, STR...)  if (DBG_TYPE) {printf(STR);}
+
+
+#define passert(X...)    {_passert(X);}
+#define pabort(X...)     {_pabort(X);}
+#define psyslog(X...)     {syslog (LOG_WARNING, X);printf(X);}
+
+
+
+void _passert(int cond, const char *s = NULL);
+void _pabort(const char *s);
 
  
 

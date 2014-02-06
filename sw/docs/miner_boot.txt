@@ -1,0 +1,38 @@
+Miner boot order sequence.
+
+Upon boot the HW will try to load the uboot from SD/EMMC based on the boot-select. So if SDcard present, the uboot in sdcard will be prefered. 
+
+Then the uboot tryes to locate uImage+spondoolies.dtb in the following order: sd-card, EMMC, TFTP.
+
+
+After the linux image is loaded, it will try to mount the following directories (see /etc/init.d/S85mount):
+/sd      - sd card data
+/mmc     - mmc data
+/nfs     - nfs server
+/my_nfs  - link to /nfs/<hostname>
+/nvm     - link to /sd or /mmc
+
+After that it will try to do the following:
+
+execute /sd/autorun 
+execute /mmc/autorun 
+execute /my_nfs/autorun                      #used to small incremental updates 
+execute /my_nfs/autorun-once and delete it.  #this is used for system upgrade (uImage, u-boot.img) and /nvm/cgminer.conf upgrade
+store IP in /my_nfs/my_ip and date in /my_nfs/boot_date and copy nvm.bin to /my_nfs/nvm.bin
+
+After that, !only if no /sd/autorun and no /mmc/autorun were found!, the system will try to do the following:
+- load fpga
+- start miner_gate_arm (in infinite loop) 
+- start cgminer with config file /nvm/cgminer.conf. If file not present, /spond-data/cgminer.conf will be used. 
+
+Every 15 seconds the minergate will store zabbix.bin in the /my_nfs/ directory. The file should be used by zabbix to create monitoring graphs and notifications. 
+
+
+In case of cgminer/miner_gate_arm failure the syslog will be stored in /my_nfs/syslog.log and notification should be created.
+
+
+
+
+On the other side the host will be able to monitor 
+
+

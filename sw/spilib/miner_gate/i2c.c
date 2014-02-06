@@ -26,13 +26,13 @@ static pthread_mutex_t i2cm_trans  = PTHREAD_MUTEX_INITIALIZER;
 #define SLEEP_TIME_I2C 500
 
 static char buf[10] = {0};
-void passert(int cond, const char *s);
+
 
 
 // set the I2C slave address for all subsequent I2C device transfers
 static void i2c_set_address(int address , int * pError = NULL)
 {
-    assert(file);
+    passert(file);
 	int ioctl_err;
 	if ((ioctl_err = ioctl(file, I2C_SLAVE, address)) < 0) {
 		if (pError != NULL)
@@ -41,13 +41,14 @@ static void i2c_set_address(int address , int * pError = NULL)
 	}
 }
 
+// 0 = no error
 uint8_t i2c_read(uint8_t addr, int * pError ) {
     uint8_t res;
     pthread_mutex_lock(&i2cm);
     i2c_set_address(addr,pError);
 	if (pError != NULL && *pError != 0)
 	{
-		printf("i2c_read(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
+		//printf("i2c_read(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
 		res = 0xFF;
 	}
 	else // no reason to call read, if we failed to set address.
@@ -64,7 +65,7 @@ void i2c_write(uint8_t addr, uint8_t value, int * pError ){
       i2c_set_address(addr,pError);
 	  if (pError != NULL && *pError != 0)
 	  {
-		printf("i2c_write(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
+		//printf("i2c_write(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
 	  }
 	  else
 	  {
@@ -89,7 +90,7 @@ uint8_t i2c_read_byte(uint8_t addr, uint8_t command , int * pError) {
 	i2c_set_address(addr,pError);
 	if (pError != NULL && *pError != 0)
 	{
-	  printf("i2c_read_byte(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
+	  //printf("i2c_read_byte(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
  	res = 0xFF;
 	}
 	else
@@ -125,7 +126,7 @@ void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value, int * pError){
     i2c_set_address(addr,pError);
 	if (pError != NULL && *pError != 0)
 	{
-	  printf("i2c_write_byte(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
+	  //printf("i2c_write_byte(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
 	}
 	else
 	{
@@ -145,7 +146,7 @@ uint16_t i2c_read_word(uint8_t addr, uint8_t command, int * pError ) {
 	
 	if (pError != NULL && *pError != 0)
 	{
-	  printf("i2c_read_word(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
+	  //printf("i2c_read_word(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
 	  r = 0xFFFF;
 	}
 	else
@@ -163,7 +164,7 @@ void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value, int * pError 
     i2c_set_address(addr,pError);
 	if (pError != NULL && *pError != 0)
 	{
-	  printf("i2c_write_word(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
+	  //printf("i2c_write_word(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
 	}
 	else
 	{

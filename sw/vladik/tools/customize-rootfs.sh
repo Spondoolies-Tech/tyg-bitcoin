@@ -48,27 +48,39 @@ spi_stuff()
 	cd lib/firmware
 	cp ${CUR_DIR}/../add-ons/BB-SPIDEV0-00A0.dtbo .
 	ln -s -f BB-SPIDEV0-00A0.dtbo BB-SPI0-00A0.dtbo
-
 	cd - 2>/dev/null
 	cp -a ${CUR_DIR}/../add-ons/S60spi etc/init.d
+	cp -a ${CUR_DIR}/../add-ons/S30hostname etc/init.d
+	cp -a ${CUR_DIR}/../add-ons/.bashrc root
 }
 
 copy_all_spond_files() {
 	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
-	if [ ! -d "nvm" ]; then
-		mkdir nvm
-	fi
+	cp ${CUR_DIR}/../add-ons/S87squid etc/init.d	
+	cp ${CUR_DIR}/../add-ons/S85mount etc/init.d	
+	cd ${TARGET_DIR}/usr/local/bin/
+	ln -s -f ../../../etc/init.d/S90spondoolies spond  
+	cd -
 	#FPGA
 	cp ${CUR_DIR}/../jtag/jam/jam usr/local/bin
 	cp ${CUR_DIR}/../jtag/fpga-load.sh usr/local/bin
 	if [ ! -d "spond-data" ]; then
 		mkdir spond-data
 	fi
+	if [ ! -d "pids" ]; then
+		mkdir pids
+	fi
 	cp ${CUR_DIR}/../add-ons/squid_top.jam spond-data
 	
 	#binaries
-	cp ${CUR_DIR}/../add-ons/miner_gate_arm usr/local/bin
-	cp ${CUR_DIR}/../add-ons/cgminer usr/local/bin
+	cp ${CUR_DIR}/../../spilib/miner_gate_arm usr/local/bin
+	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
+	cp ${CUR_DIR}/../../cgminer-1/cgminer usr/local/bin
+	cp ${CUR_DIR}/../../spilib/zabbix_reader/zabbix_reader_arm  usr/local/bin
+	cp ${CUR_DIR}/../../spilib/zabbix_reader/hammer_reg/reg usr/local/bin
+	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
+	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
+	
 }
 
 
@@ -86,11 +98,8 @@ main()
 	add_dropbear_keys
 	cleanup
 	fix_mdev_conf
-#	zabbix_agent
 	copy_all_spond_files
-#	cgminer
 	spi_stuff
-#	fpga_stuff
 	watchdog
 }
 

@@ -27,13 +27,36 @@
 MG_ZABBIX_LOG zabbix_log;
 
 void update_zabbix_stats() {
+	
+	zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
+	zabbix_log.version = MG_ZABBIX_LOG_VERSION;
+	zabbix_log.zabbix_logsize = sizeof(zabbix_log);
+	zabbix_log.ac2dc_current = miner_box.ac2dc_current;
+	zabbix_log.ac2dc_temp = miner_box.ac2dc_temp;
+
+	for(int l = 0; l < LOOP_COUNT ; l++) {
+		zabbix_log.loops[l].voltage = nvm->loop_voltage[l];
+		zabbix_log.loops[l].current = miner_box.loop[l].dc2dc.dc_current;
+		zabbix_log.loops[l].temp = miner_box.loop[l].dc2dc.dc_temp;
+		zabbix_log.loops[l].enabled = miner_box.loop[l].enabled;
+	}
+
+	int t = time(NULL);
+	for(int l = 0; l < HAMMERS_COUNT ; l++) {
+		zabbix_log.asics[l].freq = miner_box.hammer[l].freq;
+		zabbix_log.asics[l].temp = miner_box.hammer[l].temperature;
+		zabbix_log.asics[l].working_engines = nvm->working_engines[l];
+		zabbix_log.asics[l].failed_bists = miner_box.hammer[l].failed_bists;
+		zabbix_log.asics[l].freq_time = t - miner_box.hammer[l].last_freq_up_time;
+	}
 }
 
 
 void dump_zabbix_stats() {
-	FILE *fp = fopen("./zabbix_log.bin", "w");
+	FILE *fp = fopen("/my_nfs/zabbix_log.bin", "w");
     if (fp != NULL)
     {
+    	update_zabbix_stats();
     	fwrite(&zabbix_log,1,sizeof(zabbix_log),fp); 
         fclose(fp);
     } else {
@@ -45,7 +68,7 @@ void dump_zabbix_stats() {
 #define MAX_ZABBIX_LOG 200000
 #define ZABBIX_VERSION 1
 
-#define zabbix_add(PARAM...) {buf_ptr += sprintf(buf+buf_ptr,PARAM);  assert(buf_ptr < MAX_ZABBIX_LOG);}
+#define zabbix_add(PARAM...) {buf_ptr += sprintf(buf+buf_ptr,PARAM);  passert(buf_ptr < MAX_ZABBIX_LOG);}
 
 int  buf_ptr = 0;
 char buf[MAX_ZABBIX_LOG + 100];
@@ -55,12 +78,12 @@ int log_id;
 /*
 void zabbix_add_int(const char* name, int var) {
   buf_ptr += sprintf(buf+buf_ptr,"%s %d\n",name,var);
-  assert(buf_ptr < MAX_ZABBIX_LOG);
+  passert(buf_ptr < MAX_ZABBIX_LOG);
 }
 
 static void zabbix_add_char(const char* name, char* var) {
   buf_ptr += sprintf(buf,"%s %s\n",name,var);
-  assert(buf_ptr < MAX_ZABBIX_LOG);
+  passert(buf_ptr < MAX_ZABBIX_LOG);
 }
 */
 
@@ -78,7 +101,7 @@ static void zabbix_dump_file(const char* file_name) {
 
     
   buf_ptr = 0;
-  assert(dmp == NULL);
+  passert(dmp == NULL);
 */
 }
 extern int last_alive_jobs;
@@ -113,7 +136,7 @@ void dump_zabbix_stats() {
            json_append_member(loop, "loop_id", json_mknumber(l)); 
            json_append_member(loop, "loop_enbl", json_mknumber(miner_box.loop[l].enabled)); 
 //           json_append_member(loop, "loop_brok", json_mknumber(miner_box.loop[l].broken)); 
-           json_append_member(loop, "loop_current", json_mknumber(miner_box.loop[l].dc2dc.current)); 
+           json_append_member(loop, "loop_current", json_mknumber(miner_box.loop[l].dc2dc.dc_current)); 
            json_append_member(loop, "loop_volt", json_mknumber(nvm->loop_voltage[l])); 
 
            JsonNode *asic_address = json_mkarray();
@@ -138,7 +161,7 @@ void dump_zabbix_stats() {
 
 
        
-           //miner_box.loop[l].dc2dc.current = 0;
+           //miner_box.loop[l].dc2dc.dc_current = 0;
 
            
            for (h = 0; h < HAMMERS_PER_LOOP; h++) {
@@ -154,7 +177,7 @@ void dump_zabbix_stats() {
             json_append_element(asic_temp,json_mknumber(ham->temperature));
             json_append_element(asic_wins,json_mknumber(ham->solved_jobs));
 
-            //miner_box.loop[l].dc2dc.current += ham->freq;
+            //miner_box.loop[l].dc2dc.dc_current += ham->freq;
             // miner_box.ac2dc_top_current += ham->freq;
           } 
        }
