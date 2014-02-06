@@ -1,6 +1,6 @@
 Miner boot order sequence.
 
-Apon boot the HW will try to load the uboot from SD/EMMC based on the boot-select. So if SDcard present, the uboot in sdcard will be prefered. 
+Upon boot the HW will try to load the uboot from SD/EMMC based on the boot-select. So if SDcard present, the uboot in sdcard will be prefered. 
 
 Then the uboot tryes to locate uImage+spondoolies.dtb in the following order: sd-card, EMMC, TFTP.
 

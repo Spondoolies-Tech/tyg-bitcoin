@@ -48,7 +48,7 @@ void update_zabbix_stats() {
 
 
 void dump_zabbix_stats() {
-	FILE *fp = fopen("./zabbix_log.bin", "w");
+	FILE *fp = fopen("/my_nfs/zabbix_log.bin", "w");
     if (fp != NULL)
     {
     	update_zabbix_stats();

@@ -679,7 +679,7 @@ void* squid_regular_state_machine(void* p) {
 		usec=(tv.tv_sec-last_print.tv_sec)*1000000;
 		usec+=(tv.tv_usec-last_print.tv_usec);
 		if (usec >= 1*1000*1000) {
-    		printf("Pushed %d jobs last 1 sec (%d:%d) (%d-%d), in queue %d jobs!\n", 
+    		printf("Pushed %d jobs last 1 secs (%d:%d) (%d-%d), in queue %d jobs!\n", 
             last_second_jobs,spi_ioctls_read,spi_ioctls_write, rt_queue_sw_write , rt_queue_hw_done ,rt_queue_size);
             spi_ioctls_write = spi_ioctls_read = 0;
             //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));

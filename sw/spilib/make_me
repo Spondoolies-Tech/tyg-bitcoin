@@ -13,7 +13,8 @@ arm-none-linux-gnueabi-g++ -g -O0 -fpermissive  -rdynamic miner_gate_tester/mine
 cd hammer_reg
 ./make_me
 cd ../
-
-
-cp ./miner_gate_arm ./miner_gate_test_arm ./hammer_reg/reg ~/shared/ 
+cd zabbix_reader
+./make_me
+cd ../
+cp ./miner_gate_arm ./miner_gate_test_arm ./hammer_reg/reg  ./zabbix_reader/zabbix_reader_arm ~/shared/ 
 
