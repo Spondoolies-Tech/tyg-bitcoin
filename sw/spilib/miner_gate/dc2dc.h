@@ -18,6 +18,9 @@
  } DC2DC_VOLTAGE;
 
 
+#define VOLTAGE_ENUM_TO_MILIVOLTS(ENUM, VALUE) {int xxx[] = {555,585,630,675,720,765,790,810,0}; VALUE=xxx[ENUM];}
+
+
 void dc2dc_init();
 
 // in takes 0.2second for voltage to be stable.

@@ -31,18 +31,23 @@ void update_zabbix_stats() {
 	zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
 	zabbix_log.version = MG_ZABBIX_LOG_VERSION;
 	zabbix_log.zabbix_logsize = sizeof(zabbix_log);
-	zabbix_log.ac2dc_current = rand();
-	zabbix_log.ac2dc_temp = rand();
+	zabbix_log.ac2dc_current = miner_box.ac2dc_current;
+	zabbix_log.ac2dc_temp = miner_box.ac2dc_temp;
 
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-		zabbix_log.loops[l].voltage = rand();
-		zabbix_log.loops[l].current = rand();
-		zabbix_log.loops[l].temp = rand();
+		zabbix_log.loops[l].voltage = nvm->loop_voltage[l];
+		zabbix_log.loops[l].current = miner_box.loop[l].dc2dc.dc_current;
+		zabbix_log.loops[l].temp = miner_box.loop[l].dc2dc.dc_temp;
+		zabbix_log.loops[l].enabled = miner_box.loop[l].enabled;
 	}
 
+	int t = time(NULL);
 	for(int l = 0; l < HAMMERS_COUNT ; l++) {
-		zabbix_log.asics[l].freq = rand();
-		zabbix_log.asics[l].temp = rand();
+		zabbix_log.asics[l].freq = (miner_box.hammer[l].present)?miner_box.hammer[l].freq:0xff;
+		zabbix_log.asics[l].temp = miner_box.hammer[l].temperature;
+		zabbix_log.asics[l].working_engines = miner_box.hammer[l].passed_last_bist_engines;
+		zabbix_log.asics[l].failed_bists = miner_box.hammer[l].failed_bists;
+		zabbix_log.asics[l].freq_time = t - miner_box.hammer[l].last_freq_up_time;
 	}
 }
 
@@ -131,7 +136,7 @@ void dump_zabbix_stats() {
            json_append_member(loop, "loop_id", json_mknumber(l)); 
            json_append_member(loop, "loop_enbl", json_mknumber(miner_box.loop[l].enabled)); 
 //           json_append_member(loop, "loop_brok", json_mknumber(miner_box.loop[l].broken)); 
-           json_append_member(loop, "loop_current", json_mknumber(miner_box.loop[l].dc2dc.current)); 
+           json_append_member(loop, "loop_current", json_mknumber(miner_box.loop[l].dc2dc.dc_current)); 
            json_append_member(loop, "loop_volt", json_mknumber(nvm->loop_voltage[l])); 
 
            JsonNode *asic_address = json_mkarray();
@@ -156,7 +161,7 @@ void dump_zabbix_stats() {
 
 
        
-           //miner_box.loop[l].dc2dc.current = 0;
+           //miner_box.loop[l].dc2dc.dc_current = 0;
 
            
            for (h = 0; h < HAMMERS_PER_LOOP; h++) {
@@ -172,7 +177,7 @@ void dump_zabbix_stats() {
             json_append_element(asic_temp,json_mknumber(ham->temperature));
             json_append_element(asic_wins,json_mknumber(ham->solved_jobs));
 
-            //miner_box.loop[l].dc2dc.current += ham->freq;
+            //miner_box.loop[l].dc2dc.dc_current += ham->freq;
             // miner_box.ac2dc_top_current += ham->freq;
           } 
        }

@@ -73,9 +73,9 @@ int main(int argc, char *argv[]) {
 
 	printf("AC2DC.A %2x\n", zabbix_log.ac2dc_current);
 	printf("AC2DC.C %2x\n", zabbix_log.ac2dc_temp);
-	printf("DC2DC\n |", zabbix_log.ac2dc_temp);
+	printf("DC2DC\n      |", zabbix_log.ac2dc_temp);
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-		printf("%2x ", l);
+		printf("%3x ", l);
 	}
 	printf("\n------");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
@@ -83,15 +83,18 @@ int main(int argc, char *argv[]) {
 	}
 	printf("\nVOLT |");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-		printf("%2x ", zabbix_log.loops[l].voltage);
+		int j;
+		VOLTAGE_ENUM_TO_MILIVOLTS(zabbix_log.loops[l].voltage, j);
+		
+		printf("%3d ", j);
 	}
 	printf("\nCRNT |");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-			printf("%2x ", zabbix_log.loops[l].current);
+			printf("%3x ", zabbix_log.loops[l].current);
 	}
 	printf("\nTEMP |");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-			printf("%2x ", zabbix_log.loops[l].temp);
+			printf("%3x ", zabbix_log.loops[l].temp);
 	}
 	printf("\n------");
 	for(int l = 0; l < LOOP_COUNT ; l++) {
