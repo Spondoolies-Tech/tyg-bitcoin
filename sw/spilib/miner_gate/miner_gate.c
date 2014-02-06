@@ -618,13 +618,16 @@ int main(int argc, char *argv[])
 	int reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
     if (reg == 0) {
 		// Don't remove - used by tests
+		printf("got reply from ASIC 0x%x\n", BROADCAST_READ_ADDR(reg));
         printf("RESET BAD\n");
+		return 1;
     } else {
   	    // Don't remove - used by tests
 		printf("RESET GOOD\n");
+		return 0;
     }
 
-	return 0;
+	
  }
 
  
