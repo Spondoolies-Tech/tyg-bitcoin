@@ -15,6 +15,7 @@ typedef struct mg_asic_log {
 	uint8_t working_engines;
 	uint8_t failed_bists;
 	uint16_t  freq_time;
+	uint8_t wins;    // ???
 } __attribute__((__packed__ )) MG_ASIC_LOG ;
 
 
