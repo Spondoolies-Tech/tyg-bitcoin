@@ -4,8 +4,11 @@
 */
 
 #include "mg_proto_parser.h"
-
-#include "spond_debug.h"
+#include "assert.h"
+//#include "spond_debug.h"
+#ifndef passert
+#define passert assert
+#endif
 
 void parse_minergate_packet(minergate_packet *mp, minergate_data_handler minergate_data_processor, void* context,void* context2) {
 

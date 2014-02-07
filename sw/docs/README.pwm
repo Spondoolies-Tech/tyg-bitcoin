@@ -1,0 +1,24 @@
+G-men,
+
+kernel currently has been updated to support PWM.
+Please pull the latest changes and rebuild it according
+to the instructions.
+
+The fan PWM management is done from command line / script.
+In order to enable fan PWM one should do the following:
+
+    cd /sys/devices/bone_capemgr.*
+    echo am33xx_pwm > slots
+    echo bone_pwm_P9_31 > slots
+
+At this point fan will be shut down (due to default values of PWM).
+In order to change the values do the following:
+
+    cd /sys/devices/ocp.*
+    cd pwm_test_P9_31.*
+
+This directory contains pseudo-files "period" and "duty".
+Modify them in order to get desired values.
+The units of both "period" and "duty" are in CPU clocks.
+So 1 sec is 1,000,000,000 units.
+
