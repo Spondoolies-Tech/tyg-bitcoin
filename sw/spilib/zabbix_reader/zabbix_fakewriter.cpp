@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
 		printf("Usage: %s <outfile>\n" , argv[0]);
 		return 0;
     }
+	srand (time(NULL));
 
 
 	zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
@@ -27,19 +28,23 @@ int main(int argc, char *argv[]) {
 	zabbix_log.zabbix_logsize = sizeof(zabbix_log);
 	zabbix_log.ac2dc_current = 0xbc;
 	zabbix_log.ac2dc_temp = 0xbd;
+	zabbix_log.time = time(NULL);
+	zabbix_log.dump_id = 1;
 
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-		zabbix_log.loops[l].voltage = (rand() % 4 + 8) /10 ;
+		zabbix_log.loops[l].voltage = (rand() % 4 + 8); // bet 8 and 12, should be read as between .8 and 1.2.
 		zabbix_log.loops[l].current = rand()%8 +16;
 		zabbix_log.loops[l].temp = rand() % 45 + 75;
+		zabbix_log.loops[l].enabled = rand() % 100 > 95 ? 0 : 1; // 5% disabled
 	}
 
-	for(int l = 0; l < HAMMERS_COUNT ; l++) {
-		zabbix_log.asics[l].freq = 1;
-		zabbix_log.asics[l].temp = 1;
-		zabbix_log.loops[l].asics[a].freq = (rand()%20+5)/10;  // .5 - 2.5
-		zabbix_log.loops[l].asics[a].temp = rand() % 45 + 75;
-		zabbix_log.loops[l].asics[a].wins = rand() % 8; // difficulty
+	for(int a = 0; a < HAMMERS_COUNT ; a++) {
+		zabbix_log.asics[a].freq = (rand()%20+5);  // 5 - 25, arbitrary range
+		zabbix_log.asics[a].temp = rand() % 45 + 75;
+		zabbix_log.asics[a].wins = rand() % 8; // difficulty
+		zabbix_log.asics[a].working_engines = 92; //  out of 92? engines
+		zabbix_log.asics[a].failed_bists = rand() % 2; //
+		zabbix_log.asics[a].freq_time = rand() % 100; // ?? 
 	}
 
 
