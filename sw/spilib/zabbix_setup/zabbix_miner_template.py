@@ -103,7 +103,7 @@ def calculated_asic_graph(title, key, type, calculation):
             "key_":key,
             "delay":30,
             "value_type":type,
-            "params":calculation["post"] % (calculation["oper"].join([c["oper"].join([c["def"]%(a%"")  for a in miner_items])for c in calculation["calc"]]), len(miner_items))
+            "params":calculation["post"] % ("("+calculation["oper"].join(["("+c["oper"].join([c["def"]%(a%"")  for a in miner_items])+")" for c in calculation["calc"]])+")", len(miner_items))
             }) 
     # graph!
     graphlines = [{
@@ -150,15 +150,15 @@ def calculated_asic_graph(title, key, type, calculation):
 
 
 #wins
-calculated_asic_graph("Total Wins", "wins[total]", 3, {"calc":[{ "def":"sum(%swins,30)", "oper":"+"}], "oper":""})
+calculated_asic_graph("Total Wins", "wins[total]", 3, {"calc":[{ "def":"sum(%swins,300)", "oper":"+"}], "oper":""})
 #avg temperature
-calculated_asic_graph("Temperature Averages", "temperature[avg]", 0, {"calc":[{ "def":"avg(%stemp,30)", "oper":"+"}], "oper":"", "post":"(%s)/%d"})
+calculated_asic_graph("Temperature Averages", "temperature[avg]", 0, {"calc":[{ "def":"avg(%stemp,300)", "oper":"+"}], "oper":"", "post":"(%s)/%d"})
 #avg frequency
-calculated_asic_graph("Frequency Averages", "frequency[avg]", 0, {"calc":[{ "def":"avg(%sfreq,30)", "oper":"+"}], "oper":"", "post":"(%s)/%d"})
+calculated_asic_graph("Frequency Averages", "frequency[avg]", 0, {"calc":[{ "def":"avg(%sfreq,300)", "oper":"+"}], "oper":"", "post":"(%s)/%d"})
 # wins / voltage
-#calculated_asic_graph("Wins/Voltage", "wins.voltage[avg]", 0, {"calc":[{ "def":"sum(%swins,30)", "oper":"+"},{"def":"sum(%svoltage,30)", "oper":"+"}], "oper":"/", "post":"(%s)/%d"})
+#calculated_asic_graph("Wins/Voltage", "wins.voltage[avg]", 0, {"calc":[{ "def":"sum(%swins,300)", "oper":"+"},{"def":"sum(%svoltage,30)", "oper":"+"}], "oper":"/", "post":"(%s)/%d"})
 #wins/frequency
-calculated_asic_graph("Wins/Frequency", "wins.freq[avg]", 0, {"calc":[{ "def":"sum(%swins,30)", "oper":"+"},{"def":"sum(%sfreq,30)", "oper":"+"}], "oper":"/", "post":"(%s)/%d"})
+calculated_asic_graph("Wins/Frequency", "wins.freq[avg]", 0, {"calc":[{ "def":"sum(%swins,300)", "oper":"+"},{"def":"sum(%sfreq,30)", "oper":"+"}], "oper":"/"})
 # voltage/frequency
-#calculated_asic_graph("Voltage/Frequency", "voltage.freq[avg]", 0, {"calc":[{ "def":"sum(%svoltage,30)", "oper":"+"},{"def":"sum(%sfreq,30)", "oper":"+"}], "oper":"/", "post":"(%s)/%d"})
+#calculated_asic_graph("Voltage/Frequency", "voltage.freq[avg]", 0, {"calc":[{ "def":"sum(%svoltage,300)", "oper":"+"},{"def":"sum(%sfreq,30)", "oper":"+"}], "oper":"/", "post":"(%s)/%d"})
 
