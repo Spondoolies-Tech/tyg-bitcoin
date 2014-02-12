@@ -32,16 +32,16 @@ int main(int argc, char *argv[]) {
 	zabbix_log.dump_id = 1;
 
 	for(int l = 0; l < LOOP_COUNT ; l++) {
-		zabbix_log.loops[l].voltage = (rand() % 4 + 8); // bet 8 and 12, should be read as between .8 and 1.2.
+		zabbix_log.loops[l].voltage = (rand() % 5 + 10); // bet 8 and 12, should be read as between .8 and 1.2.
 		zabbix_log.loops[l].current = rand()%8 +16;
-		zabbix_log.loops[l].temp = rand() % 45 + 75;
+		zabbix_log.loops[l].temp = rand() % 70 + 50;
 		zabbix_log.loops[l].enabled = rand() % 100 > 95 ? 0 : 1; // 5% disabled
 	}
 
 	for(int a = 0; a < HAMMERS_COUNT ; a++) {
-		zabbix_log.asics[a].freq = (rand()%20+5);  // 5 - 25, arbitrary range
-		zabbix_log.asics[a].temp = rand() % 45 + 75;
-		zabbix_log.asics[a].wins = rand() % 8; // difficulty
+		zabbix_log.asics[a].freq = (rand()%400+100);  // 5 - 25, arbitrary range
+		zabbix_log.asics[a].temp = rand() % 70 + 50;
+		zabbix_log.asics[a].wins = rand() % 16 > 14 ? 1 : 0; // difficulty
 		zabbix_log.asics[a].working_engines = 92; //  out of 92? engines
 		zabbix_log.asics[a].failed_bists = rand() % 2; //
 		zabbix_log.asics[a].freq_time = rand() % 100; // ?? 

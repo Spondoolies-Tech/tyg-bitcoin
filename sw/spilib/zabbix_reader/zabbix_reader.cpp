@@ -15,6 +15,15 @@
 
 MG_ZABBIX_LOG zabbix_log;
 
+uint32_t total_temp = 0;
+uint32_t total_temp_last = 0;
+uint32_t total_freq = 0;
+uint32_t total_freq_last = 0;
+uint64_t total_cycles = 0;
+uint64_t total_cycles_last = 0;
+uint32_t total_failed_bists = 0;
+uint32_t total_failed_bists_last = 0;
+
 int main(int argc, char *argv[]) {
 	if (argc < 2 ) {
 		printf("Usage: %s <infile>\n" , argv[0]);
@@ -44,8 +53,8 @@ int main(int argc, char *argv[]) {
 	}
 
 
-	printf("ac2dc.current %d\n", zabbix_log.ac2dc_current);
-	printf("ac2dc.temp %d\n", zabbix_log.ac2dc_temp);
+	printf("miner.ac2dc.current %d\n", zabbix_log.ac2dc_current);
+	printf("miner.ac2dc.temp %d\n", zabbix_log.ac2dc_temp);
 
 	for(int l = 0; l < LOOP_COUNT ; l++) {
 		printf("loop%d.voltage %d\n", l, zabbix_log.loops[l].voltage);
@@ -58,10 +67,23 @@ int main(int argc, char *argv[]) {
 			printf("loop%d.asic%d.failed_bists %x\n", l, a, zabbix_log.asics[a*l].failed_bists);
 			printf("loop%d.asic%d.freq_time %d\n", l, a, zabbix_log.asics[a*l].freq_time);
 			printf("loop%d.asic%d.temp %d\n", l, a, zabbix_log.asics[a*l].temp);
-			printf("loop%d.asic%d.wins %x\n", l, a, zabbix_log.asics[a*l].wins);
+                        //printf("loop%d.asic%d.wins %x\n", l, a, zabbix_log.asics[a*l].wins);
+			printf("loop%d.asic%d.cycles %d\n", l, a, zabbix_log.asics[a*l].working_engines*zabbix_log.asics[l*a].freq);
+			total_temp += zabbix_log.asics[a*l].temp;
+			total_freq += zabbix_log.asics[a*l].freq;
+			total_failed_bists += zabbix_log.asics[a*l].failed_bists;
+			total_cycles += (zabbix_log.asics[a*l].working_engines*zabbix_log.asics[l*a].freq);
 		}
+		printf("loop%d.temp[avg] %f\n", l, float((total_temp-total_temp_last)/HAMMERS_PER_LOOP));
+		printf("loop%d.freq[avg] %f\n", l, float((total_freq-total_freq_last)/HAMMERS_PER_LOOP));
+		printf("loop%d.cycles[total] %d\n", l, (total_cycles-total_cycles_last));
+		printf("loop%d.failed_bists[total] %d\n", l, (total_failed_bists-total_failed_bists_last));
+		total_freq_last=total_freq;
+		total_failed_bists_last=total_failed_bists;
+		total_temp_last=total_temp;
+		total_cycles_last=total_cycles;
 	}
-	
+	printf("miner.cycles[total] %d\n", total_cycles);
 }
 
 

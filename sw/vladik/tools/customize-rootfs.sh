@@ -92,6 +92,11 @@ watchdog()
 	cp -a ${CUR_DIR}/../add-ons/S15watchdog etc/init.d
 }
 
+memtester()
+{
+	cp -a ${CUR_DIR}/../memtester-4.3.0/memtester usr/local/bin
+}
+
 main()
 {
 	set -e
@@ -104,6 +109,7 @@ main()
 	copy_all_spond_files
 	spi_stuff
 	watchdog
+	memtester
 }
 
 main $@
