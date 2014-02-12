@@ -35,10 +35,10 @@ static void i2c_set_address(int address , int * pError = NULL)
     passert(file);
 	int ioctl_err;
 	if ((ioctl_err = ioctl(file, I2C_SLAVE, address)) < 0) {
-		if (pError != NULL)
-			*pError = ioctl_err;
 		passert(0,"i2c-ff");
 	}
+	if (pError != NULL)
+		*pError = ioctl_err;
 }
 
 // 0 = no error
@@ -57,6 +57,7 @@ uint8_t i2c_read(uint8_t addr, int * pError ) {
 	}
 	//usleep(SLEEP_TIME_I2C);
     pthread_mutex_unlock(&i2cm);
+	//printf("i2c_read [%x] = %x\n",addr,res);	
     return res;
 }
 
@@ -65,7 +66,7 @@ void i2c_write(uint8_t addr, uint8_t value, int * pError ){
       i2c_set_address(addr,pError);
 	  if (pError != NULL && *pError != 0)
 	  {
-		//printf("i2c_write(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
+		  printf("i2c_write err\n");
 	  }
 	  else
 	  {
@@ -76,7 +77,7 @@ void i2c_write(uint8_t addr, uint8_t value, int * pError ){
       	}	
 		usleep(SLEEP_TIME_I2C);
 	  }
-
+	 // printf("i2c_write [%x] = %x\n",addr,value);	
       pthread_mutex_unlock(&i2cm);        
 }
 
@@ -99,6 +100,7 @@ uint8_t i2c_read_byte(uint8_t addr, uint8_t command , int * pError) {
 		res = r & 0xFF;
 	}	
     pthread_mutex_unlock(&i2cm);
+	//printf("i2c_read [%x:%x] = %x\n",addr,command ,res);
     return res;
 }
 
@@ -136,6 +138,7 @@ void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value, int * pError){
 	    }
 		usleep(SLEEP_TIME_I2C);
 	}
+	//printf("i2c_write [%x:%x] = %x\n",addr,command,value);	
     pthread_mutex_unlock(&i2cm);        
 }
 
@@ -156,6 +159,7 @@ uint16_t i2c_read_word(uint8_t addr, uint8_t command, int * pError ) {
     //printf("i2c[%x:%x] -> %x\n",addr, command, r);
     //usleep(SLEEP_TIME_I2C);
     pthread_mutex_unlock(&i2cm);
+	//printf("i2c_read [%x:%x] = %x\n",addr,command ,r);
     return r;
 }
 
@@ -176,6 +180,7 @@ void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value, int * pError 
 
 		usleep(SLEEP_TIME_I2C);
 	}
+	//printf("i2c_write [%x:%x] = %x\n",addr,command,value);	
     pthread_mutex_unlock(&i2cm);        
 }
 

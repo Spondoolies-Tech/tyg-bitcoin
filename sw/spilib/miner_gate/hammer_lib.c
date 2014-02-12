@@ -10,10 +10,10 @@
 #include <unistd.h>
 #include "mg_proto_parser.h"
 #include "hammer.h"
-#include "squid.h"
 #include "queue.h"
 #include <string.h>	
 #include "ac2dc.h"
+#include "hammer_lib.h"
 
 #include <spond_debug.h>	
 #include <sys/time.h>
@@ -34,6 +34,43 @@ extern int rt_queue_sw_write;
 extern int rt_queue_hw_done;
 
 void dump_zabbix_stats();
+
+
+
+
+void print_dc2dc() {
+	int ac2dc_current = ac2dc_get_power();
+	int ac2dc_temp = ac2dc_get_temperature(0);
+	printf("AC2DC current: %d (%d by SW)\n", ac2dc_current, miner_box.ac2dc_current);
+	printf("AC2DC temp: %d (%d by SW)\n", ac2dc_temp, miner_box.ac2dc_temp);
+	printf("VOLTAGE/CURRENT/TEMP:\n");
+	for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
+		int err;
+		int volt = dc2dc_get_voltage(loop, &err);
+		int temp = dc2dc_get_temp(loop, &err);
+		int crnt = dc2dc_get_current_16s_of_amper(loop, &err);
+		
+		if (!err) {
+			printf("%2i:",loop);
+			int min_minivolts;
+			VOLTAGE_ENUM_TO_MILIVOLTS(ASIC_VOLTAGE_555, min_minivolts);
+			if (volt < min_minivolts) printf(ANSI_COLOR_RED);
+		    printf("%3d/", volt);printf(ANSI_COLOR_RESET);
+			if (crnt < DC2DC_CURRENT_GREEN_LINE_16S) printf(ANSI_COLOR_GREEN);
+			if (crnt > DC2DC_CURRENT_GREEN_LINE_16S) printf(ANSI_COLOR_RED);
+			printf("%3d/", crnt/16);printf(ANSI_COLOR_RESET);
+			if (temp < DC2DC_TEMP_GREEN_LINE) printf(ANSI_COLOR_GREEN);
+			if (temp > DC2DC_TEMP_RED_LINE) printf(ANSI_COLOR_RED);
+			printf("%3d\n",temp);printf(ANSI_COLOR_RESET);
+		} else {
+		   printf("%2i:XXX/XXX/XXX\n",loop);
+		}
+		if (loop == LOOP_COUNT/2-1) {
+			printf("\n");
+		}
+	}
+	printf("\n");
+}
 
 
 
@@ -205,7 +242,7 @@ void push_to_hw_queue(RT_JOB *work) {
 void set_nonce_range_in_engines(unsigned int max_range) {
 	int d, e;
 	unsigned int current_nonce = 0;
-	enable_reg_debug = 0;
+	//enable_reg_debug = 0;
 	unsigned int engine_size;
 	engines_per_device = read_reg_broadcast(ADDR_ENGINES_PER_CHIP_BITS) & 0xFF;
 	printf("%d engines found\n", engines_per_device);
@@ -233,10 +270,9 @@ void set_nonce_range_in_engines(unsigned int max_range) {
             }
 		}
 	}
-	enable_reg_debug = 0;
+	//enable_reg_debug = 0;
 	flush_spi_write();
 	//print_state();
-	enable_reg_debug = old_dbg;
 }
 
 
@@ -259,7 +295,6 @@ int allocate_addresses_to_devices() {
     }
 
 
-    
     // Do it loop by loop!
     for (l = 0; l < LOOP_COUNT ; l++) {
         if (miner_box.loop[l].enabled) {
@@ -299,6 +334,7 @@ int allocate_addresses_to_devices() {
         } else {
             printf("ASICS in loop %d: %d\n",l,0);;
         }
+		
     }
 
     // Validate all got address
@@ -684,11 +720,14 @@ void* squid_regular_state_machine(void* p) {
 		usec+=(tv.tv_usec-last_print.tv_usec);
 		if (usec >= 1*1000*1000) {
     		printf("Pushed %d jobs last 1 secs (%d:%d) (%d-%d), in queue %d jobs!\n", 
-            last_second_jobs,spi_ioctls_read,spi_ioctls_write, rt_queue_sw_write , rt_queue_hw_done ,rt_queue_size);
-            spi_ioctls_write = spi_ioctls_read = 0;
+            	last_second_jobs,spi_ioctls_read,spi_ioctls_write, rt_queue_sw_write , rt_queue_hw_done ,rt_queue_size);
+
+			spi_ioctls_write = spi_ioctls_read = 0;
             //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
             last_second_jobs = 0;            
             print_adapter();
+			print_dc2dc();
+
 			miner_box.ac2dc_current = ac2dc_get_power();
             // Once every X seconds.
             periodic_scaling_task();

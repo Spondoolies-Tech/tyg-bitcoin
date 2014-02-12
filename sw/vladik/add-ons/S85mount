@@ -49,8 +49,9 @@ start)
 	fi 
 	cd /
 	ln -s "/nfs/${hname}" /my_nfs
-	date >> /my_nfs/boot_date
-	ifconfig eth0 | grep 'inet addr:' >> /my_nfs/my_ip
+	date > /my_nfs/boot_date
+	ifconfig eth0 | grep 'inet addr:' > /my_nfs/my_ip
+	cp /sd/nvm.bin /my_nfs/
 
 	if [ -e "/my_nfs/autorun" ]; then
 		/my_nfs/autorun
