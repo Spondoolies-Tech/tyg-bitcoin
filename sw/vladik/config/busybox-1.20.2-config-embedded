@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Busybox version: 1.20.2
-# Thu Aug 29 02:05:03 2013
+# Thu Feb 13 15:33:50 2014
 #
 CONFIG_HAVE_DOT_CONFIG=y
 
@@ -557,7 +557,7 @@ CONFIG_DMESG=y
 # CONFIG_MKFS_MINIX is not set
 # CONFIG_FEATURE_MINIX2 is not set
 # CONFIG_MKFS_REISER is not set
-# CONFIG_MKFS_VFAT is not set
+CONFIG_MKFS_VFAT=y
 # CONFIG_GETOPT is not set
 # CONFIG_FEATURE_GETOPT_LONG is not set
 CONFIG_HEXDUMP=y
