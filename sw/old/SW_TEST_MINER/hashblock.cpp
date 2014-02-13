@@ -953,7 +953,7 @@ int main() {
         printf("\n\nsizeof(block_header) = %x\n", (unsigned int)sizeof(block_header));
         printf("Block header (in human readable hexadecimal representation): ");
         hexdump((unsigned char*)&header, (unsigned int)sizeof(block_header));
-printf("\n\n");
+	printf("\n\n");
         // Use SSL's sha256 functions, it needs to be initialized
     SHA256_Init(&sha256_pass1);
     // then you 'can' feed data to it in chuncks, but here were just making one pass cause the data is so small

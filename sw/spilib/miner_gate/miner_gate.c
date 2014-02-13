@@ -29,6 +29,9 @@
 #include "i2c.h"
 #include "dc2dc.h"
 #include "ac2dc.h"
+#include "pwm_manager.h"
+#include "hammer_lib.h"
+
 #include <syslog.h>
 
 
@@ -400,7 +403,6 @@ void enable_voltage_freq_and_engines_from_nvm();
 void enable_voltage_freq_and_engines_default(); 
 
 void recompute_corners_and_voltage_update_nvm();
-void set_voltage(int loop_id, DC2DC_VOLTAGE v);
 void spond_save_nvm();
 void create_default_nvm(int from_scratch, int check_loops);
 void find_bad_engines_update_nvm();
@@ -498,10 +500,32 @@ int main(int argc, char *argv[])
  pthread_t main_thread;
  //pthread_t conn_pth;
  pid_t child;
+ printf("reset_squid\n"); 
  reset_squid();
+ printf("init_spi\n"); 
  init_spi();
+ printf("i2c_init\n");
  i2c_init();
+ printf("dc2dc_init\n");
  dc2dc_init();
+ printf("init_pwm\n");
+ init_pwm();
+ printf("set_fan_level\n");
+// set_fan_level(FAN_LEVEL_MEDIUM);
+
+
+/*
+ for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
+	 dc2dc_set_voltage(loop, ASIC_VOLTAGE_555);
+	 printf("%i SET VOLTAGE %d\n",loop);
+ }
+ */
+
+ print_dc2dc();
+
+//sleep(10);
+
+ 
  //read_mgmt_temp();
 /*
  while (1) {
@@ -611,6 +635,7 @@ int main(int argc, char *argv[])
 
 
  if (testreset_mode) {
+ 	printf("--------------- %d\n", __LINE__);
 	// Reset ASICs
 	write_reg_broadcast(ADDR_GOT_ADDR, 0);
 	
@@ -630,7 +655,7 @@ int main(int argc, char *argv[])
 	
  }
 
- 
+ printf("--------------- %d\n", __LINE__);
  // test HAMMER read
  //passert(read_reg_broadcast(ADDR_VERSION), "No version found in ASICs");
  socket_fd = init_socket();

@@ -18,7 +18,8 @@
 #include <sys/time.h>
 #include "nvm.h"
 #include "ac2dc.h"
-#include "ac2dc.h"
+#include "dc2dc.h"
+#include "hammer_lib.h"
 
 
 /*
@@ -71,10 +72,6 @@ int test_asic(int addr) {
 
 
 
-
-void set_voltage(int loop_id, DC2DC_VOLTAGE v) {
-    printf("Setting voltage %x in loop %d...... TODO!!!!\n", v, loop_id);
-}
 
 
 void loop_disable_hw(int loop_id) {
@@ -135,7 +132,9 @@ void enable_voltage_freq_and_engines_default() {
       for (int l = 0; l < LOOP_COUNT; l++) {  
         // Set voltage
         if (!nvm->loop_brocken[l]) {
-            set_voltage(l, ASIC_VOLTAGE_810);
+			int err;
+			dc2dc_set_voltage(l, ASIC_VOLTAGE_810, &err);
+            passert(err);
         } else {
             loop_disable_hw(l);
         }
@@ -151,8 +150,9 @@ void enable_voltage_freq_and_engines_from_nvm() {
    for (l = 0; l < LOOP_COUNT; l++) {  
      if (!nvm->loop_brocken[l]) {  
         // Set voltage
-        printf("--\n");
-        set_voltage(l, nvm->loop_voltage[l]);
+		int err;
+		dc2dc_set_voltage(l, nvm->loop_voltage[l], &err);
+		passert(err);
 
         // for each ASIC
         for (h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
@@ -378,11 +378,14 @@ void create_default_nvm(int from_scratch, int check_loops) {
    int l, h, i = 0;
 
    // Select the testing voltage and set it
+   /*
    printf("Setting voltage 0.81V in all loops as default\n");
    for (i = 0; i < LOOP_COUNT; i++) {
-        set_voltage(i, ASIC_VOLTAGE_810);
+	   	   int err;
+		   dc2dc_set_voltage(l, nvm->loop_voltage[l], &err);
+		   passert(err);
    }
-
+*/
     // See max rate under ASIC_VOLTAGE_810 
 	nvm->corners_computed = 0; 
 	nvm->bad_engines_found = 0;
@@ -453,7 +456,7 @@ uint32_t ac_current_handler() {
 
 uint32_t compute_spare_dc_points(int l) {
     // TODO
-    uint32_t spare_dc2dc_current = (AC2DC_HIGH - miner_box.loop[l].dc2dc.dc_current);
+    uint32_t spare_dc2dc_current = (AC2DC_HIGH - miner_box.loop[l].dc2dc.dc_current_16s_of_amper);
     return spare_dc2dc_current;
 }
 
@@ -535,7 +538,7 @@ HAMMER* get_hammer(uint32_t addr) {
 int update_top_current_measurments() {
     miner_box.ac2dc_current = ac2dc_get_power(); 
     for (int i = 0; i < LOOP_COUNT; i++) {
-        miner_box.loop[i].dc2dc.dc_current = dc2dc_get_current(i);
+        miner_box.loop[i].dc2dc.dc_current_16s_of_amper = dc2dc_get_current_16s_of_amper(i, NULL);
     }
     return 0;
 }
@@ -612,11 +615,11 @@ void solve_current_problems() {
 
 #if 1
   for (l = 0; l < LOOP_COUNT; l++) {
-     while (miner_box.loop[l].dc2dc.dc_current >= DC2DC_CRITICAL) {
+     while (miner_box.loop[l].dc2dc.dc_current_16s_of_amper >= DC2DC_CRITICAL) {
        HAMMER* a = find_asic_to_reduce_dc_current(l);
        DBG(DBG_SCALING,"DC2DC OVER LIMIT, killing ASIC:%d!\n", a->address);
        try_set_asic_freq(a, SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]], 
-            &miner_box.ac2dc_current, &miner_box.loop[l].dc2dc.dc_current);
+            &miner_box.ac2dc_current, &miner_box.loop[l].dc2dc.dc_current_16s_of_amper);
      }
   }
 
@@ -626,7 +629,7 @@ void solve_current_problems() {
        HAMMER* a = find_asic_to_reduce_ac_current();
        DBG(DBG_SCALING,"AC2DC OVER LIMIT, killing ASIC:%d %d!\n", a->address, a->freq);
        try_set_asic_freq(a, SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]], 
-            &miner_box.ac2dc_current, &miner_box.loop[HAMMER_TO_LOOP(a)].dc2dc.dc_current);
+            &miner_box.ac2dc_current, &miner_box.loop[HAMMER_TO_LOOP(a)].dc2dc.dc_current_16s_of_amper);
   }
 #endif
 }
@@ -664,7 +667,7 @@ void periodic_scaling_task() {
     }
     
     for (int i = 0; i < LOOP_COUNT; i++) {          
-        if (miner_box.loop[i].dc2dc.dc_current >= DC2DC_CRITICAL) {
+        if (miner_box.loop[i].dc2dc.dc_current_16s_of_amper >= DC2DC_CRITICAL) {
 		   critical_current = true; 
         }
     }
@@ -746,7 +749,7 @@ void print_asic(HAMMER* h) {
 
 void print_loop(int l) {
     LOOP* loop = & miner_box.loop[l];
-    DBG(DBG_SCALING,"   LOOP %x AMP:%d\n" , l, loop->dc2dc.dc_current);
+    DBG(DBG_SCALING,"   LOOP %x AMP:%d\n" , l, loop->dc2dc.dc_current_16s_of_amper);
 
 }
 

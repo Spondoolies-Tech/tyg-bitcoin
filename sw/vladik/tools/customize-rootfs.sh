@@ -51,7 +51,10 @@ spi_stuff()
 	cd - 2>/dev/null
 	cp -a ${CUR_DIR}/../add-ons/S60spi etc/init.d
 	cp -a ${CUR_DIR}/../add-ons/S30hostname etc/init.d
-	cp -a ${CUR_DIR}/../add-ons/.bashrc root
+	if [ ! -d "etc/profile.d/" ]; then
+		mkdir etc/profile.d/
+	fi
+	cp -a ${CUR_DIR}/../add-ons/bashrc.sh etc/profile.d/
 }
 
 copy_all_spond_files() {
@@ -67,9 +70,6 @@ copy_all_spond_files() {
 	if [ ! -d "spond-data" ]; then
 		mkdir spond-data
 	fi
-	if [ ! -d "pids" ]; then
-		mkdir pids
-	fi
 	cp ${CUR_DIR}/../add-ons/squid_top.jam spond-data
 	
 	#binaries
@@ -82,6 +82,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
+	date > build_date.txt
 	
 }
 

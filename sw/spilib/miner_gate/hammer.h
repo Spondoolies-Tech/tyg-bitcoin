@@ -256,7 +256,7 @@ typedef struct {
 // 24 dc2dc
 typedef struct {
     uint8_t dc_temp;
-    uint32_t dc_current;
+    uint32_t dc_current_16s_of_amper; // in 1/16 of ampers
 } DC2DC;
 
 

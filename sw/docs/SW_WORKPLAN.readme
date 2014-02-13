@@ -1,0 +1,95 @@
+[ miners ]---[ access switch ]----[ distribution switch ]----[ virtual server ]
+							         
+Virtual machines:
+SPDT-RDEV   = vyatta router - VPN server tripple auth. Once there - has IP, user, groups = Identity.
+SPDT-DB1    = mysql
+SPDT-Zabbix =								
+SPDT-SYSVM  = DHCP/DNS/LDAP
+SPDT-IPA    = Identirty mgmt - authorization/authintication/audit - single certificate authority. Policy (no root SSH to vyatta from miner)
+SPDT-Backup-server = Bacula/BareOS - scheduling, history, restore (to local storage)
+SPDT-DMZ    = login gateway - NX server + Zabbix monitoring. Admins will have GUI access to LDAP/DNS/DHCP/IPA mgmt over web server / SSH to SPDT-SYSVM. 
+
+
+-----------------
+Security Policy -
+-----------------
+Users  - Zvi, Guy, IlyaL, Simcha, Remo, IlyaG, IlyaR, Kobi, miner, backup-user
+
+
+Groups
+-------
+//WeakAdmins    - control VMs (up/down), control services (up/down/edit), login to all stations except miners.  
+//MiningAdmins  - SSH to miners, access NFS server, TFTP server directory, change control files.
+Admins        - can do all except user mgmt and change audit.
+SuperAdmin    - user mgmt and change audit
+Miners        - can only access NFS, not SSH (IPA controls) at target.
+//SecurityAdmin - change security policies at IPA
+
+
+Resources - usage/mgmt
+----------------------
+VPN 
+DHCP
+TFTP
+NFS
+DNS
+IPA (LDAP/Kerberos/Certificate authority CA)
+Zabbix
+Mysql (several users)
+Bacula
+NX
+
+
+
+
+-----------
+Miner Boot
+-----------
+TFTP/MMC image loads
+if (!Map NFS by DNS name) {
+	load local mining config
+}
+
+if (!exists /nfs/<name>) {
+	mkdir /nfs/<name>
+}
+
+if (!got DNS name) {
+	store name in /nfs/<name>/my_name (mac/IP/name)
+	// On server side allocate this file and create new entry in Zabbix/DNS/Config-file + notification
+}
+
+if (present /nfs/<name>/autorun) {
+	execute /nfs/<name>/autorun
+}
+
+if (present /nfs/<name>/autorun-once) {  // Used for config file upgrade
+	execute /nfs/<name>/autorun-once
+	delete /nfs/<name>/autorun-once
+}
+
+
+load cgminer with cgminer.conf from /nvm/cgminer.conf 
+puppet 
+
+
+
+
+
+
+// Vladik 
+- Add puppet agent?
+- Add PAM/Ldap lib/Kerberos lib. 
+
+
+
+
+
+
+
+
+
+
+
+
+

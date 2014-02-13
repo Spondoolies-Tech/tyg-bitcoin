@@ -25,7 +25,13 @@
  //usleep(1000000);
  //return 0;
 
-#define PRIMARY_I2C_SWITCH 0x70
+#define PRIMARY_I2C_SWITCH 	      0x70
+#define I2C_DC2DC_SWITCH_GROUP0   0x71 // 0 to 7
+#define I2C_DC2DC_SWITCH_GROUP1   0x72 // 8 to 11
+#define I2C_DC2DC                 0x1b 
+
+
+
 
 void i2c_init( int * pError = NULL);
 uint8_t i2c_read(uint8_t addr, int * pError = NULL);

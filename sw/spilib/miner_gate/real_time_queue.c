@@ -15,6 +15,7 @@
 #include <string.h>	
 #include <spond_debug.h>	
 #include <sys/time.h>
+#include "hammer_lib.h"
 
 
 

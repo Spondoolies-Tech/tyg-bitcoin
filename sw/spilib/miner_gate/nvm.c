@@ -16,7 +16,7 @@
 #include <spond_debug.h>	
 #include <sys/time.h>
 #include <time.h>
-
+#include "hammer_lib.h"
 
 SPONDOOLIES_NVM* nvm = NULL;
 

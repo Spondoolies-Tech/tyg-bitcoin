@@ -33,7 +33,6 @@ int usage(char * app ,int exCode ,const char * errMsg = NULL)
     }
     
     printf ("Usage: %s action address [command value]\n\n" , app);    
-
     printf ("       action - rb|rw|wb|ww (read byte|read word|write byte|write word)\n"); 
     printf ("       address - in hexa\n"); 
     printf ("       command - [optoinal] in hexa \n"); 
