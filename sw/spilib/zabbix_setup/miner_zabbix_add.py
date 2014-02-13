@@ -39,7 +39,7 @@ zapi.login(user, pw)
 
 template_id = zapi.template.get(filter={"name":template}, output="hostid,groupids")[0]["templateid"]
 print "template id: ",template_id
-host_group_id = zapi.hostgroup.get(filter={"templateids":[template_id]})[0]["groupid"]
+host_group_id = zapi.hostgroup.get(templateids=[template_id]})[0]["groupid"]
 print "group id: ",host_group_id
 
 # create host
@@ -47,3 +47,8 @@ if not zapi.host.exists(name=name):
     zapi.host.create(host=name,interfaces=[interface],groups=[{"groupid": host_group_id}], templates = [{"templateid":template_id}])
 host = zapi.host.get(filter={"name":name})[0]
 print "new host id: ", int(host["hostid"])
+
+# update system screens
+# for each screen, check if last graph has max items (or no grpah was created yet) if yes, create new graph and add it to screen.
+# add miner data to graph
+
