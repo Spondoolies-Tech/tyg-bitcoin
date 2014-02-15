@@ -55,8 +55,8 @@ typedef class {
     //uint8_t  adapter_id;
     int connection_fd;
     pthread_t conn_pth;
-    minergate_packet* last_req;
-    minergate_packet* next_rsp;
+    minergate_req_packet* last_req;
+    minergate_rsp_packet* next_rsp;
     
     //pthread_mutex_t queue_lock;
     queue<minergate_do_job_req> work_minergate_req;
@@ -215,51 +215,6 @@ int pull_work_rsp(minergate_do_job_rsp* r, minergate_adapter* adapter) {
 
 
 
-// c = mp_rsp, 
-int minergate_data_processor(minergate_data* md, void* adaptr, void* c2) {
-    // parse JOB requests and store in the SW queue? 
-    //DBG(DBG_NET,"Got %d %d %d\n",md->data_id,md->data_length,md->magic);
-    minergate_adapter* adapter = (minergate_adapter*)adaptr;
-    if (md->data_id == MINERGATE_DATA_ID_DO_JOB_REQ) {     
-        int i;
-        // Return all previous responces
-        int rsp_count = adapter->work_minergate_rsp.size();
-        DBG(DBG_NET,"Sending %d minergate_do_job_rsp\n", rsp_count);
-        minergate_data* md_res = get_minergate_data(adapter->next_rsp,  
-                                 rsp_count*sizeof(minergate_do_job_rsp), 
-                                  MINERGATE_DATA_ID_DO_JOB_RSP);
-        //adapter->next_rsp;
-      //  DBG(DBG_NET,"rsp_count %d\n", rsp_count);
-        for (i=0;i<rsp_count;i++) {
-            //printf("rsp ");
-            minergate_do_job_rsp* rsp = ((minergate_do_job_rsp*)md_res->data) + i;
-            int res = pull_work_rsp(rsp, adapter);
-            passert(res);
-            
-        }
-
-
-
-        
-        //DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
-        int array_size = md->data_length / sizeof(minergate_do_job_req);
-        DBG(DBG_NET,"Got %d minergate_do_job_req\n", array_size);
-        passert(md->data_length % sizeof(minergate_do_job_req) == 0);
-        
-        for (i = 0; i < array_size; i++) { // walk the jobs
-             //printf("j");
-             minergate_do_job_req* work = ((minergate_do_job_req*)md->data) + i;
-             //fill_random_work2(&work);
-             push_work_req(work, adapter);
-            //minergate_do_job_req
-            //printf("!!!GOT minergate_do_job\n");
-        }
-
-    }
-}
-
-
-
 //
 // Support new minergate client
 //
@@ -279,27 +234,56 @@ void* connection_handler_thread(void* adptr)
      //minergate_data* md1 =    get_minergate_data(adapter->next_rsp,  300, 3);
      //minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
      //Read packet
-     while((nbytes = read(adapter->connection_fd, (void*)adapter->last_req, 10000)) > 0) {
-         //DBG(DBG_NET,"got:%d - %x\n", nbytes, *((char*)adapter->last_req));        
+     while((nbytes = read(adapter->connection_fd, (void*)adapter->last_req, sizeof( minergate_req_packet))) > 0) {
+         printf("GPT %d\n", nbytes);
          if (nbytes) {
               //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
               passert(adapter->last_req->magic == 0xcafe);
-              if ((adapter->last_req->magic == 0xcafe)
-                && (adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE == nbytes)) {
-                  //DBG(DBG_NET,"MESSAGE FROM CLIENT: %x\n", adapter->last_req->request_id);
-                  // Parse request
-                  parse_minergate_packet(adapter->last_req, minergate_data_processor, adapter, adapter);                  
+
+				  int i;
+				 // Return all previous responces
+				 int rsp_count = adapter->work_minergate_rsp.size();
+				 DBG(DBG_NET,"Sending %d minergate_do_job_rsp\n", rsp_count);
+				if (rsp_count >MAX_RESPONDS) {
+					rsp_count = MAX_RESPONDS;
+				}
+				 //adapter->next_rsp;
+			   //  DBG(DBG_NET,"rsp_count %d\n", rsp_count);
+				 for (i=0;i<rsp_count;i++) {
+					 //printf("rsp ");
+					 minergate_do_job_rsp* rsp = adapter->next_rsp->rsp + i;
+					 int res = pull_work_rsp(rsp, adapter);
+					 passert(res);
+					 
+				 }
+				adapter->next_rsp->rsp_count = rsp_count;
+				printf("SND %d\n", rsp_count);
+
+
+				  //DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
+				 int array_size =adapter->last_req->req_count;
+				 DBG(DBG_NET,"Got %d minergate_do_job_req\n", array_size);
+				
+				 for (i = 0; i < array_size; i++) { // walk the jobs
+					  //printf("j");
+					  minergate_do_job_req* work = adapter->last_req->req + i;
+					  //fill_random_work2(&work);
+					  //printf("DIFFFFFFF %d\n", work->leading_zeroes);
+					  push_work_req(work, adapter);
+					 //minergate_do_job_req
+					 //printf("!!!GOT minergate_do_job\n");
+				 }
+
+                 // parse_minergate_packet(adapter->last_req, minergate_data_processor, adapter, adapter);                  
                   adapter->next_rsp->request_id = adapter->last_req->request_id;
                   // Send response
                   write(adapter->connection_fd, 
                        (void*)adapter->next_rsp, 
-                       adapter->next_rsp->data_length + MINERGATE_PACKET_HEADER_SIZE);
+                       sizeof( minergate_rsp_packet));
 
                   // Clear packet.
-                  adapter->next_rsp->data_length = 0;
-              } else {
-                DBG(DBG_NET,"Dropped bad packet!\n");
-              }
+                  adapter->next_rsp->rsp_count = 0;
+             
          }
      }
      adapters[adapter->adapter_id] = NULL;
@@ -704,10 +688,8 @@ int main(int argc, char *argv[])
     adapter->adapter_id = 0;
     adapters[0] = adapter;
     adapter->connection_fd = connection_fd;
-    adapter->last_req = allocate_minergate_packet(
-        MINERGATE_TOTAL_QUEUE*sizeof(minergate_do_job_req) + MINERGATE_DATA_HEADER_SIZE, 0xca, 0xfe);
-    adapter->next_rsp = allocate_minergate_packet(
-        (2*MINERGATE_TOTAL_QUEUE*sizeof(minergate_do_job_rsp)) + MINERGATE_DATA_HEADER_SIZE, 0xca, 0xfe);
+    adapter->last_req = allocate_minergate_packet_req( 0xca, 0xfe);
+    adapter->next_rsp = allocate_minergate_packet_rsp( 0xca, 0xfe);
 
 
     s = pthread_create(&adapter->conn_pth,NULL,connection_handler_thread,(void*)adapter);

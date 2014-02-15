@@ -26,7 +26,7 @@ int ac2dc_get_power() {
 	if (err) {
 		if ((warned++) < 10)
 			psyslog("FAILED TO INIT aC2DC\n");
-		return 0;
+		return 100;
 	} 
 		
     return power/1000;

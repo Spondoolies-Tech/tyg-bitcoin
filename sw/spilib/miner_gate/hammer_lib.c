@@ -729,7 +729,7 @@ void* squid_regular_state_machine(void* p) {
             //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
             last_second_jobs = 0;            
             print_adapter();
-			print_dc2dc();
+			//print_dc2dc();
 			
             // Once every X seconds.
             periodic_scaling_task();

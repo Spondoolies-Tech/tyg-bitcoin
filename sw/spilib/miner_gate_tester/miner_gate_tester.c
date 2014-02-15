@@ -15,16 +15,15 @@ int jobs_period   = 50;
 
 
 
-void send_minergate_pkt(const minergate_packet* mp_req, 
-						minergate_packet* mp_rsp,
+void send_minergate_pkt(const minergate_req_packet* mp_req, 
+						minergate_rsp_packet* mp_rsp,
 						int  socket_fd) {
 	int 	nbytes;		
-	write(socket_fd, (const void*)mp_req, mp_req->data_length + MINERGATE_PACKET_HEADER_SIZE);
-	nbytes = read(socket_fd, (void*)mp_rsp, 40000);	
+	write(socket_fd, (const void*)mp_req, sizeof(minergate_req_packet));
+	nbytes = read(socket_fd, (void*)mp_rsp, sizeof(minergate_rsp_packet));	
 	passert(nbytes > 0);
 	//printf("got %d(%d) bytes\n",mp_rsp->data_length, nbytes);
 	passert(mp_rsp->magic == 0xcafe);
-	passert((mp_rsp->data_length + MINERGATE_PACKET_HEADER_SIZE) == nbytes);
 }
 
 
@@ -57,25 +56,6 @@ int init_socket() {
 	return socket_fd;
 }
 
-
-int minergate_data_processor(minergate_data* md, void* c, void* c2) {
-	//printf("Got %d %d %d\n",md->data_id,md->data_length,md->magic);
-    
-    
-    if (md->data_id == MINERGATE_DATA_ID_DO_JOB_RSP) {        
-           //DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
-           int array_size = md->data_length / sizeof(minergate_do_job_rsp);
-           passert(md->data_length % sizeof(minergate_do_job_rsp) == 0);
-           int i;
-           for (i = 0; i < array_size; i++) { // walk the jobs
-                //printf("j");
-                minergate_do_job_rsp* work = ((minergate_do_job_rsp*)md->data) + i;
-                if (work->winner_nonce) {
-                    printf("!!!GOT minergate job rsp %08x %08x\n",work->work_id_in_sw,work->winner_nonce);
-                }
-           }
-       }
-}
 
 
 
@@ -120,28 +100,40 @@ int main(int argc, char* argv[])
 
  
  
- minergate_packet* mp_req = allocate_minergate_packet(10000, 0xca, 0xfe);
- //char* buffer = mp_req;
- minergate_data* md1 =	get_minergate_data(mp_req,	(jobs_per_time)*sizeof(minergate_do_job_req), MINERGATE_DATA_ID_DO_JOB_REQ);
- //minergate_data* md2 =	get_minergate_data(mp_req,	200, 2);
+ minergate_req_packet* mp_req = allocate_minergate_packet_req(0xca, 0xfe);
+ minergate_rsp_packet* mp_rsp = allocate_minergate_packet_rsp(0xca, 0xfe);
  int i;
  
  //nbytes = snprintf(buffer, 256, "hello from a client");
- char buffer[40000];
  srand (time(NULL));
 
  while (1) {
-     minergate_packet* mp_rsp = (minergate_packet*)buffer;
-
+    
+	assert(jobs_per_time <= MAX_REQUESTS);
      for (i = 0; i < (jobs_per_time); i++) {
-        minergate_do_job_req* p = (minergate_do_job_req*)(md1->data);
-        fill_random_work2(p+i);
+        minergate_do_job_req* p = mp_req->req+i;
+        fill_random_work2(p);
+		//printf("DIFFFFFFF %d\n", p->leading_zeroes);
      }
-     
+     mp_req->req_count = jobs_per_time;
      //printf("MESSAGE TO SERVER: %x\n", mp_req->request_id);
      send_minergate_pkt(mp_req,  mp_rsp, socket_fd);
      //printf("MESSAGE FROM SERVER: %x\n", mp_rsp->request_id);
-     parse_minergate_packet(mp_rsp, minergate_data_processor, NULL, NULL);
+
+	 
+		//DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
+		int array_size = mp_rsp->rsp_count;
+		int i;
+		for (i = 0; i < array_size; i++) { // walk the jobs
+			 //printf("j");
+			 minergate_do_job_rsp* work = mp_rsp->rsp+i;
+			 if (work->winner_nonce) {
+				 printf("!!!GOT minergate job rsp %08x %08x\n",work->work_id_in_sw,work->winner_nonce);
+			 }
+		}
+
+
+	 
      usleep(jobs_period*1000);
  }
  close(socket_fd);

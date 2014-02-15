@@ -527,9 +527,9 @@ else
 fi
 
 if test "x$spondoolies" = xyes; then
-	echo "  Spondoolies.FPGAs....: Enabled"
+	echo "  Spondoolies.ASIC...: Enabled"
 else
-	echo "  Spondoolies.FPGAs....: Disabled"
+	echo "  Spondoolies.ASIC...: Disabled"
 fi
 
 if test "x$modminer" = xyes; then
