@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2013.05 Configuration
+# Buildroot 2013.05-g6b120f3-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 # BR2_arcle is not set
@@ -359,7 +359,11 @@ BR2_PACKAGE_BUSYBOX_CONFIG="../config/busybox-1.20.2-config-embedded"
 # BR2_PACKAGE_SQUASHFS is not set
 # BR2_PACKAGE_SSHFS is not set
 # BR2_PACKAGE_UNIONFS is not set
-# BR2_PACKAGE_XFSPROGS is not set
+
+#
+# Note that xfsprogs needs a toolchain with UCLIBC_SV4_DEPRECATED and UCLIBC_HAS_OBSOLETE_BSD_SIGNAL enabled
+#
+BR2_PACKAGE_XFSPROGS=y
 
 #
 # Hardware handling
@@ -951,7 +955,11 @@ BR2_PACKAGE_DROPBEAR_SMALL=y
 #
 # systemd not available (depends on /dev management with udev and ipv6 support, and thread support in toolchain)
 #
-# BR2_PACKAGE_UTIL_LINUX is not set
+BR2_PACKAGE_UTIL_LINUX=y
+# BR2_PACKAGE_UTIL_LINUX_LIBBLKID is not set
+# BR2_PACKAGE_UTIL_LINUX_LIBMOUNT is not set
+BR2_PACKAGE_UTIL_LINUX_LIBUUID=y
+# BR2_PACKAGE_UTIL_LINUX_BINARIES is not set
 # BR2_PACKAGE_DSP_TOOLS is not set
 
 #

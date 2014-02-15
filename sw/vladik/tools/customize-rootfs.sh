@@ -10,8 +10,9 @@ CUR_DIR=${PWD}
 TFTP_SERVER_IP=1.1.1.1
 MY_IP=1.1.1.2
 
-DIRS_TO_ADD='usr/local/bin lib/modules lib/firmware'
+DIRS_TO_ADD='usr/local/bin usr/local/lib lib/modules lib/firmware'
 TO_REMOVE='etc/init.d/S??urandom usr/lib/pkgconfig'
+TO_REMOVE=${TO_REMOVE}' sbin/fsck.xfs sbin/xfs_repair usr/sbin/xfs*'
 
 
 add_dirs()
@@ -97,6 +98,12 @@ memtester()
 	cp -a ${CUR_DIR}/../memtester-4.3.0/memtester usr/local/bin
 }
 
+emmc()
+{
+	cp -a ${CUR_DIR}/../add-ons/emmc-mbr usr/local/lib
+	cp -a ${CUR_DIR}/../add-ons/prepare-emmc.sh usr/local/bin
+}
+
 main()
 {
 	set -e
@@ -110,6 +117,7 @@ main()
 	spi_stuff
 	watchdog
 	memtester
+	emmc
 }
 
 main $@
