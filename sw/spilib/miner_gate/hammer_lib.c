@@ -40,7 +40,7 @@ void dump_zabbix_stats();
 
 void print_dc2dc() {
 	int ac2dc_current = ac2dc_get_power();
-	int ac2dc_temp = ac2dc_get_temperature(0);
+	int ac2dc_temp = ac2dc_get_temperature();
 	printf("AC2DC current: %d (%d by SW)\n", ac2dc_current, miner_box.ac2dc_current);
 	printf("AC2DC temp: %d (%d by SW)\n", ac2dc_temp, miner_box.ac2dc_temp);
 	printf("VOLTAGE/CURRENT/TEMP:\n");
@@ -451,6 +451,7 @@ void fill_random_work(RT_JOB *work) {
 
 void init_scaling();
 int update_top_current_measurments();
+int update_temperature_measurments();
 
 int init_hammers() {
 	int i;
@@ -718,7 +719,9 @@ void* squid_regular_state_machine(void* p) {
 
 		usec=(tv.tv_sec-last_print.tv_sec)*1000000;
 		usec+=(tv.tv_usec-last_print.tv_usec);
-		if (usec >= 1*1000*1000) {
+		if (usec >= 1*1000*1000) {			
+            update_top_current_measurments();
+			update_temperature_measurments();
     		printf("Pushed %d jobs last 1 secs (%d:%d) (%d-%d), in queue %d jobs!\n", 
             	last_second_jobs,spi_ioctls_read,spi_ioctls_write, rt_queue_sw_write , rt_queue_hw_done ,rt_queue_size);
 
@@ -727,8 +730,7 @@ void* squid_regular_state_machine(void* p) {
             last_second_jobs = 0;            
             print_adapter();
 			print_dc2dc();
-
-			miner_box.ac2dc_current = ac2dc_get_power();
+			
             // Once every X seconds.
             periodic_scaling_task();
 
@@ -758,7 +760,6 @@ void* squid_regular_state_machine(void* p) {
             }
             // Here it is important to have right time.
             read_some_temperatures();
-            update_top_current_measurments();
             gettimeofday(&last_test_win, NULL);
         }
 
@@ -774,7 +775,6 @@ void* squid_regular_state_machine(void* p) {
 			// TODO - remove!!
 			write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
             last_force_queue = tv;
-			
 		}
 
                 

@@ -448,7 +448,7 @@ void resume_all_work() {
 
 uint32_t ac_current_handler() {
     // TODO
-    int spare_ac2dc_current = (AC2DC_HIGH - miner_box.ac2dc_current);
+    int spare_ac2dc_current = (AC2DC_POWER_RED_LINE - miner_box.ac2dc_current);
     return spare_ac2dc_current;
 
 }
@@ -456,7 +456,7 @@ uint32_t ac_current_handler() {
 
 uint32_t compute_spare_dc_points(int l) {
     // TODO
-    uint32_t spare_dc2dc_current = (AC2DC_HIGH - miner_box.loop[l].dc2dc.dc_current_16s_of_amper);
+    uint32_t spare_dc2dc_current = (DC2DC_CURRENT_GREEN_LINE_16S - miner_box.loop[l].dc2dc.dc_current_16s_of_amper);
     return spare_dc2dc_current;
 }
 
@@ -544,6 +544,15 @@ int update_top_current_measurments() {
 }
 
 
+int update_temperature_measurments() {
+    miner_box.ac2dc_temp = ac2dc_get_temperature(); 
+    for (int i = 0; i < LOOP_COUNT; i++) {
+        miner_box.loop[i].dc2dc.dc_temp = dc2dc_get_temp(i, NULL);
+    }
+    return 0;
+}
+
+
 
 bool can_be_throttled(HAMMER* a) {
     return (a->present && (a->freq > SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]]));
@@ -615,7 +624,7 @@ void solve_current_problems() {
 
 #if 1
   for (l = 0; l < LOOP_COUNT; l++) {
-     while (miner_box.loop[l].dc2dc.dc_current_16s_of_amper >= DC2DC_CRITICAL) {
+     while (miner_box.loop[l].dc2dc.dc_current_16s_of_amper >= DC2DC_CURRENT_RED_LINE_16S) {
        HAMMER* a = find_asic_to_reduce_dc_current(l);
        DBG(DBG_SCALING,"DC2DC OVER LIMIT, killing ASIC:%d!\n", a->address);
        try_set_asic_freq(a, SAFE_FREQ_PER_CORNER[nvm->asic_corner[a->address]], 
@@ -624,7 +633,7 @@ void solve_current_problems() {
   }
 
  
-  while (miner_box.ac2dc_current >= AC2DC_CRITICAL) {
+  while (miner_box.ac2dc_current >= AC2DC_POWER_RED_LINE) {
   	   printf("miner_box.ac2dc_current = %d\n", miner_box.ac2dc_current);
        HAMMER* a = find_asic_to_reduce_ac_current();
        DBG(DBG_SCALING,"AC2DC OVER LIMIT, killing ASIC:%d %d!\n", a->address, a->freq);
@@ -662,12 +671,12 @@ void periodic_scaling_task() {
     usec+=(tv.tv_usec-last_scaling.tv_usec);
     bool critical_current = false;
 
-    if (miner_box.ac2dc_current >= AC2DC_CRITICAL) {
+    if (miner_box.ac2dc_current >= AC2DC_POWER_RED_LINE) {
         critical_current = true;
     }
     
     for (int i = 0; i < LOOP_COUNT; i++) {          
-        if (miner_box.loop[i].dc2dc.dc_current_16s_of_amper >= DC2DC_CRITICAL) {
+        if (miner_box.loop[i].dc2dc.dc_current_16s_of_amper >= DC2DC_CURRENT_RED_LINE_16S) {
 		   critical_current = true; 
         }
     }

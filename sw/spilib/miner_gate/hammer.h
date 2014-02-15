@@ -269,12 +269,6 @@ typedef struct {
 
 
 
-#define AC2DC_CRITICAL  100
-#define AC2DC_HIGH      90
-
-
-#define DC2DC_CRITICAL  70
-#define DC2DC_HIGH      60
 
 
 // Global power unit

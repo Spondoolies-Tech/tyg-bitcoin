@@ -6,6 +6,9 @@ Modified files
 
 Remove file "configure" and run
 
+	aclocal
+	libtoolize
+	automake --force-missing --add-missing
 	autoconf
 
 
