@@ -103,16 +103,18 @@ int main(int argc, char* argv[])
  minergate_req_packet* mp_req = allocate_minergate_packet_req(0xca, 0xfe);
  minergate_rsp_packet* mp_rsp = allocate_minergate_packet_rsp(0xca, 0xfe);
  int i;
- 
+ int requests = 0;
+ int responces = 0;
+ 	
  //nbytes = snprintf(buffer, 256, "hello from a client");
  srand (time(NULL));
 
  while (1) {
-    
 	assert(jobs_per_time <= MAX_REQUESTS);
      for (i = 0; i < (jobs_per_time); i++) {
         minergate_do_job_req* p = mp_req->req+i;
         fill_random_work2(p);
+		requests++;
 		//printf("DIFFFFFFF %d\n", p->leading_zeroes);
      }
      mp_req->req_count = jobs_per_time;
@@ -126,6 +128,7 @@ int main(int argc, char* argv[])
 		int i;
 		for (i = 0; i < array_size; i++) { // walk the jobs
 			 //printf("j");
+			 responces++;
 			 minergate_do_job_rsp* work = mp_rsp->rsp+i;
 			 if (work->winner_nonce) {
 				 printf("!!!GOT minergate job rsp %08x %08x\n",work->work_id_in_sw,work->winner_nonce);
@@ -134,6 +137,7 @@ int main(int argc, char* argv[])
 
 
 	 
+	 printf("REQUESTS: %d RESPONCES: %d, DELTA: %d\n",requests, responces, requests - responces);
      usleep(jobs_period*1000);
  }
  close(socket_fd);

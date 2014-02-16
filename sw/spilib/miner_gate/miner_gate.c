@@ -196,7 +196,7 @@ void push_work_req(minergate_do_job_req* req, minergate_adapter* adapter) {
         adapter->work_minergate_rsp.push(rsp);
     } else {
         adapter->work_minergate_req.push(*req); 
-    } 
+    }
     pthread_mutex_unlock(&network_hw_mutex);
 }
 

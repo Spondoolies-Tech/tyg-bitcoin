@@ -732,7 +732,7 @@ void* squid_regular_state_machine(void* p) {
 			//print_dc2dc();
 			
             // Once every X seconds.
-            periodic_scaling_task();
+            //periodic_scaling_task();
 
             if (nvm->dirty) {
                 spond_save_nvm();
