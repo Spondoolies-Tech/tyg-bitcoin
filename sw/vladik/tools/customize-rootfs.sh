@@ -104,6 +104,11 @@ emmc()
 	cp -a ${CUR_DIR}/../add-ons/prepare-emmc.sh usr/local/bin
 }
 
+web_server()
+{
+	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/lighttpd usr/bin
+}
+
 main()
 {
 	set -e
@@ -118,6 +123,7 @@ main()
 	watchdog
 	memtester
 	emmc
+	web_server
 }
 
 main $@

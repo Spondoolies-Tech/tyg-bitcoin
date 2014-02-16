@@ -1,0 +1,10 @@
+Configure
+=========
+CC=arm-none-linux-gnueabi-gcc						\
+	./configure --host=arm-linux --disable-ipv6 			\
+	--without-zlib --without-bzip2 --without-pcre			\
+	CFLAGS='-Os -s -fomit-frame-pointer'
+
+Compile
+=======
+make
