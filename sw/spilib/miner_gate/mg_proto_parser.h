@@ -58,7 +58,7 @@ typedef struct {
 	uint8_t request_id;
 	uint8_t protocol_version;
 	uint8_t resrved1; // == 
-	uint16_t magic; // 0xcafe
+	uint16_t magic; // 0xcaf4
 	uint16_t req_count;
 	minergate_do_job_req req[MAX_REQUESTS]; // array of requests
 } minergate_req_packet;
@@ -68,7 +68,7 @@ typedef struct {
 	uint8_t request_id;
 	uint8_t protocol_version;
 	uint8_t resrved1; // == 
-	uint16_t magic; // 0xcafe
+	uint16_t magic; // 0xcaf4
 	uint16_t rsp_count;
 	minergate_do_job_rsp rsp[MAX_RESPONDS]; // array of responce
 } minergate_rsp_packet;

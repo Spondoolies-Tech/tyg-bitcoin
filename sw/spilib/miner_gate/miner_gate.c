@@ -237,7 +237,7 @@ void* connection_handler_thread(void* adptr)
      while((nbytes = read(adapter->connection_fd, (void*)adapter->last_req, sizeof( minergate_req_packet))) > 0) {
          if (nbytes) {
               //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
-              passert(adapter->last_req->magic == 0xcafe);
+              passert(adapter->last_req->magic == 0xcaf4);
 
 				  int i;
 				 // Return all previous responces
