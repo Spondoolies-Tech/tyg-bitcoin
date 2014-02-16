@@ -235,7 +235,6 @@ void* connection_handler_thread(void* adptr)
      //minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
      //Read packet
      while((nbytes = read(adapter->connection_fd, (void*)adapter->last_req, sizeof( minergate_req_packet))) > 0) {
-         printf("GPT %d\n", nbytes);
          if (nbytes) {
               //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
               passert(adapter->last_req->magic == 0xcafe);
@@ -263,7 +262,7 @@ void* connection_handler_thread(void* adptr)
 				  //DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
 				 int array_size =adapter->last_req->req_count;
 				 DBG(DBG_NET,"Got %d minergate_do_job_req\n", array_size);
-				
+				  printf("GPT %d\n", array_size);
 				 for (i = 0; i < array_size; i++) { // walk the jobs
 					  //printf("j");
 					  minergate_do_job_req* work = adapter->last_req->req + i;
