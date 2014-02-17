@@ -369,7 +369,7 @@ void memprint(const void *m, size_t n);
 
 
 
-void get_print_win(int winner_device, RT_JOB *work_in_hw) {
+int get_print_win(int winner_device) {
 	// TODO - find out who one!
 	//int winner_device = winner_reg >> 16;
 	//enable_reg_debug = 1;
@@ -380,14 +380,21 @@ void get_print_win(int winner_device, RT_JOB *work_in_hw) {
 	//push_read_reg_device(winner_device, ADDR_WINNER_JOBID, &winner_id);
 	push_hammer_read(winner_device, ADDR_WINNER_JOBID_WINNER_ENGINE, &winner_id);
 	write_reg_device(winner_device, ADDR_INTR_CLEAR, BIT_INTR_WIN);
-    int current = read_reg_broadcast(ADDR_CURRENT_NONCE);
+  //  int current = read_reg_broadcast(ADDR_CURRENT_NONCE);
 	squid_wait_hammer_reads();
     // Winner ID holds ID and Engine info
     engine_id = winner_id >> 8;
 	winner_id = winner_id & 0xFF;
+	RT_JOB *work_in_hw = peak_rt_queue(winner_id);
+
+	
 	//printf("----%x %x\n", winner_device ,read_reg_device(winner_device, ADDR_WINNER_NONCE));
 	// test that this is the "work_in_hw" win.
 	if (work_in_hw->work_state == WORK_STATE_HAS_JOB) {
+		printf("!!!!!!!  WIN !!!!!!!! %x %x\n", 
+				winner_nonce, work_in_hw->work_id_in_sw);
+
+		
     	work_in_hw->winner_nonce = winner_nonce;
         // Optional printing
         if (work_in_hw->winner_nonce != 0) {
@@ -416,12 +423,20 @@ void get_print_win(int winner_device, RT_JOB *work_in_hw) {
                DBG(DBG_WINS,"\n- Leading Zeroes: %d\n", leading_zeroes);
                DBG(DBG_WINS,"-------------------\n");                
             } else {
-                printf("Win %d\n", winner_id);
+                printf("Win 0x%x\n", winner_id);
             }
        }
+		psyslog("Win good   job_id 0x%x\n", 
+			winner_id);
+		return 1;
 	} else {
-        printf("Warning: Win orphan job %d %d!!!\n", winner_id, current);
+        printf(ANSI_COLOR_RED "------------------  -------- !!!!!  Warning !!!!: Win orphan job 0x%x, nonce=0x%x!!!\n" ANSI_COLOR_RESET, winner_id, winner_nonce);
+		psyslog("!!!!!  Warning !!!!: Win orphan job_id 0x%x!!!\n", 
+			winner_id);
+		assert(0);
+		return 0;
 	}
+	return 1;
 }
 
 
@@ -593,7 +608,7 @@ void print_adapter();
 int has_work_req() ;
 
 
-void read_some_temperatures() {
+void read_some_asic_temperatures() {
     static ASIC_TEMP temp_measure_temp = ASIC_TEMP_83;
     static int temp_loop = 0;
     uint32_t val[HAMMERS_PER_LOOP]; 
@@ -672,7 +687,7 @@ void* squid_regular_state_machine(void* p) {
 	int usec;
 	last_second_jobs = 0;
     last_alive_jobs = 0;
-    
+    int last_hw_job_id;
 
   
 	enable_reg_debug = 0;
@@ -685,6 +700,7 @@ void* squid_regular_state_machine(void* p) {
 		usec+=(tv.tv_usec-last_job_pushed.tv_usec);
         
 		if (usec >= 2500) { // new job every 2.5 msecs = 400 per second
+			//printf ("hwid:%x\n", last_hw_job_id);
             last_job_pushed = tv;
 			//try_move_rt_queue2(true);
 			//last_second_jobs++;
@@ -700,6 +716,8 @@ void* squid_regular_state_machine(void* p) {
                 // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
                 // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);                
 				push_to_hw_queue(actual_work);
+				last_hw_job_id = actual_work->work_id_in_hw;
+				assert(last_hw_job_id <= 0x100);
 				last_second_jobs++;
                 last_alive_jobs++;
 			}
@@ -720,11 +738,25 @@ void* squid_regular_state_machine(void* p) {
 		usec=(tv.tv_sec-last_print.tv_sec)*1000000;
 		usec+=(tv.tv_usec-last_print.tv_usec);
 		if (usec >= 1*1000*1000) {			
-            update_top_current_measurments();
-			update_temperature_measurments();
-    		printf("Pushed %d jobs last 1 secs (%d:%d) (%d-%d), in queue %d jobs!\n", 
-            	last_second_jobs,spi_ioctls_read,spi_ioctls_write, rt_queue_sw_write , rt_queue_hw_done ,rt_queue_size);
-
+            //update_top_current_measurments();
+			//update_temperature_measurments();
+			//write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+			int current_nonce =  read_reg_device(0, ADDR_CURRENT_NONCE);
+			int nnce_start =  read_reg_device(0, ADDR_CURRENT_NONCE_START);
+			int job_id =  read_reg_device(0, ADDR_CURRENT_NONCE_RANGE);
+    		printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n", 
+            	last_second_jobs,
+            	spi_ioctls_read,
+            	spi_ioctls_write, 
+            	rt_queue_sw_write , 
+            	rt_queue_hw_done ,
+            	rt_queue_size);
+			printf("wins:%d, leading-zeroes:%d idle:%d/%d crnt_nonce:%x job:%x nnc_start:%x\n",
+				miner_box.solved_jobs,cur_leading_zeroes, miner_box.idle_probs, 
+				miner_box.busy_probs, current_nonce,job_id,nnce_start);
+			if (current_nonce == 0 && current_nonce == 0) {
+				print_state();
+			}
 			spi_ioctls_write = spi_ioctls_read = 0;
             //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
             last_second_jobs = 0;            
@@ -742,24 +774,34 @@ void* squid_regular_state_machine(void* p) {
             dump_zabbix_stats();
 		}
 
+		
 
         usec=(tv.tv_sec-last_test_win.tv_sec)*1000000;
         usec+=(tv.tv_usec-last_test_win.tv_usec);
-        // Lookup win every 25 msec (40 times per second)
+        // Lookup win and test utilisation every 25 msec (40 times per second)
         if (usec >= 25000) { 
             //printf("-");
             uint32_t reg;
             while((reg = read_reg_broadcast(ADDR_BR_WIN))) {
                 uint16_t winner_device = BROADCAST_READ_ADDR(reg);
                 miner_box.hammer[winner_device].solved_jobs++;
-                int jobid = read_reg_broadcast(ADDR_WINNER_JOBID_WINNER_ENGINE) & 0xFF;
+				miner_box.solved_jobs++;
                 //printf("\nSW:%x HW:%x\n",(actual_work)?actual_work->work_id_in_hw:0,jobid);
-                get_print_win(winner_device, peak_rt_queue(jobid));
+				printf ("reg:%x current:%x \n",reg, last_hw_job_id);
+				int ok = get_print_win(winner_device);
                 // Move on!
-                write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+                //write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
             }
+			if (read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE)) {
+				miner_box.idle_probs++;
+			} else {
+				miner_box.busy_probs++;
+
+			};
+			
+			
             // Here it is important to have right time.
-            read_some_temperatures();
+            read_some_asic_temperatures();
             gettimeofday(&last_test_win, NULL);
         }
 
@@ -770,7 +812,7 @@ void* squid_regular_state_machine(void* p) {
 		usec=(tv.tv_sec-last_force_queue.tv_sec)*1000000;
 		usec+=(tv.tv_usec-last_force_queue.tv_usec);
 		if (usec >= 10000) { 
-    		//printf("-");
+    		// printf("-");
 			// move job forward every 10 milli
 			// TODO - remove!!
 			write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);

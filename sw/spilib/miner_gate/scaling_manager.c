@@ -538,11 +538,11 @@ HAMMER* get_hammer(uint32_t addr) {
 int update_top_current_measurments() {
 	int err;
     miner_box.ac2dc_current = ac2dc_get_power(); 
-	/*
+	
     for (int i = 0; i < LOOP_COUNT; i++) {
         miner_box.loop[i].dc2dc.dc_current_16s_of_amper = dc2dc_get_current_16s_of_amper(i, &err);
     }
-    */
+    
     return 0;
 }
 

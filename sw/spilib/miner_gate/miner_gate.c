@@ -226,9 +226,18 @@ void* connection_handler_thread(void* adptr)
      minergate_adapter* adapter = ( minergate_adapter*)adptr;
 //   int connection_fd = (int)cf;
      DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
-     
 
-    // (minergate_adapter*)malloc(sizeof(minergate_adapter));
+     if (!noasic) {
+	 	 printf("Adapter connected, pop all jobs.");
+         RT_JOB work;
+		
+         while(one_done_sw_rt_queue(&work)) {
+             push_work_rsp(&work);
+         }
+		 //reset_sw_rt_queue();
+     }
+
+     // (minergate_adapter*)malloc(sizeof(minergate_adapter));
      int nbytes;
      
      //minergate_data* md1 =    get_minergate_data(adapter->next_rsp,  300, 3);
@@ -239,10 +248,17 @@ void* connection_handler_thread(void* adptr)
               //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
               passert(adapter->last_req->magic == 0xcaf4);
 
-				  int i;
-				 // Return all previous responces
-				 int rsp_count = adapter->work_minergate_rsp.size();
-				 DBG(DBG_NET,"Sending %d minergate_do_job_rsp\n", rsp_count);
+
+				if (adapter->last_req->connect) {
+					miner_box.idle_probs = 0;
+					miner_box.busy_probs = 0;
+					miner_box.solved_jobs = 0;
+					// drop all packets?
+				}
+				int i;
+				// Return all previous responces
+				int rsp_count = adapter->work_minergate_rsp.size();
+				DBG(DBG_NET,"Sending %d minergate_do_job_rsp\n", rsp_count);
 				if (rsp_count >MAX_RESPONDS) {
 					rsp_count = MAX_RESPONDS;
 				}
@@ -256,13 +272,13 @@ void* connection_handler_thread(void* adptr)
 					 
 				 }
 				adapter->next_rsp->rsp_count = rsp_count;
-				printf("SND %d\n", rsp_count);
+				//printf("SND %d\n", rsp_count);
 
 
 				  //DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
 				 int array_size =adapter->last_req->req_count;
 				 DBG(DBG_NET,"Got %d minergate_do_job_req\n", array_size);
-				  printf("GPT %d\n", array_size);
+				 //printf("GPT %d\n", array_size);
 				 for (i = 0; i < array_size; i++) { // walk the jobs
 					  //printf("j");
 					  minergate_do_job_req* work = adapter->last_req->req + i;
@@ -288,12 +304,7 @@ void* connection_handler_thread(void* adptr)
      adapters[adapter->adapter_id] = NULL;
      free_minergate_adapter(adapter); 
      // Clear the real_time_queue from the old packets
-     if (!noasic) {
-         RT_JOB work;
-         while(one_done_sw_rt_queue(&work)) {
-             push_work_rsp(&work);
-         }
-     }
+     
      adapter = NULL;          
      return 0;
 }

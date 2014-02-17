@@ -274,6 +274,11 @@ typedef struct {
 // Global power unit
 typedef struct {
     //uint32_t bypassed_loops; moved to NVM
+    uint32_t solved_jobs;
+	// random checking of ASICs to see utilisation.
+	uint32_t idle_probs;
+	uint32_t busy_probs;
+	
     uint32_t ac2dc_current;
 	uint32_t ac2dc_temp;
     HAMMER   hammer[HAMMERS_COUNT]; 
