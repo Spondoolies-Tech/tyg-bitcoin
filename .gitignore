@@ -1,3 +1,8 @@
 sw/vladik/buildroot-2013.05
 sw/vladik/kernel
 sw/vladik/u-boot
+*.o
+*.lo
+*.la
+.deps
+.libs
