@@ -57,7 +57,7 @@ typedef struct {
 	uint8_t requester_id;
 	uint8_t request_id;
 	uint8_t protocol_version;
-	uint8_t connect; // == 
+	uint8_t resrved1; // == 
 	uint16_t magic; // 0xcaf4
 	uint16_t req_count;
 	minergate_do_job_req req[MAX_REQUESTS]; // array of requests

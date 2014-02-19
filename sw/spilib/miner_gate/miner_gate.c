@@ -31,6 +31,7 @@
 #include "ac2dc.h"
 #include "pwm_manager.h"
 #include "hammer_lib.h"
+#include "miner_gate.h"
 
 #include <syslog.h>
 
@@ -149,7 +150,6 @@ int pull_work_req_adapter(RT_JOB* w, minergate_adapter* adapter) {
 
 
 
-// TODO - locks!!!
 // returns success
 int has_work_req_adapter(minergate_adapter* adapter) {
    return (adapter->work_minergate_req.size());
@@ -158,7 +158,6 @@ int has_work_req_adapter(minergate_adapter* adapter) {
 
 
 
-// TODO - locks!!!
 // returns success
 int pull_work_req(RT_JOB* w) {
     // go over adapters...
@@ -218,14 +217,20 @@ int pull_work_rsp(minergate_do_job_rsp* r, minergate_adapter* adapter) {
 //
 // Support new minergate client
 //
-int one_done_sw_rt_queue(RT_JOB *work);
-
 void* connection_handler_thread(void* adptr)
 {
-   // return 0;
-     minergate_adapter* adapter = ( minergate_adapter*)adptr;
-//   int connection_fd = (int)cf;
-     DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
+	
+	minergate_adapter* adapter = ( minergate_adapter*)adptr;
+	//DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
+
+    adapter->adapter_id = 0;
+    adapters[0] = adapter;
+    adapter->last_req = allocate_minergate_packet_req( 0xca, 0xfe);
+    adapter->next_rsp = allocate_minergate_packet_rsp( 0xca, 0xfe);
+
+	vm.idle_probs = 0;
+	vm.busy_probs = 0;
+	vm.solved_jobs = 0;
 
      if (!noasic) {
 	 	 printf("Adapter connected, pop all jobs.");
@@ -234,7 +239,6 @@ void* connection_handler_thread(void* adptr)
          while(one_done_sw_rt_queue(&work)) {
              push_work_rsp(&work);
          }
-		 //reset_sw_rt_queue();
      }
 
      // (minergate_adapter*)malloc(sizeof(minergate_adapter));
@@ -248,13 +252,7 @@ void* connection_handler_thread(void* adptr)
               //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
               passert(adapter->last_req->magic == 0xcaf4);
 
-
-				if (adapter->last_req->connect) {
-					miner_box.idle_probs = 0;
-					miner_box.busy_probs = 0;
-					miner_box.solved_jobs = 0;
-					// drop all packets?
-				}
+				// Reset packet.				
 				int i;
 				// Return all previous responces
 				int rsp_count = adapter->work_minergate_rsp.size();
@@ -282,11 +280,7 @@ void* connection_handler_thread(void* adptr)
 				 for (i = 0; i < array_size; i++) { // walk the jobs
 					  //printf("j");
 					  minergate_do_job_req* work = adapter->last_req->req + i;
-					  //fill_random_work2(&work);
-					  //printf("DIFFFFFFF %d\n", work->leading_zeroes);
 					  push_work_req(work, adapter);
-					 //minergate_do_job_req
-					 //printf("!!!GOT minergate_do_job\n");
 				 }
 
                  // parse_minergate_packet(adapter->last_req, minergate_data_processor, adapter, adapter);                  
@@ -304,7 +298,6 @@ void* connection_handler_thread(void* adptr)
      adapters[adapter->adapter_id] = NULL;
      free_minergate_adapter(adapter); 
      // Clear the real_time_queue from the old packets
-     
      adapter = NULL;          
      return 0;
 }
@@ -357,8 +350,6 @@ int init_socket() {
     return socket_fd;
 }
 
-uint32_t read_reg_broadcast_test(uint8_t offset);
-extern int assert_serial_failures;
 
 int  parse_squid_status(int v) {
     if(v & BIT_STATUS_SERIAL_Q_TX_FULL       ) printf("BIT_STATUS_SERIAL_Q_TX_FULL       ");
@@ -387,24 +378,6 @@ int  parse_squid_status(int v) {
 
 
 
-void* squid_regular_state_machine(void* p);
-int init_hammers();
-void init_scaling();
-int do_bist_ok(bool with_current_measurment);
-uint32_t crc32(uint32_t crc, const void *buf, size_t size);
-void enable_nvm_loops();
-void enable_voltage_freq_and_engines_from_nvm();
-void enable_voltage_freq_and_engines_default(); 
-
-void recompute_corners_and_voltage_update_nvm();
-void spond_save_nvm();
-void create_default_nvm(int from_scratch, int check_loops);
-void find_bad_engines_update_nvm();
-int enable_nvm_loops_ok();
-int allocate_addresses_to_devices();
-void set_nonce_range_in_engines(unsigned int max_range);
-void enable_all_engines_all_asics();
-
 
 void reset_squid() {
     FILE *f = fopen("/sys/class/gpio/export", "w"); 
@@ -422,14 +395,6 @@ void reset_squid() {
     fprintf(f, "1");
     usleep(20000);
     fclose(f);
-    /*
-    cd /sys/class/gpio
-    echo 47 > export
-    cd gpio47
-    echo out > direction
-    echo 0 > value
-    echo 1 > value
-    */
 }
 
 int main(int argc, char *argv[])
@@ -563,17 +528,22 @@ int main(int argc, char *argv[])
     dc2dc_set_voltage(0, ASIC_VOLTAGE_555); 
     sleep(3);
  */
-	 printf("--------------- %d\n", __LINE__);
+	 printf("spi tested%d\n", __LINE__);
 
  if (!load_nvm_ok() || !enable_scaling) {
     // Init NVM.
     // Finds good loops using broadcast reads. No addresses given.
     printf("CREATING NEW NVM!\n");
-    create_default_nvm(1, !noasic);
+	
+	// Find good loops 
+	if (!noasic) {
+		discover_good_loops_update_nvm();
+	}
+    create_default_nvm();
     spond_save_nvm();
  } 
 
- printf("--------------- %d\n", __LINE__);
+ printf("discover good loops done %d\n", __LINE__);
 
 
  if (!noasic) {
@@ -586,7 +556,7 @@ int main(int argc, char *argv[])
      }
  }
  
- printf("--------------- %d\n", __LINE__);
+ printf("enable nvm loops done %d\n", __LINE__);
  // Allocates addresses, sets nonce range.
  if (!noasic) {
      init_hammers(); 
@@ -602,21 +572,20 @@ int main(int argc, char *argv[])
 
 
      // UPDATE NVM DATA by running some tests.
-     if (!nvm->bad_engines_found) {
+     if (!nvm.bad_engines_found) {
          // Sets bad engines in NVM
          find_bad_engines_update_nvm();
      }
-     if (!nvm->corners_computed) {
+     if (!nvm.corners_computed) {
          // Sets asic Corner and loop voltages
          recompute_corners_and_voltage_update_nvm();
      }
  }
- printf("--------------- %d\n", __LINE__);
+ printf("hammer initialisation done %d\n", __LINE__);
 
  // Save NVM unless running without scaling
  spond_save_nvm();
 
- printf("--------------- %d\n", __LINE__);
 
  if ((!noasic) && enable_scaling) {
      // Enables NVM engines in ASICs.
@@ -625,7 +594,7 @@ int main(int argc, char *argv[])
      init_scaling();
  }
 
- printf("--------------- %d\n", __LINE__);
+ printf("init_scaling done %d\n", __LINE__);
 
 
  if (testreset_mode) {
@@ -667,13 +636,13 @@ int main(int argc, char *argv[])
     }
     for (int l = 0; l < LOOP_COUNT; l++) {
         for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
-            if (!miner_box.loop[l].enabled) {
+            if (!vm.loop[l].enabled_loop) {
                 // DONT REMOVE THIS PRINT!! USED BY TESTS!!
                 printf("Hammer %02d %02d DISCONNECTED\n", l, h);
-            } else if (!miner_box.hammer[l*HAMMERS_PER_LOOP+h].present) {
+            } else if (!vm.hammer[l*HAMMERS_PER_LOOP+h].present) {
                 // DONT REMOVE THIS PRINT!! USED BY TESTS!!
                 printf("Hammer %02d %02d MISSING\n", l, h);
-            } else if (miner_box.hammer[l*HAMMERS_PER_LOOP + h].failed_bists) {
+            } else if (vm.hammer[l*HAMMERS_PER_LOOP + h].failed_bists) {
                 // DONT REMOVE THIS PRINT!! USED BY TESTS!!
                 printf("Hammer %02d %02d BIST_FAIL\n", l, h);
             } else {
@@ -689,23 +658,17 @@ int main(int argc, char *argv[])
     s = pthread_create(&main_thread,NULL,squid_regular_state_machine,(void*)NULL);
     passert (s == 0);
  }
- while((connection_fd = accept(socket_fd, 
+
+ minergate_adapter* adapter = new minergate_adapter;
+ passert((int)adapter);
+ while((adapter->connection_fd = accept(socket_fd, 
                               (struct sockaddr *) &address,
                                &address_length)) > -1) {
     // Only 1 thread supportd so far...    
-    minergate_adapter* adapter = new minergate_adapter;
-    passert((int)adapter);
-    adapter->adapter_id = 0;
-    adapters[0] = adapter;
-    adapter->connection_fd = connection_fd;
-    adapter->last_req = allocate_minergate_packet_req( 0xca, 0xfe);
-    adapter->next_rsp = allocate_minergate_packet_rsp( 0xca, 0xfe);
-
-
     s = pthread_create(&adapter->conn_pth,NULL,connection_handler_thread,(void*)adapter);
     passert (s == 0);
  }
- printf("Err %d:", connection_fd);
+ printf("Err %d:", adapter->connection_fd);
  passert(0,"Err");
 
  close(socket_fd);

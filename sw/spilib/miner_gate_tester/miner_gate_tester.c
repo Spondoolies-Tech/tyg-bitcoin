@@ -120,7 +120,6 @@ int main(int argc, char* argv[])
      mp_req->req_count = jobs_per_time;
      //printf("MESSAGE TO SERVER: %x\n", mp_req->request_id);
      send_minergate_pkt(mp_req,  mp_rsp, socket_fd);
-	 mp_req->connect = 0;
      //printf("MESSAGE FROM SERVER: %x\n", mp_rsp->request_id);
 
 	 

@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
 		printf("loop%d.voltage %d\n", l, zabbix_log.loops[l].voltage);
 		printf("loop%d.current %d\n", l, zabbix_log.loops[l].current);
 		printf("loop%d.temp %d\n", l, zabbix_log.loops[l].temp);
-		printf("loop%d.enabled %x\n", l, zabbix_log.loops[l].enabled);
+		printf("loop%d.enabled %x\n", l, zabbix_log.loops[l].enabled	);
 		for(int a = 0; a < (HAMMERS_PER_LOOP); a++){
 			printf("loop%d.asic%d.freq %d\n", l, a, zabbix_log.asics[a*l].freq);
 			printf("loop%d.asic%d.working_engines %d\n", l, a, zabbix_log.asics[a*l].working_engines);

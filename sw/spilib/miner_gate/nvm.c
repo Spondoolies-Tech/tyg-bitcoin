@@ -18,7 +18,7 @@
 #include <time.h>
 #include "hammer_lib.h"
 
-SPONDOOLIES_NVM* nvm = NULL;
+SPONDOOLIES_NVM nvm;
 
 static uint32_t crc32_tab[] = {
 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
@@ -80,7 +80,6 @@ uint32_t crc32(uint32_t crc, const void *buf, size_t size)
 }
 
 
-void create_default_nvm(SPONDOOLIES_NVM* nvm, int from_scratch);
 void spond_delete_nvm() {
      unlink (NVM_FILE_NAME);
 }
@@ -88,8 +87,8 @@ void spond_delete_nvm() {
 // Try and load from file.
 int load_nvm_ok() {
     //  TODO - LOAD
-	if (!nvm) {
-        nvm = (SPONDOOLIES_NVM*)malloc(sizeof(SPONDOOLIES_NVM));
+	//if (!nvm) {
+       // nvm = (SPONDOOLIES_NVM*)malloc(sizeof(SPONDOOLIES_NVM));
         printf("Loading NVM\n");
         FILE* infile = fopen(NVM_FILE_NAME, "r");
         if(infile == NULL) {
@@ -97,39 +96,39 @@ int load_nvm_ok() {
         } else {
             // copy file to struct
             fseek(infile, 0L, SEEK_SET);
-            fread(nvm, sizeof(char), sizeof(SPONDOOLIES_NVM), infile);
+            fread(&nvm, sizeof(char), sizeof(SPONDOOLIES_NVM), infile);
             fclose(infile);
         }
         
         // LOAD NVM
-        uint32_t crc = crc32(0,nvm,sizeof(SPONDOOLIES_NVM)-sizeof(uint32_t));
-        if (nvm->nvm_version != NVM_VERSION ||
-             nvm->crc32 != crc) {
+        uint32_t crc = crc32(0,&nvm,sizeof(SPONDOOLIES_NVM)-sizeof(uint32_t));
+        if (nvm.nvm_version != NVM_VERSION ||
+             nvm.crc32 != crc) {
                  printf("------------------\nBAD NVM (%x) (%x/%x), reinitialize!\n",
-                    nvm->nvm_version, nvm->crc32, crc);
+                    nvm.nvm_version, nvm.crc32, crc);
                  return 0;
         } else {
             printf("NVM OK :)\n");
             
             // if older then redo NVM
-            if ((time(NULL) - nvm->store_time) > RECOMPUTE_NVM_TIME_SEC) {
+            if ((time(NULL) - nvm.store_time) > RECOMPUTE_NVM_TIME_SEC) {
                  printf("OLD NVM, reinitialize!\n");
                  return 0;
             }
         }
-    }
+    //}
     return 1;
 }
 
 extern int enable_scaling;
 void spond_save_nvm() {
 	// dont store NVM in noscaling
-	if (nvm->dirty && (enable_scaling)) {
-	    nvm->dirty = 0;
-	    nvm->crc32 = crc32(0, (const void *)nvm, sizeof(SPONDOOLIES_NVM)-sizeof(uint32_t));    
-	    printf("------------------\nVER=%x  CRC=%x, try to save file %s:\n",nvm->nvm_version,nvm->crc32, NVM_FILE_NAME);
+	if (nvm.dirty && (enable_scaling)) {
+	    nvm.dirty = 0;
+	    nvm.crc32 = crc32(0, (const void *)&nvm, sizeof(SPONDOOLIES_NVM)-sizeof(uint32_t));    
+	    printf("------------------\nVER=%x  CRC=%x, try to save file %s:\n",nvm.nvm_version,nvm.crc32, NVM_FILE_NAME);
 	    FILE* infile = fopen(NVM_FILE_NAME, "w");
-	    fwrite(nvm, sizeof(SPONDOOLIES_NVM), 1, infile);
+	    fwrite(&nvm, sizeof(SPONDOOLIES_NVM), 1, infile);
 	    printf("Success, ---->> File %d\n", infile);
 	    fclose(infile);
 	}

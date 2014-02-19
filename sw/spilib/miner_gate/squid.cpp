@@ -444,8 +444,8 @@ void squid_wait_hammer_reads() {
 
 
 
-void write_reg_device(uint16_t cpu, uint8_t offset, uint32_t value) {
-	push_hammer_write(cpu, offset, value);
+void write_reg_device(uint16_t addr, uint8_t offset, uint32_t value) {
+	push_hammer_write(addr, offset, value);
 }
 
 void write_reg_broadcast(uint8_t offset, uint32_t value) {
@@ -453,9 +453,9 @@ void write_reg_broadcast(uint8_t offset, uint32_t value) {
 	//squid_wait_hammer_reads()
 }
 
-uint32_t read_reg_device(uint16_t cpu, uint8_t offset) {
+uint32_t read_reg_device(uint16_t addr, uint8_t offset) {
 	uint32_t value;
-	push_hammer_read(cpu, offset, &value);
+	push_hammer_read(addr, offset, &value);
 	flush_spi_write();
 	squid_wait_hammer_reads();
 	return value;

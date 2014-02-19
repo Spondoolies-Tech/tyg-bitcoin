@@ -37,12 +37,81 @@ void dump_zabbix_stats();
 
 
 
+void hammer_iter_init(hammer_iter* e) {
+	e->addr = -1;
+	e->done = 0;
+	e->h    = -1;
+	e->l    = 0;
+}
+
+
+
+int hammer_iter_next_present(hammer_iter* e) {
+	int found = 0;
+	while (!found) {
+		e->h++;
+		
+		if (e->h == HAMMERS_PER_LOOP) {
+			e->l++;
+			e->h = 0;
+			while (!vm.loop[e->l].enabled_loop) {
+				e->l++;
+				if (e->l == LOOP_COUNT) {
+					e->done = 1;
+					return 0;
+				}
+			}
+		}
+	
+		if (e->l == LOOP_COUNT) {
+		//	printf("5");
+			e->done = 1;
+			return 0;
+		}
+		
+		if (vm.hammer[e->l*HAMMERS_PER_LOOP + e->h].present) {
+			found++;
+		}
+
+	}
+	e->addr = e->l*HAMMERS_PER_LOOP + e->h;
+	return 1;
+				
+}
+
+
+
+void loop_iter_init(loop_iter* e) {
+	e->done =  0;
+	e->l    = -1;
+}
+
+int loop_iter_next_enabled(loop_iter* e) {
+	int found = 0;
+	
+	while (!found) {
+		e->l++;
+		
+		while (!vm.loop[e->l].enabled_loop) {
+			e->l++;
+		}
+
+		if (e->l == LOOP_COUNT) {
+			e->done = 1;
+			return 0;
+		}
+	}
+	return 1;
+				
+}
+
+
 
 void print_dc2dc() {
 	int ac2dc_current = ac2dc_get_power();
 	int ac2dc_temp = ac2dc_get_temperature();
-	printf("AC2DC current: %d (%d by SW)\n", ac2dc_current, miner_box.ac2dc_current);
-	printf("AC2DC temp: %d (%d by SW)\n", ac2dc_temp, miner_box.ac2dc_temp);
+	printf("AC2DC current: %d (%d by SW)\n", ac2dc_current, vm.ac2dc_current);
+	printf("AC2DC temp: %d (%d by SW)\n", ac2dc_temp, vm.ac2dc_temp);
 	printf("VOLTAGE/CURRENT/TEMP:\n");
 	for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
 		int err;
@@ -78,14 +147,15 @@ void print_dc2dc() {
 void print_devreg(int reg, const char* name) {
 	printf("%2x:  BR:%8x ", reg, read_reg_broadcast(reg));    
 	int h, l;
-    for (l = 0; l < LOOP_COUNT; l++) {
-        for (h = 0; h < HAMMERS_PER_LOOP; h++) {
-            if (miner_box.hammer[l*HAMMERS_PER_LOOP + h].present) {
+
+
+	hammer_iter hi;
+	hammer_iter_init(&hi);
+
+    while (hammer_iter_next_present(&hi)) {
         		printf("DEV-%04x:%8x ", 
-                    miner_box.hammer[l*HAMMERS_PER_LOOP + h].address,
-                    read_reg_device(miner_box.hammer[l*HAMMERS_PER_LOOP + h].address, reg));
-            }
-        }
+                    vm.hammer[hi.addr].address,
+                    read_reg_device(hi.addr, reg));
 	}
 	printf("  %s\n", name);
 }
@@ -254,20 +324,18 @@ void set_nonce_range_in_engines(unsigned int max_range) {
 
 	//for (d = FIRST_CHIP_ADDR; d < FIRST_CHIP_ADDR+total_devices; d++) {
 
-    int h, l;
-    for (l = 0; l < LOOP_COUNT; l++) {
-        for (h = 0; h < HAMMERS_PER_LOOP; h++) {
-            if (miner_box.hammer[l*HAMMERS_PER_LOOP + h].present) {
-                int d = miner_box.hammer[l*HAMMERS_PER_LOOP + h].address;
-		        write_reg_device(d, ADDR_CURRENT_NONCE_RANGE, engine_size);
-        		for (e = 0; e < engines_per_device; e++) {
-    			    DBG(DBG_HW,"engine %x:%x got range from 0x%x to 0x%x\n", 
-                        d, e, current_nonce, current_nonce + engine_size);
-    			    write_reg_device(d, ADDR_CURRENT_NONCE_START + e, current_nonce);
-    			    //read_reg_device(d, ADDR_CURRENT_NONCE_START + e);			
-    		        current_nonce += engine_size;
-        		}
-            }
+    //int h, l;
+	hammer_iter hi;
+	hammer_iter_init(&hi);
+
+    while (hammer_iter_next_present(&hi)) {
+        write_reg_device(hi.addr, ADDR_CURRENT_NONCE_RANGE, engine_size);
+		for (e = 0; e < engines_per_device; e++) {
+		    DBG(DBG_HW,"engine %x:%x got range from 0x%x to 0x%x\n", 
+                hi.addr, e, current_nonce, current_nonce + engine_size);
+		    write_reg_device(hi.addr, ADDR_CURRENT_NONCE_START + e, current_nonce);
+		    //read_reg_device(d, ADDR_CURRENT_NONCE_START + e);			
+	        current_nonce += engine_size;
 		}
 	}
 	//enable_reg_debug = 0;
@@ -290,14 +358,17 @@ int allocate_addresses_to_devices() {
     
     //  validate address reset
     reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
+	//printf("1\n");
     if (reg == 0) {
         passert(0);
     }
+	//printf("2\n");
 
 
     // Do it loop by loop!
     for (l = 0; l < LOOP_COUNT ; l++) {
-        if (miner_box.loop[l].enabled) {
+        if (vm.loop[l].enabled_loop) {
+			printf("4\n");
             // Disable all other loops
             unsigned int bypass_loops = (~(1 << l) & 0xFFFFFF);
             printf("Giving address on loop (mask): %x\n", (~bypass_loops) & 0xFFFFFF);
@@ -308,34 +379,35 @@ int allocate_addresses_to_devices() {
             int asics_in_loop = 0;
             for (h = 0; h < HAMMERS_PER_LOOP ; h++){
                 uint16_t addr = (l*HAMMERS_PER_LOOP+h);
-                miner_box.hammer[l*HAMMERS_PER_LOOP + h].address = addr;
+                vm.hammer[l*HAMMERS_PER_LOOP + h].address = addr;
 				printf(ANSI_COLOR_MAGENTA "TODO TODO Find bad engines in ASICs!\n" ANSI_COLOR_RESET);
                 if (read_reg_broadcast(ADDR_BR_NO_ADDR)) {
                      write_reg_broadcast(ADDR_CHIP_ADDR, addr);
                      total_devices++;
                      asics_in_loop++;
-                     miner_box.hammer[l*HAMMERS_PER_LOOP + h].present = 1;
+                     vm.hammer[l*HAMMERS_PER_LOOP + h].present = 1;
                      DBG(DBG_HW,"Address allocated: %x\n", addr);
 //                   for (total_devices = 0; read_reg_broadcast(ADDR_BR_NO_ADDR); ++total_devices) {
 //		             write_reg_broadcast(ADDR_CHIP_ADDR, total_devices + FIRST_CHIP_ADDR);            		
             	} else {
 //                   printf("No ASIC found at position %x!\n", addr);
-                     miner_box.hammer[l*HAMMERS_PER_LOOP + h].address = addr; 
-                     miner_box.hammer[l*HAMMERS_PER_LOOP + h].present = 0;
-					 nvm->working_engines[l*HAMMERS_PER_LOOP + h] = 0;
-					 nvm->top_freq[l*HAMMERS_PER_LOOP + h] = ASIC_FREQ_0;
-					 nvm->asic_corner[l*HAMMERS_PER_LOOP + h] = ASIC_CORNER_NA;
+                     vm.hammer[l*HAMMERS_PER_LOOP + h].address = addr; 
+                     vm.hammer[l*HAMMERS_PER_LOOP + h].present = 0;
+					 nvm.working_engines[l*HAMMERS_PER_LOOP + h] = 0;
+					 nvm.top_freq[l*HAMMERS_PER_LOOP + h] = ASIC_FREQ_0;
+					 nvm.asic_corner[l*HAMMERS_PER_LOOP + h] = ASIC_CORNER_NA;
                 }
             } 
             // Dont remove this print - used by scripts!!!!
             printf("ASICS in loop %d: %d\n",l,asics_in_loop);
             passert(read_reg_broadcast(ADDR_BR_NO_ADDR) == 0);
-            write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm->good_loops));
+            write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm.good_loops));
         } else {
             printf("ASICS in loop %d: %d\n",l,0);;
         }
 		
     }
+	//printf("3\n");
 
     // Validate all got address
     passert(read_reg_broadcast(ADDR_BR_NO_ADDR) == 0);
@@ -613,25 +685,23 @@ void read_some_asic_temperatures() {
     static int temp_loop = 0;
     uint32_t val[HAMMERS_PER_LOOP]; 
     //printf("T:%d L:%d\n",temp_measure_temp, temp_loop);
-    if (miner_box.loop[temp_loop].enabled) {
+    if (vm.loop[temp_loop].enabled_loop) {
        // Push temperature measurment to the whole loop
        //read_reg_device(uint16_t cpu,uint8_t offset)
        write_reg_broadcast(ADDR_TS_SET_0, temp_measure_temp);                    
        write_reg_broadcast(ADDR_COMMAND, BIT_CMD_TS_RESET_0);                    
        for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
-           HAMMER *a = &miner_box.hammer[temp_loop*HAMMERS_PER_LOOP + h];
+           HAMMER *a = &vm.hammer[temp_loop*HAMMERS_PER_LOOP + h];
            val[h] = 0;
            if (a->present) {
                push_hammer_read(a->address,ADDR_TS_DATA_0, &(val[h]));
            }
        }
     }
-
-    squid_wait_hammer_reads();
-    
-    if (miner_box.loop[temp_loop].enabled) {
+	squid_wait_hammer_reads();
+    if (vm.loop[temp_loop].enabled_loop) {
        for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
-           HAMMER *a = &miner_box.hammer[temp_loop*HAMMERS_PER_LOOP + h];  
+           HAMMER *a = &vm.hammer[temp_loop*HAMMERS_PER_LOOP + h];  
            if (a->present) {
                if (val[h]) { // This ASIC is at least this temperature high
                    if (a->temperature < temp_measure_temp) {
@@ -700,10 +770,7 @@ void* squid_regular_state_machine(void* p) {
 		usec+=(tv.tv_usec-last_job_pushed.tv_usec);
         
 		if (usec >= 2500) { // new job every 2.5 msecs = 400 per second
-			//printf ("hwid:%x\n", last_hw_job_id);
             last_job_pushed = tv;
-			//try_move_rt_queue2(true);
-			//last_second_jobs++;
 			
 			int has_request = pull_work_req(&work);
 			if (has_request) {
@@ -728,11 +795,7 @@ void* squid_regular_state_machine(void* p) {
             }
             // Move latest job to complete queue
 		}
-/*
-        else {
-            printf("*");
-        }
-*/
+
 
 
 		usec=(tv.tv_sec-last_print.tv_sec)*1000000;
@@ -741,32 +804,35 @@ void* squid_regular_state_machine(void* p) {
             //update_top_current_measurments();
 			//update_temperature_measurments();
 			//write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-			int current_nonce =  read_reg_device(0, ADDR_CURRENT_NONCE);
-			int nnce_start =  read_reg_device(0, ADDR_CURRENT_NONCE_START);
-			int job_id =  read_reg_device(0, ADDR_CURRENT_NONCE_RANGE);
-    		printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n", 
+			//int current_nonce =  read_reg_device(0, ADDR_CURRENT_NONCE);
+			//int nnce_start =  read_reg_device(0, ADDR_CURRENT_NONCE_START);
+			//int job_id =  read_reg_device(0, ADDR_CURRENT_NONCE_RANGE);
+			int no_addr =  read_reg_broadcast(ADDR_BR_NO_ADDR);
+			if (no_addr) {
+				printf("Error: lost address!\n");
+				print_state();
+				passert(0);
+			}
+			printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n", 
             	last_second_jobs,
             	spi_ioctls_read,
             	spi_ioctls_write, 
             	rt_queue_sw_write , 
             	rt_queue_hw_done ,
             	rt_queue_size);
-			printf("wins:%d, leading-zeroes:%d idle:%d/%d crnt_nonce:%x job:%x nnc_start:%x\n",
-				miner_box.solved_jobs,cur_leading_zeroes, miner_box.idle_probs, 
-				miner_box.busy_probs, current_nonce,job_id,nnce_start);
-			if (current_nonce == 0 && current_nonce == 0) {
-				print_state();
-			}
+			printf("wins:%d, leading-zeroes:%d idle:%d/%d\n",
+				vm.solved_jobs,cur_leading_zeroes, vm.idle_probs, 
+				vm.busy_probs);
+		
 			spi_ioctls_write = spi_ioctls_read = 0;
             //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
             last_second_jobs = 0;            
             print_adapter();
 			//print_dc2dc();
-			
             // Once every X seconds.
             //periodic_scaling_task();
 
-            if (nvm->dirty) {
+            if (nvm.dirty) {
                 spond_save_nvm();
             }
             // print_state();
@@ -784,8 +850,8 @@ void* squid_regular_state_machine(void* p) {
             uint32_t reg;
             while((reg = read_reg_broadcast(ADDR_BR_WIN))) {
                 uint16_t winner_device = BROADCAST_READ_ADDR(reg);
-                miner_box.hammer[winner_device].solved_jobs++;
-				miner_box.solved_jobs++;
+                vm.hammer[winner_device].solved_jobs++;
+				vm.solved_jobs++;
                 //printf("\nSW:%x HW:%x\n",(actual_work)?actual_work->work_id_in_hw:0,jobid);
 				printf ("reg:%x current:%x \n",reg, last_hw_job_id);
 				int ok = get_print_win(winner_device);
@@ -793,9 +859,9 @@ void* squid_regular_state_machine(void* p) {
                 //write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
             }
 			if (read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE)) {
-				miner_box.idle_probs++;
+				vm.idle_probs++;
 			} else {
-				miner_box.busy_probs++;
+				vm.busy_probs++;
 
 			};
 			
