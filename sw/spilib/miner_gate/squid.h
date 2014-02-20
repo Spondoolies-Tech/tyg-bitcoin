@@ -116,7 +116,7 @@ uint32_t read_reg_broadcast(uint8_t offset);
 #define BROADCAST_READ_ADDR(X)   ((X >> 16)&0xFF)
 #define BROADCAST_READ_DATA(X)   (X & 0xFFFF)
 #define ASIC_GET_LOOP_OFFSET(ADDR, LOOP, OFFSET) {LOOP = (ADDR/HAMMERS_PER_LOOP); OFFSET=ADDR%HAMMERS_PER_LOOP;}  
-#define ASIC_GET_BY_ADDR(ADDR)   (&miner_box.hammer[ADDR])
+#define ASIC_GET_BY_ADDR(ADDR)   (&vm.hammer[ADDR])
 
 
 #define ASSERT(X) if (!(X)) {char s[200]; sprintf(s, "Error:%s  %s:%i (%s)\n",#X,__FILE__,__LINE__, __FUNCTION__); pabort(s);}

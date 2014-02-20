@@ -263,23 +263,24 @@ typedef struct {
 // 24 dc2dc
 typedef struct {
     uint8_t id;
-    uint8_t enabled;    
+	//uint8_t present_loop; 
+    uint8_t enabled_loop;    
     DC2DC  dc2dc; 
 } LOOP;
 
 
 
-#define AC2DC_CRITICAL  100
-#define AC2DC_HIGH      90
 
 
-#define DC2DC_CRITICAL  70
-#define DC2DC_HIGH      60
-
-
-// Global power unit
+// Global data
 typedef struct {
     //uint32_t bypassed_loops; moved to NVM
+    uint32_t solved_jobs;
+	// random checking of ASICs to see utilisation.
+	uint32_t idle_probs;
+	uint32_t busy_probs;
+	uint8_t pause_miner;
+	
     uint32_t ac2dc_current;
 	uint32_t ac2dc_temp;
     HAMMER   hammer[HAMMERS_COUNT]; 
@@ -287,7 +288,7 @@ typedef struct {
 } MINER_BOX;
 
 
-extern MINER_BOX miner_box;
+extern MINER_BOX vm;
 
 #if 0
 #define JOB_PUSH_PERIOD_US 2500

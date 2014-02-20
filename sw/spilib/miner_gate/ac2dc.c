@@ -26,7 +26,7 @@ int ac2dc_get_power() {
 	if (err) {
 		if ((warned++) < 10)
 			psyslog("FAILED TO INIT aC2DC\n");
-		return 0;
+		return 100;
 	} 
 		
     return power/1000;
@@ -35,20 +35,25 @@ int ac2dc_get_power() {
 
 
 // Return Watts
-int ac2dc_get_temperature(int sensor) {
+int ac2dc_get_temperature() {
 	static int warned = 0;
 
 	int err = 0;
 	i2c_write(PRIMARY_I2C_SWITCH, 0x01); 
-	int temp = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD + sensor, &err));
-	i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+	int temp1 = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD, &err));
 	if (err) {
-		if ((warned++) < 10)
-			psyslog("FAILED TO INIT ac2DC\n");
-		return 0;
-	} 
-		
-    return temp/1000;
+		psyslog("ERR reading AC2DC temp\n"); 
+		return AC2DC_TEMP_GREEN_LINE-1;
+	}
+	int temp2 = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP2_WORD, &err));
+	int temp3 = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP3_WORD, &err));
+	if (temp2 > temp1) temp1=temp2;
+	if (temp3 > temp1) temp1=temp3;
+
+	i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+
+	
+    return temp1/1000;
 }
 
 int ac2dc_get_vpd( ac2dc_vpd_info_t * pVpd){

@@ -10,8 +10,9 @@ CUR_DIR=${PWD}
 TFTP_SERVER_IP=1.1.1.1
 MY_IP=1.1.1.2
 
-DIRS_TO_ADD='usr/local/bin lib/modules lib/firmware'
+DIRS_TO_ADD='usr/local/bin usr/local/lib lib/modules lib/firmware'
 TO_REMOVE='etc/init.d/S??urandom usr/lib/pkgconfig'
+TO_REMOVE=${TO_REMOVE}' sbin/fsck.xfs sbin/xfs_repair usr/sbin/xfs*'
 
 
 add_dirs()
@@ -77,7 +78,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_arm usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
-	cp ${CUR_DIR}/../../cgminer-1/cgminer usr/local/bin
+	cp ${CUR_DIR}/../cgminer-3.4.3/cgminer usr/local/bin
 	cp ${CUR_DIR}/../../spilib/zabbix_reader/zabbix_reader_arm  usr/local/bin
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
@@ -97,6 +98,17 @@ memtester()
 	cp -a ${CUR_DIR}/../memtester-4.3.0/memtester usr/local/bin
 }
 
+emmc()
+{
+	cp -a ${CUR_DIR}/../add-ons/emmc-mbr usr/local/lib
+	cp -a ${CUR_DIR}/../add-ons/prepare-emmc.sh usr/local/bin
+}
+
+web_server()
+{
+	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/lighttpd usr/bin
+}
+
 main()
 {
 	set -e
@@ -110,6 +122,8 @@ main()
 	spi_stuff
 	watchdog
 	memtester
+	emmc
+	web_server
 }
 
 main $@

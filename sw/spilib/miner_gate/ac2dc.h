@@ -2,6 +2,14 @@
 #define _____AC2DC__4544R_H____
 
 
+#define AC2DC_TEMP_GREEN_LINE 110
+#define AC2DC_TEMP_RED_LINE   115
+
+
+#define AC2DC_POWER_GREEN_LINE (1040)
+#define AC2DC_POWER_RED_LINE   (1080)
+
+
 int ac2dc_get_power();
 unsigned char ac2dc_get_eeprom_quick(int offset,int * pError = 0);
 
@@ -13,7 +21,7 @@ typedef struct {
 } ac2dc_vpd_info_t;
 
 int ac2dc_get_vpd( ac2dc_vpd_info_t * pVpd);
-int ac2dc_get_temperature(int sensor); //0,1,2
+int ac2dc_get_temperature(); //0,1,2
 
 
 /*

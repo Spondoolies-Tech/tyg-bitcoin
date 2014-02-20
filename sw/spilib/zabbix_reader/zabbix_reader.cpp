@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
 		printf("loop%d.voltage %d\n", l, zabbix_log.loops[l].voltage);
 		printf("loop%d.current %d\n", l, zabbix_log.loops[l].current);
 		printf("loop%d.temp %d\n", l, zabbix_log.loops[l].temp);
-		printf("loop%d.enabled %x\n", l, zabbix_log.loops[l].enabled);
+		printf("loop%d.enabled %x\n", l, zabbix_log.loops[l].enabled	);
 		for(int a = 0; a < (HAMMERS_PER_LOOP); a++){
 			printf("loop%d.asic%d.freq %d\n", l, a, zabbix_log.asics[a*l].freq);
 			printf("loop%d.asic%d.working_engines %d\n", l, a, zabbix_log.asics[a*l].working_engines);
@@ -76,14 +76,14 @@ int main(int argc, char *argv[]) {
 		}
 		printf("loop%d.temp[avg] %f\n", l, float((total_temp-total_temp_last)/HAMMERS_PER_LOOP));
 		printf("loop%d.freq[avg] %f\n", l, float((total_freq-total_freq_last)/HAMMERS_PER_LOOP));
-		printf("loop%d.cycles[total] %d\n", l, (total_cycles-total_cycles_last));
+		printf("loop%d.cycles[total] %ld\n", l, (total_cycles-total_cycles_last));
 		printf("loop%d.failed_bists[total] %d\n", l, (total_failed_bists-total_failed_bists_last));
 		total_freq_last=total_freq;
 		total_failed_bists_last=total_failed_bists;
 		total_temp_last=total_temp;
 		total_cycles_last=total_cycles;
 	}
-	printf("miner.cycles[total] %d\n", total_cycles);
+	printf("miner.cycles[total] %ld\n", total_cycles);
 }
 
 

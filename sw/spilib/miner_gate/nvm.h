@@ -135,7 +135,7 @@ typedef struct _spondoolies_nvm {
   // This field must be last!
   uint32_t  crc32;
 } SPONDOOLIES_NVM;
-extern SPONDOOLIES_NVM* nvm;
+extern SPONDOOLIES_NVM nvm;
 
 int load_nvm_ok();
 void spond_save_nvm();

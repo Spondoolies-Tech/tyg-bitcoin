@@ -19,13 +19,13 @@
 
 
 
-#define MAX_PACKETS_IN_RT_QUEUE 15
+#define MAX_PACKETS_IN_RT_QUEUE 25
 // hash table
 RT_JOB rt_queue[0x100] = {0};
 int rt_queue_sw_write;
 int rt_queue_hw_done;
 int rt_queue_size = MAX_PACKETS_IN_RT_QUEUE + 5; // to check that init was called
-
+//#define QUEUE_WORK_IN_PROGRESS 20
 
 
 int one_done_sw_rt_queue(RT_JOB *work);
@@ -54,6 +54,7 @@ RT_JOB* add_to_sw_rt_queue(const RT_JOB *work) {
 	passert(rt_queue[rt_queue_sw_write].work_state == WORK_STATE_FREE);
 	RT_JOB *work_in_queue = &rt_queue[rt_queue_sw_write];
 	*work_in_queue = *work;
+	assert(rt_queue_sw_write < 0x100);
 	work_in_queue->work_id_in_hw = rt_queue_sw_write;
 	work_in_queue->work_state = WORK_STATE_HAS_JOB;
 	// to make sure...

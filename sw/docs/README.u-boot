@@ -6,7 +6,7 @@ make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- am335x_evm_config
 
 Compilation
 ===========
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi-
+make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- -j7
 
 
 The Results

@@ -1,6 +1,14 @@
 #!/bin/sh
 CURDIR=${PWD}
 
+cd ${CURDIR}/memtester-4.3.0/
+make
+
+#make latest miner swd
+cd ${CURDIR}/../spilib/
+./make_me
+
+
 #make buildroot
 cd ${CURDIR}/buildroot-2013.05/
 make

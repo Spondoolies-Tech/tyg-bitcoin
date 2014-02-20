@@ -92,12 +92,13 @@ void dc2dc_select_i2c_ex(int top,     // 1 or 0
 						  int i2c_group,   // 0 or 1
 						  int dc2dc_offset, // 0..7
 						  int* err) { //0x00=first, 0x01=second, 0x81=both
+	
 	if (top) {
 		i2c_write(PRIMARY_I2C_SWITCH, 0x04); // TOP
 	} else {
 		i2c_write(PRIMARY_I2C_SWITCH, 0x08); // BOTTOM
 	}
-
+	
 	if (i2c_group == 0) {
 		i2c_write(I2C_DC2DC_SWITCH_GROUP0, 1<<dc2dc_offset); // TOP
 		i2c_write(I2C_DC2DC_SWITCH_GROUP1, 0); // TO
@@ -113,7 +114,6 @@ void dc2dc_select_i2c(int loop,  int* err) {     // 1 or 0
 	int i2c_group = ((loop%12) >= 8);
 	int dc2dc_offset = loop%12;
 	dc2dc_offset = dc2dc_offset % 8;
-
 	dc2dc_select_i2c_ex( top,     // 1 or 0
 						 i2c_group,   // 0 or 1
 						 dc2dc_offset, // 0..7
@@ -137,10 +137,10 @@ void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int* err) {
 int dc2dc_get_current_16s_of_amper(int loop, int* err) {
 	// TODO - select loop!
 	//int err = 0;
+	passert(err != NULL);
 	static int warned = 0;
     int current = 0;
 	dc2dc_select_i2c(loop, err);
-	
 	dc2dc_set_channel(0, err);
     current += (i2c_read_word(I2C_DC2DC, 0x8c)&0x07FF);
 	dc2dc_set_channel(1, err);
@@ -158,6 +158,7 @@ int dc2dc_get_current_16s_of_amper(int loop, int* err) {
 
 int dc2dc_get_voltage(int loop, int *err) {
 	//*err = 0;
+	passert(err != NULL);
 	static int warned = 0;
     int voltage = ASIC_VOLTAGE_810;
 	dc2dc_select_i2c(loop, err);
@@ -174,6 +175,7 @@ int dc2dc_get_voltage(int loop, int *err) {
 
 int dc2dc_get_temp(int loop, int *err) {
 	//returns max temperature of the 2 sensors
+	passert(err != NULL);
     int temp1,temp2;
 	dc2dc_select_i2c(loop, err);
 	dc2dc_set_channel(0, err);
