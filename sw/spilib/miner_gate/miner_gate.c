@@ -32,8 +32,10 @@
 #include "pwm_manager.h"
 #include "hammer_lib.h"
 #include "miner_gate.h"
-
 #include <syslog.h>
+#include "asic_testboard.h"
+
+
 
 
 using namespace std;
@@ -219,9 +221,10 @@ int pull_work_rsp(minergate_do_job_rsp* r, minergate_adapter* adapter) {
 //
 void* connection_handler_thread(void* adptr)
 {
-	
+	printf("New adapter connected -1!\n");
 	minergate_adapter* adapter = ( minergate_adapter*)adptr;
 	//DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
+	printf("New adapter connected 0!\n");
 
     adapter->adapter_id = 0;
     adapters[0] = adapter;
@@ -231,6 +234,7 @@ void* connection_handler_thread(void* adptr)
 	vm.idle_probs = 0;
 	vm.busy_probs = 0;
 	vm.solved_jobs = 0;
+	printf("New adapter connected 1!\n");
 
      if (!noasic) {
 	 	 printf("Adapter connected, pop all jobs.");
@@ -240,7 +244,7 @@ void* connection_handler_thread(void* adptr)
              push_work_rsp(&work);
          }
      }
-
+	 printf("New adapter connected 2!\n");
      // (minergate_adapter*)malloc(sizeof(minergate_adapter));
      int nbytes;
      
@@ -248,9 +252,18 @@ void* connection_handler_thread(void* adptr)
      //minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
      //Read packet
      while((nbytes = read(adapter->connection_fd, (void*)adapter->last_req, sizeof( minergate_req_packet))) > 0) {
-         if (nbytes) {
-              //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
-              passert(adapter->last_req->magic == 0xcaf4);
+		 printf("New adapter connected 3!\n");
+
+		 if (nbytes) {
+                //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
+                passert(adapter->last_req->magic == 0xcaf4);
+				
+				pthread_mutex_lock(&network_hw_mutex);
+				vm.not_mining_counter = 0;
+				if (vm.pause_miner) {
+					unpause_all_mining_engines();
+				}
+				pthread_mutex_unlock(&network_hw_mutex);
 
 				// Reset packet.				
 				int i;
@@ -472,6 +485,45 @@ int main(int argc, char *argv[])
  printf("set_fan_level\n");
 // set_fan_level(FAN_LEVEL_MEDIUM);
 
+int err;
+dc2dc_set_voltage(0, ASIC_VOLTAGE_555, &err);
+sleep(1);
+tb_get_asic_voltage(0);
+sleep(1);
+dc2dc_set_voltage(0, ASIC_VOLTAGE_585, &err);
+sleep(1);
+tb_get_asic_voltage(0);
+sleep(1);
+dc2dc_set_voltage(0, ASIC_VOLTAGE_630, &err);
+sleep(1);
+tb_get_asic_voltage(0);
+sleep(1);
+dc2dc_set_voltage(0, ASIC_VOLTAGE_675, &err);
+sleep(1);
+tb_get_asic_voltage(0);
+sleep(1);
+dc2dc_set_voltage(0, ASIC_VOLTAGE_720, &err);
+sleep(1);
+tb_get_asic_voltage(0);
+sleep(1);
+dc2dc_set_voltage(0, ASIC_VOLTAGE_765, &err);
+sleep(1);
+tb_get_asic_voltage(0);
+sleep(1);
+dc2dc_set_voltage(0, ASIC_VOLTAGE_790, &err);
+sleep(1);
+tb_get_asic_voltage(0);
+sleep(1);
+dc2dc_set_voltage(0, ASIC_VOLTAGE_810, &err);
+sleep(1);
+tb_get_asic_voltage(0);
+sleep(1);
+
+
+
+
+return 0;
+
 
 /*
  for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
@@ -555,6 +607,10 @@ int main(int argc, char *argv[])
          passert(0);
      }
  }
+
+
+
+
  
  printf("enable nvm loops done %d\n", __LINE__);
  // Allocates addresses, sets nonce range.
@@ -665,8 +721,12 @@ int main(int argc, char *argv[])
                               (struct sockaddr *) &address,
                                &address_length)) > -1) {
     // Only 1 thread supportd so far...    
+	printf("New adapter connected %d %x!\n", adapter->connection_fd, adapter);
     s = pthread_create(&adapter->conn_pth,NULL,connection_handler_thread,(void*)adapter);
     passert (s == 0);
+	
+	adapter = new minergate_adapter;
+ 	passert((int)adapter);
  }
  printf("Err %d:", adapter->connection_fd);
  passert(0,"Err");
@@ -675,4 +735,10 @@ int main(int argc, char *argv[])
  unlink(MINERGATE_SOCKET_FILE);
  return 0;
 }
+
+
+
+#if 1//ASIC_TEST_BOARD
+#include "asic_testboard.c"
+#endif
 

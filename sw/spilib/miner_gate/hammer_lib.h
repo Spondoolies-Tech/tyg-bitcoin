@@ -5,6 +5,8 @@
 #include "hammer.h"
 
 
+void pause_all_mining_engines();
+void unpause_all_mining_engines();
 
 
 typedef struct {

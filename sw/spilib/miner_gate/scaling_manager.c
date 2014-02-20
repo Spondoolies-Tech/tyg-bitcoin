@@ -79,8 +79,8 @@ void loop_disable_hw(int loop_id) {
 }
 
 
-void try_set_all_asic_freq(uint8_t new_freq) {
-    printf("Setting FREQ %d in all ASICs... TODO!\n", new_freq);
+void set_asic_freq(int addr, uint8_t new_freq_enum) {
+	
 }
 
 
@@ -153,37 +153,46 @@ void enable_voltage_freq_and_engines_default() {
       // for each enabled loop
       for (int l = 0; l < LOOP_COUNT; l++) {  
         // Set voltage
-        if (!nvm.loop_brocken[l]) {
-			int err;
-			dc2dc_set_voltage(l, ASIC_VOLTAGE_810, &err);
-            passert(err);
-        } else {
-            loop_disable_hw(l);
-        }
+		int err;
+		dc2dc_set_voltage(l, ASIC_VOLTAGE_810, &err);
+        passert(err);
       }
+	  hammer_iter hi;
+  	  hammer_iter_init(&hi);
 
-      try_set_all_asic_freq(ASIC_FREQ_120);
+   	  while (hammer_iter_next_present(&hi)) {
+      	set_asic_freq(hi.addr, ASIC_FREQ_180);
+   	  }
 }
 
 
-void pause_all_mining() {
+void pause_all_mining_engines() {
 	assert (vm.pause_miner == 0);
 	int some_asics_busy = read_reg_broadcast(BIT_INTR_CONDUCTOR_BUSY);
 	assert(some_asics_busy == 0);
 	// stop all ASICs
 	write_reg_broadcast(ADDR_ENABLE_ENGINE, 0);
-	disable_all_engines_all_asics();
+	//disable_all_engines_all_asics();
 	vm.pause_miner = 1;
+	printf("PAUSING ALL MINING!!\n");
 }
 
 
-void unpause_all_mining() {
+void unpause_all_mining_engines() {
 	assert (vm.pause_miner != 0);
-	// stop all ASICs
-	//write_reg_broadcast(BIT_INTR_CONDUCTOR_BUSY);
-	assert(0);
-	disable_all_engines_all_asics();
-	vm.pause_miner = 1;
+	vm.not_mining_counter = 0;
+	hammer_iter hi;
+	hammer_iter_init(&hi);
+ 
+    while (hammer_iter_next_present(&hi)) {
+       // for each ASIC
+       write_reg_device(hi.addr, ADDR_RESETING0, 0xffffffff);
+	   write_reg_device(hi.addr ,ADDR_RESETING1, 0xffffffff);
+	   write_reg_device(hi.addr ,ADDR_ENABLE_ENGINE, nvm.working_engines[hi.addr]);
+    }
+	printf("STARTING ALL MINING!!\n");
+
+	vm.pause_miner = 0;
 }
 
 

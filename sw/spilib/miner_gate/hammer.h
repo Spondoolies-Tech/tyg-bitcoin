@@ -273,6 +273,7 @@ typedef struct {
 
 
 // Global data
+#define IDLE_TIME_TO_PAUSE_ENGINES 5
 typedef struct {
     //uint32_t bypassed_loops; moved to NVM
     uint32_t solved_jobs;
@@ -280,7 +281,7 @@ typedef struct {
 	uint32_t idle_probs;
 	uint32_t busy_probs;
 	uint8_t pause_miner;
-	
+	uint32_t not_mining_counter;
     uint32_t ac2dc_current;
 	uint32_t ac2dc_temp;
     HAMMER   hammer[HAMMERS_COUNT]; 

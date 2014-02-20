@@ -14,10 +14,10 @@
 #include <string.h>	
 #include "ac2dc.h"
 #include "hammer_lib.h"
-
+#include <pthread.h>
 #include <spond_debug.h>	
 #include <sys/time.h>
-
+extern pthread_mutex_t network_hw_mutex;
 
 int total_devices = 0;
 int engines_per_device = 0;
@@ -800,7 +800,26 @@ void* squid_regular_state_machine(void* p) {
 
 		usec=(tv.tv_sec-last_print.tv_sec)*1000000;
 		usec+=(tv.tv_usec-last_print.tv_usec);
-		if (usec >= 1*1000*1000) {			
+		if (usec >= 1*1000*1000) {	
+			pthread_mutex_lock(&network_hw_mutex);
+			//static int not_mining_counter = 0;
+			// See if we can stop engines
+			int someone_busy =  read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
+			if (someone_busy) {
+				vm.not_mining_counter = 0;
+			} else {
+				vm.not_mining_counter++;
+			}
+
+			if (vm.not_mining_counter >= IDLE_TIME_TO_PAUSE_ENGINES) {
+				if (!vm.pause_miner) {
+					pause_all_mining_engines();
+				}
+			}
+			pthread_mutex_unlock(&network_hw_mutex);
+			
+
+			
             //update_top_current_measurments();
 			//update_temperature_measurments();
 			//write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
@@ -830,7 +849,7 @@ void* squid_regular_state_machine(void* p) {
             print_adapter();
 			//print_dc2dc();
             // Once every X seconds.
-            //periodic_scaling_task();
+            periodic_scaling_task();
 
             if (nvm.dirty) {
                 spond_save_nvm();
@@ -838,6 +857,7 @@ void* squid_regular_state_machine(void* p) {
             // print_state();
 			last_print = tv;
             dump_zabbix_stats();
+			//pthread_mutex_unlock(&network_hw_mutex);
 		}
 
 		

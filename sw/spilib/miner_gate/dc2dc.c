@@ -94,13 +94,17 @@ void dc2dc_select_i2c_ex(int top,     // 1 or 0
 						  int* err) { //0x00=first, 0x01=second, 0x81=both
 	
 	if (top) {
-		i2c_write(PRIMARY_I2C_SWITCH, 0x04); // TOP
+		i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_TOP_MAIN_PIN); // TOP
 	} else {
-		i2c_write(PRIMARY_I2C_SWITCH, 0x08); // BOTTOM
+		i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN); // BOTTOM
 	}
 	
 	if (i2c_group == 0) {
+#ifdef ASIC_TESTBOARD		
+		i2c_write(PRIMARY_TESTBOARD_SWITCH, 0x40); // TOP
+#else  
 		i2c_write(I2C_DC2DC_SWITCH_GROUP0, 1<<dc2dc_offset); // TOP
+#endif
 		i2c_write(I2C_DC2DC_SWITCH_GROUP1, 0); // TO
 	} else {
 		i2c_write(I2C_DC2DC_SWITCH_GROUP1, 1<<dc2dc_offset); // TOP

@@ -20,7 +20,7 @@ int ac2dc_getint(int source) {
 int ac2dc_get_power() {
 	int err = 0;
 	static int warned = 0;
-	i2c_write(PRIMARY_I2C_SWITCH, 0x01); 
+	i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN); 
 	int power = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD, &err));
 	i2c_write(PRIMARY_I2C_SWITCH, 0x00);
 	if (err) {
@@ -39,7 +39,7 @@ int ac2dc_get_temperature() {
 	static int warned = 0;
 
 	int err = 0;
-	i2c_write(PRIMARY_I2C_SWITCH, 0x01); 
+	i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN); 
 	int temp1 = ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD, &err));
 	if (err) {
 		psyslog("ERR reading AC2DC temp\n"); 
@@ -74,7 +74,7 @@ int ac2dc_get_vpd( ac2dc_vpd_info_t * pVpd){
 	}
 
 
-	i2c_write(PRIMARY_I2C_SWITCH, 0x01,&err); 
+	i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN,&err); 
 
 	if (err){
 		fprintf(stderr , "Failed writing to I2C address 0x%X (err %d)",PRIMARY_I2C_SWITCH,err);
@@ -137,7 +137,7 @@ unsigned char ac2dc_get_eeprom_quick(int offset , int * pError) {
 int ac2dc_get_eeprom(int offset,int * pError) {
 	// Stub for remo
 	int b ;
-	i2c_write(PRIMARY_I2C_SWITCH, 0x01 , pError);
+	i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN , pError);
 	if (pError && *pError)
 		return *pError;
 		
