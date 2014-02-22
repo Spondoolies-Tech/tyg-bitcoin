@@ -543,7 +543,7 @@ void update_asic_freq() {
         if (dc_points) {
             for (h = 0; h < HAMMERS_PER_LOOP; h++) {            
                 HAMMER* a = & vm.hammer[l*HAMMERS_PER_LOOP + h];
-                if (a->present) {
+                if (a->asic_present) {
                     DBG(DBG_SCALING,"SET FREQUENCY 2!\n");
                     // Critical temperature handling
                     if (a->temperature >= CRITICAL_TEMPERATURE_PER_CORNER[nvm.asic_corner[a->address]]) {
@@ -620,7 +620,7 @@ int update_i2c_temperature_measurments() {
 
 
 bool can_be_throttled(HAMMER* a) {
-    return (a->present && (a->freq > SAFE_FREQ_PER_CORNER[nvm.asic_corner[a->address]]));
+    return (a->asic_present && (a->freq > SAFE_FREQ_PER_CORNER[nvm.asic_corner[a->address]]));
 }
 
 
@@ -806,11 +806,10 @@ void periodic_scaling_task() {
 
 
 void print_asic(HAMMER* h) {
-    if (h->present) {
-        DBG(DBG_SCALING,"      HAMMER %04x C:%d ENG:0x%x:0x%x Hz:%d MaxHz:%d WINS:%04d T:%x\n",
+    if (h->asic_present) {
+        DBG(DBG_SCALING,"      HAMMER %04x C:%d ENG:0x%x Hz:%d MaxHz:%d WINS:%04d T:%x\n",
             h->address,
-            nvm.asic_corner[h->address],
-            h->working_engines_mask, 
+            nvm.asic_corner[h->address], 
             h->enabled_engines_mask, 
             h->freq, 
             nvm.top_freq[h->address],

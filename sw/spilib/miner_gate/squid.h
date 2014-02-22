@@ -109,7 +109,6 @@ void read_hammer_broadcast(uint32_t offset, uint32_t* p_value);
 
 // Flush write command to SPI
 void flush_spi_write();
-
 void write_reg_device(uint16_t cpu, uint8_t offset, uint32_t value) ;
 void write_reg_broadcast(uint8_t offset, uint32_t value);
 uint32_t read_reg_device(uint16_t cpu, uint8_t offset);
@@ -118,9 +117,6 @@ uint32_t read_reg_broadcast(uint8_t offset);
 #define BROADCAST_READ_DATA(X)   (X & 0xFFFF)
 #define ASIC_GET_LOOP_OFFSET(ADDR, LOOP, OFFSET) {LOOP = (ADDR/HAMMERS_PER_LOOP); OFFSET=ADDR%HAMMERS_PER_LOOP;}  
 #define ASIC_GET_BY_ADDR(ADDR)   (&vm.hammer[ADDR])
-
-
-#define ASSERT(X) if (!(X)) {char s[200]; sprintf(s, "Error:%s  %s:%i (%s)\n",#X,__FILE__,__LINE__, __FUNCTION__); pabort(s);}
 
 #endif
 

@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <spond_debug.h>
+#include "hammer.h"
+#include "hammer_lib.h"
 
 /*
 
@@ -80,7 +82,33 @@ void set_fan_level(FAN_LEVEL fan_level) {
 	f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.13/duty", "w");
 	fprintf(f, "%d", val);
 	fclose(f);
+	vm.fan_level = fan_level;
 }
+
+
+
+
+void auto_select_fan_level() {
+	int hottest_asic_temp = ASIC_TEMP_77; 
+	hammer_iter hi;
+	hammer_iter_init(&hi);
+	while (hammer_iter_next_present(&hi)) {
+		HAMMER* a = &vm.hammer[hi.addr];
+		if (a->temperature > hottest_asic_temp)
+			hottest_asic_temp = a->temperature;
+	}
+
+	if (hottest_asic_temp >= ASIC_TEMPERATURE_TO_SET_FANS_HIGH) {
+		if (vm.fan_level != FAN_LEVEL_HIGH) {
+			set_fan_level(FAN_LEVEL_HIGH);
+		}
+	} else {
+		if (vm.fan_level != FAN_LEVEL_LOW && vm.pause_miner) {
+			set_fan_level(FAN_LEVEL_LOW);
+		}
+	}
+}
+
 
 /*
 cd /sys/devices/bone_capemgr.*

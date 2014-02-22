@@ -64,12 +64,11 @@ int hammer_iter_next_present(hammer_iter* e) {
 		}
 	
 		if (e->l == LOOP_COUNT) {
-		//	printf("5");
 			e->done = 1;
 			return 0;
 		}
 		
-		if (vm.hammer[e->l*HAMMERS_PER_LOOP + e->h].present) {
+		if (vm.hammer[e->l*HAMMERS_PER_LOOP + e->h].asic_present) {
 			found++;
 		}
 
@@ -349,14 +348,14 @@ int allocate_addresses_to_devices() {
                      write_reg_broadcast(ADDR_CHIP_ADDR, addr);
                      total_devices++;
                      asics_in_loop++;
-                     vm.hammer[l*HAMMERS_PER_LOOP + h].present = 1;
+                     vm.hammer[l*HAMMERS_PER_LOOP + h].asic_present = 1;
                      DBG(DBG_HW,"Address allocated: %x\n", addr);
 //                   for (total_devices = 0; read_reg_broadcast(ADDR_BR_NO_ADDR); ++total_devices) {
 //		             write_reg_broadcast(ADDR_CHIP_ADDR, total_devices + FIRST_CHIP_ADDR);            		
             	} else {
 //                   printf("No ASIC found at position %x!\n", addr);
                      vm.hammer[l*HAMMERS_PER_LOOP + h].address = addr; 
-                     vm.hammer[l*HAMMERS_PER_LOOP + h].present = 0;
+                     vm.hammer[l*HAMMERS_PER_LOOP + h].asic_present = 0;
 					 nvm.working_engines[l*HAMMERS_PER_LOOP + h] = 0;
 					 nvm.top_freq[l*HAMMERS_PER_LOOP + h] = ASIC_FREQ_0;
 					 nvm.asic_corner[l*HAMMERS_PER_LOOP + h] = ASIC_CORNER_NA;
@@ -650,7 +649,7 @@ void read_some_asic_temperatures() {
        for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
            HAMMER *a = &vm.hammer[temp_loop*HAMMERS_PER_LOOP + h];
            val[h] = 0;
-           if (a->present) {
+           if (a->asic_present) {
                push_hammer_read(a->address,ADDR_TS_DATA_0, &(val[h]));
            }
        }
@@ -659,10 +658,10 @@ void read_some_asic_temperatures() {
     if (vm.loop[temp_loop].enabled_loop) {
        for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
            HAMMER *a = &vm.hammer[temp_loop*HAMMERS_PER_LOOP + h];  
-           if (a->present) {
+           if (a->asic_present) {
                if (val[h]) { // This ASIC is at least this temperature high
                    if (a->temperature < temp_measure_temp) {
-                       a->temperature = temp_measure_temp + 1;
+                       a->temperature = (ASIC_TEMP)(temp_measure_temp + 1);
                    }
                } else { // ASIC is colder then this temp!
                    if (a->temperature >= temp_measure_temp) {
@@ -774,10 +773,9 @@ void* squid_regular_state_machine(void* p) {
 				}
 			}
 			pthread_mutex_unlock(&network_hw_mutex);
-			
-
-			
             update_top_current_measurments();
+			auto_select_fan_level();
+			
 			//update_i2c_temperature_measurments();
 			//write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
 			//int current_nonce =  read_reg_device(0, ADDR_CURRENT_NONCE);

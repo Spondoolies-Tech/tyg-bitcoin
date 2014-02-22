@@ -173,7 +173,6 @@ void dump_zabbix_stats() {
             json_append_element(asic_freq,json_mknumber(ham->freq));
             json_append_element(asic_max_freq,json_mknumber(nvm.top_freq[ham->address]));
             json_append_element(asic_engines_on,json_mknumber(ham->enabled_engines_mask));
-            json_append_element(asic_engins_working,json_mknumber(ham->working_engines_mask));
             json_append_element(asic_temp,json_mknumber(ham->temperature));
             json_append_element(asic_wins,json_mknumber(ham->solved_jobs));
 

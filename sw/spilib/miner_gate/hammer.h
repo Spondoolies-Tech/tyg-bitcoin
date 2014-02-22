@@ -2,6 +2,9 @@
 #define _____HAMMER_H____
 
 #include "nvm.h"
+
+#include "pwm_manager.h"
+
 #define dprintf printf
 
 
@@ -238,17 +241,25 @@ typedef struct {
 // 192 ASICs
 #define HAMMER_TO_LOOP(H)   ((H->address>>16)&0xFF)
 typedef struct {
-    uint8_t  present;
-    uint8_t  address;               // (loop)<<16 | place
-    uint8_t  failed_bists;          //   
-    uint16_t  passed_last_bist_engines;   // passed engines after bist.
-    int8_t   temperature;           // periodic measurments - ASIC_TEMP_
-    int8_t   freq;                  // *15 Hz
-    int8_t   wanted_freq;           // *15 Hz
-    uint8_t  working_engines_mask;  // non-broken engines
-    uint8_t  enabled_engines_mask;  // currently enabled engines
-    int      last_freq_up_time;        // time()
-   // int      last_freq_down_time;      // time()
+	// asic present and used
+	// If loop not enabled set to false
+    uint8_t  asic_present; 
+	// address - loop*8 + offset
+    uint8_t  address; 
+	// Failed bists (set by "do_bist_ok()")
+    uint8_t  failed_bists; 
+	// Passed engines (set by "do_bist_ok()")
+    uint16_t  passed_last_bist_engines;  
+
+	// Asic temperature/frequency (polled periodicaly)
+    ASIC_TEMP   temperature;           // periodic measurments - ASIC_TEMP_
+    ASIC_FREQ   freq;                  // *15 Hz
+    int      last_freq_up_time;        // time() when we changed ASIC frequency
+
+	// Set durring initialisation currently enabled engines
+    uint8_t  enabled_engines_mask;  
+
+	// Jobs solved by ASIC
     uint32_t solved_jobs;
 } HAMMER;
 
@@ -256,14 +267,13 @@ typedef struct {
 // 24 dc2dc
 typedef struct {
     uint8_t dc_temp;
-    uint32_t dc_current_16s_of_amper; // in 1/16 of ampers
+    uint32_t dc_current_16s_of_amper; // in 1/16 of amper
 } DC2DC;
 
 
-// 24 dc2dc
+
 typedef struct {
     uint8_t id;
-	//uint8_t present_loop; 
     uint8_t enabled_loop;    
     DC2DC  dc2dc; 
 } LOOP;
@@ -275,16 +285,27 @@ typedef struct {
 // Global data
 #define IDLE_TIME_TO_PAUSE_ENGINES 5
 typedef struct {
-    //uint32_t bypassed_loops; moved to NVM
+	//Fans set to high
+	FAN_LEVEL fan_level;
+
+	// How many WINs we got
     uint32_t solved_jobs;
 	// random checking of ASICs to see utilisation.
 	uint32_t idle_probs;
 	uint32_t busy_probs;
-	uint8_t pause_miner;
-	uint32_t not_mining_counter;
+
+	// Pause all miner work to save electricity
+	uint8_t  pause_miner;
+	uint32_t not_mining_counter; // in seconds how long we are not mining
+
+	// ac2dc current and temperature
     uint32_t ac2dc_current;
 	uint32_t ac2dc_temp;
+
+	// our ASIC data
     HAMMER   hammer[HAMMERS_COUNT]; 
+
+	// our loop and dc2dc data
     LOOP     loop[LOOP_COUNT];
 } MINER_BOX;
 

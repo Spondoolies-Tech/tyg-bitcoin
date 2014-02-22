@@ -693,7 +693,7 @@ return 0;
             if (!vm.loop[l].enabled_loop) {
                 // DONT REMOVE THIS PRINT!! USED BY TESTS!!
                 printf("Hammer %02d %02d DISCONNECTED\n", l, h);
-            } else if (!vm.hammer[l*HAMMERS_PER_LOOP+h].present) {
+            } else if (!vm.hammer[l*HAMMERS_PER_LOOP+h].asic_present) {
                 // DONT REMOVE THIS PRINT!! USED BY TESTS!!
                 printf("Hammer %02d %02d MISSING\n", l, h);
             } else if (vm.hammer[l*HAMMERS_PER_LOOP + h].failed_bists) {
