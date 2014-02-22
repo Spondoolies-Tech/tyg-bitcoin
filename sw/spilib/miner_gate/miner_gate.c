@@ -11,7 +11,7 @@
     
     by Zvisha Shteingart
 */
-
+#include "defines.h"
 #include "mg_proto_parser.h"
 #include <stdio.h>
 #include <sys/socket.h>
@@ -484,7 +484,7 @@ int main(int argc, char *argv[])
  init_pwm();
  printf("set_fan_level\n");
 // set_fan_level(FAN_LEVEL_MEDIUM);
-
+/*
 int err;
 dc2dc_set_voltage(0, ASIC_VOLTAGE_555, &err);
 sleep(1);
@@ -518,12 +518,8 @@ dc2dc_set_voltage(0, ASIC_VOLTAGE_810, &err);
 sleep(1);
 tb_get_asic_voltage(0);
 sleep(1);
-
-
-
-
 return 0;
-
+*/
 
 /*
  for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
@@ -532,7 +528,8 @@ return 0;
  }
  */
 
- print_dc2dc();
+ dc2dc_print();
+ ac2dc_print();
 
 //sleep(10);
 
@@ -586,12 +583,11 @@ return 0;
     // Init NVM.
     // Finds good loops using broadcast reads. No addresses given.
     printf("CREATING NEW NVM!\n");
-	
+    create_default_nvm();
 	// Find good loops 
 	if (!noasic) {
 		discover_good_loops_update_nvm();
 	}
-    create_default_nvm();
     spond_save_nvm();
  } 
 
@@ -601,7 +597,8 @@ return 0;
  if (!noasic) {
      if (!enable_nvm_loops_ok()) {
          // reinitialise
-         printf("LOOP TEST FAILED, DELETE NVM AND RESTART\n");
+         
+         printf("LOOP TEST FAILED, DELETE NVM AND RESTART:%x\n", nvm.good_loops);
          spond_delete_nvm();
          // Exits on error.
          passert(0);
@@ -645,6 +642,7 @@ return 0;
 
  if ((!noasic) && enable_scaling) {
      // Enables NVM engines in ASICs.
+     printf("enable_voltage_freq_and_engines_from_nvm\n");
      enable_voltage_freq_and_engines_from_nvm();     
      printf("init_scaling\n");
      init_scaling();
@@ -738,7 +736,7 @@ return 0;
 
 
 
-#if 1//ASIC_TEST_BOARD
+#ifdef ASIC_TESTBOARD//ASIC_TEST_BOARD
 #include "asic_testboard.c"
 #endif
 

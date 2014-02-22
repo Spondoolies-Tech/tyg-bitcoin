@@ -1,7 +1,9 @@
 
+
+#include "defines.h"
 #include "i2c.h"
 #include "asic_testboard.h"
-
+#ifdef ASIC_TESTBOARD
 
 
 
@@ -60,6 +62,8 @@ int tb_get_asic_voltage(int id) {
 
 
 
+
+#endif
 
 
 

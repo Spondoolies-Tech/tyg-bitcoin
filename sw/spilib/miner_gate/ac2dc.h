@@ -22,6 +22,8 @@ typedef struct {
 
 int ac2dc_get_vpd( ac2dc_vpd_info_t * pVpd);
 int ac2dc_get_temperature(); //0,1,2
+int ac2dc_get_power();
+void ac2dc_print();
 
 
 /*

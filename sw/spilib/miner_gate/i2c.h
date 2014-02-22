@@ -18,7 +18,7 @@
 
 //#include "i2cbusses.h"
 
-#define ASIC_TESTBOARD 1
+
 // set voltage test
  //i2c_write_word(0x1b, 0xd4, 0xFFD4);
  //i2c_write_byte(0x1b, 0x01, 0x00);

@@ -51,6 +51,6 @@ int allocate_addresses_to_devices();
 void set_nonce_range_in_engines(unsigned int max_range);
 void enable_all_engines_all_asics();
 void discover_good_loops_update_nvm();
-void print_dc2dc();
+
 
 #endif

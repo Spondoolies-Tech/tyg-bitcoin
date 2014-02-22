@@ -128,6 +128,7 @@ void spond_save_nvm() {
 	    nvm.crc32 = crc32(0, (const void *)&nvm, sizeof(SPONDOOLIES_NVM)-sizeof(uint32_t));    
 	    printf("------------------\nVER=%x  CRC=%x, try to save file %s:\n",nvm.nvm_version,nvm.crc32, NVM_FILE_NAME);
 	    FILE* infile = fopen(NVM_FILE_NAME, "w");
+		passert(infile > 0);
 	    fwrite(&nvm, sizeof(SPONDOOLIES_NVM), 1, infile);
 	    printf("Success, ---->> File %d\n", infile);
 	    fclose(infile);

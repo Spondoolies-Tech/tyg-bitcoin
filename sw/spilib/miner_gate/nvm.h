@@ -19,7 +19,7 @@
 #define ALL_ENGINES_BITMASK 0x7FFF
 #define NVM_FILE_NAME "/nvm/nvm.bin" 
 
-#define MINIMAL_ASIC_FREQ ASIC_FREQ_150
+#define MINIMAL_ASIC_FREQ ASIC_FREQ_225
 
 typedef enum {
    ASIC_FREQ_0 =0,
@@ -52,7 +52,8 @@ typedef enum {
    ASIC_FREQ_615,
    ASIC_FREQ_630,
    ASIC_FREQ_645,
-   ASIC_FREQ_660
+   ASIC_FREQ_660,
+   ASIC_FREQ_MAX
 } ASIC_FREQ;
 
 
@@ -94,7 +95,7 @@ typedef struct _spondoolies_nvm {
   // It goes from loop 0 asic 0 to loop 23 asic 8.
   // Values are ASIC_CORNER_XXX
   uint8_t   asic_corner[HAMMERS_COUNT];
-  uint8_t   top_freq[HAMMERS_COUNT];
+  ASIC_FREQ   top_freq[HAMMERS_COUNT];
   uint16_t   working_engines[HAMMERS_COUNT];    
   DC2DC_VOLTAGE   loop_voltage[LOOP_COUNT];
   uint8_t   corners_computed;

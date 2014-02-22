@@ -107,41 +107,6 @@ int loop_iter_next_enabled(loop_iter* e) {
 
 
 
-void print_dc2dc() {
-	int ac2dc_current = ac2dc_get_power();
-	int ac2dc_temp = ac2dc_get_temperature();
-	printf("AC2DC current: %d (%d by SW)\n", ac2dc_current, vm.ac2dc_current);
-	printf("AC2DC temp: %d (%d by SW)\n", ac2dc_temp, vm.ac2dc_temp);
-	printf("VOLTAGE/CURRENT/TEMP:\n");
-	for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
-		int err;
-		int volt = dc2dc_get_voltage(loop, &err);
-		int temp = dc2dc_get_temp(loop, &err);
-		int crnt = dc2dc_get_current_16s_of_amper(loop, &err);
-		
-		if (!err) {
-			printf("%2i:",loop);
-			int min_minivolts;
-			VOLTAGE_ENUM_TO_MILIVOLTS(ASIC_VOLTAGE_555, min_minivolts);
-			if (volt < min_minivolts) printf(ANSI_COLOR_RED);
-		    printf("%3d/", volt);printf(ANSI_COLOR_RESET);
-			if (crnt < DC2DC_CURRENT_GREEN_LINE_16S) printf(ANSI_COLOR_GREEN);
-			if (crnt > DC2DC_CURRENT_GREEN_LINE_16S) printf(ANSI_COLOR_RED);
-			printf("%3d/", crnt/16);printf(ANSI_COLOR_RESET);
-			if (temp < DC2DC_TEMP_GREEN_LINE) printf(ANSI_COLOR_GREEN);
-			if (temp > DC2DC_TEMP_RED_LINE) printf(ANSI_COLOR_RED);
-			printf("%3d\n",temp);printf(ANSI_COLOR_RESET);
-		} else {
-		   printf("%2i:XXX/XXX/XXX\n",loop);
-		}
-		if (loop == LOOP_COUNT/2-1) {
-			printf("\n");
-		}
-	}
-	printf("\n");
-}
-
-
 
 
 void print_devreg(int reg, const char* name) {
@@ -344,7 +309,6 @@ void set_nonce_range_in_engines(unsigned int max_range) {
 }
 
 
-void squid_wait_hammer_reads();
 
 
 
@@ -437,8 +401,6 @@ void compute_hash(const unsigned char * midstate, unsigned int mrkle_root,
         unsigned int timestamp, unsigned int difficulty,
         unsigned int winner_nonce, unsigned char * hash);
 int get_leading_zeroes(const unsigned char *hash);
-void memprint(const void *m, size_t n);
-
 
 
 int get_print_win(int winner_device) {
@@ -463,10 +425,7 @@ int get_print_win(int winner_device) {
 	//printf("----%x %x\n", winner_device ,read_reg_device(winner_device, ADDR_WINNER_NONCE));
 	// test that this is the "work_in_hw" win.
 	if (work_in_hw->work_state == WORK_STATE_HAS_JOB) {
-		printf("!!!!!!!  WIN !!!!!!!! %x %x\n", 
-				winner_nonce, work_in_hw->work_id_in_sw);
-
-		
+		printf("!!!!!!!  WIN !!!!!!!! %x %x\n", winner_nonce, work_in_hw->work_id_in_sw);		
     	work_in_hw->winner_nonce = winner_nonce;
         // Optional printing
         if (work_in_hw->winner_nonce != 0) {
@@ -497,9 +456,7 @@ int get_print_win(int winner_device) {
             } else {
                 printf("Win 0x%x\n", winner_id);
             }
-       }
-		psyslog("Win good   job_id 0x%x\n", 
-			winner_id);
+        }
 		return 1;
 	} else {
         printf(ANSI_COLOR_RED "------------------  -------- !!!!!  Warning !!!!: Win orphan job 0x%x, nonce=0x%x!!!\n" ANSI_COLOR_RESET, winner_id, winner_nonce);
@@ -538,7 +495,7 @@ void fill_random_work(RT_JOB *work) {
 
 void init_scaling();
 int update_top_current_measurments();
-int update_temperature_measurments();
+int update_i2c_temperature_measurments();
 
 int init_hammers() {
 	int i;
@@ -820,8 +777,8 @@ void* squid_regular_state_machine(void* p) {
 			
 
 			
-            //update_top_current_measurments();
-			//update_temperature_measurments();
+            update_top_current_measurments();
+			//update_i2c_temperature_measurments();
 			//write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
 			//int current_nonce =  read_reg_device(0, ADDR_CURRENT_NONCE);
 			//int nnce_start =  read_reg_device(0, ADDR_CURRENT_NONCE_START);
@@ -847,7 +804,7 @@ void* squid_regular_state_machine(void* p) {
             //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
             last_second_jobs = 0;            
             print_adapter();
-			//print_dc2dc();
+			//dc2dc_print();
             // Once every X seconds.
             periodic_scaling_task();
 

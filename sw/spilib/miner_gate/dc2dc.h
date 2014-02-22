@@ -37,6 +37,7 @@ void dc2dc_set_channel(int channel_mask, int* err);
 void dc2dc_disable_dc2dc(int loop,int* err);
 void dc2dc_enable_dc2dc(int loop,int* err);
 
+void dc2dc_print();
 
 
 void dc2dc_init();

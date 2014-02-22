@@ -13,6 +13,7 @@
 #include <linux/spi/spidev.h>
 #include <netinet/in.h>
 #include "queue.h"
+#include "pll.h"
 #include "spond_debug.h"
 #include "hammer.h"
 #include <sys/time.h>
@@ -35,7 +36,8 @@ int8_t BEST_TEMPERATURE_PER_CORNER[ASIC_CORNER_COUNT] = {3,3,3,3,3,3};
 
 // When under this (<) raise the frequency slowly
 //TODO
-int SAFE_FREQ_PER_CORNER[ASIC_CORNER_COUNT] = {ASIC_FREQ_210, ASIC_FREQ_210, ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210,ASIC_FREQ_210};
+ASIC_FREQ SAFE_FREQ_PER_CORNER[ASIC_CORNER_COUNT] = {ASIC_FREQ_225, ASIC_FREQ_225, ASIC_FREQ_225,
+												ASIC_FREQ_225,ASIC_FREQ_225,ASIC_FREQ_225};
 int AC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1,1};
 int DC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = {1,1,1,1,1,1,1,1};
 
@@ -72,38 +74,54 @@ int test_asic(int addr) {
 
 
 
-
-
 void loop_disable_hw(int loop_id) {
     printf("Disabling loop %x...... TODO!!!!\n", loop_id);
 }
 
 
-void set_asic_freq(int addr, uint8_t new_freq_enum) {
+void set_asic_freq(int addr, ASIC_FREQ new_freq_enum) {
+	set_pll(addr, new_freq_enum);
+	vm.hammer[addr].freq = new_freq_enum;
+	vm.hammer[addr].last_freq_up_time = time(NULL);
 	
 }
 
+void get_delta_after_asic_freq_change(int asic_addr, 
+									  int *dc_delta,
+									  int *ac_delta) {
+	int loop_addr = asic_addr/HAMMERS_PER_LOOP;
+	passert(vm.loop[loop_addr].enabled_loop);
+	*dc_delta = AC_CURRNT_PER_15_HZ[nvm.loop_voltage[loop_addr]];
+	*ac_delta = DC_CURRNT_PER_15_HZ[nvm.loop_voltage[loop_addr]];
+}
 
 
-void try_set_asic_freq(HAMMER* h, uint8_t new_freq, uint32_t*ac_points, uint32_t* dc_points) {
-    int ac_points_15_hz = AC_CURRNT_PER_15_HZ[nvm.loop_voltage[h->address/HAMMERS_PER_LOOP]];
-    
+int try_set_asic_freq(HAMMER* h, 
+					  ASIC_FREQ new_freq, 
+					  uint32_t*ac_points, 
+					  uint32_t* dc_points) {
+    int ac_points_15_hz;
+    int dc_points_15_hz;
+    get_delta_after_asic_freq_change(h->address, 
+									 &ac_points_15_hz,
+									 &dc_points_15_hz);
+									  
     if ((new_freq > h->freq) &&
         (h->temperature < BEST_TEMPERATURE_PER_CORNER[nvm.asic_corner[h->address]]) && 
         (h->freq < nvm.top_freq[h->address])) {
          DBG(DBG_SCALING, "Failed to increase frequency on ASIC\n");
+		 return 0;
     }
     
     DBG(DBG_SCALING, "Set frequency on %x from %d to %d. Points: %d %d\n",
         h->address,h->freq,new_freq,*ac_points,dc_points);
-    h->wanted_freq = new_freq;
-    h->freq = new_freq;
-    //h->last_freq_down_time
-    h->last_freq_up_time = time(NULL);
+	set_asic_freq(h->address, new_freq);
+   
     if (ac_points)
-        *ac_points-=20;
+        *ac_points-=ac_points_15_hz; 
     if (dc_points)
-        *dc_points-=20;
+        *dc_points-=dc_points_15_hz;
+	return 1;
 }
 
 
@@ -161,7 +179,7 @@ void enable_voltage_freq_and_engines_default() {
   	  hammer_iter_init(&hi);
 
    	  while (hammer_iter_next_present(&hi)) {
-      	set_asic_freq(hi.addr, ASIC_FREQ_180);
+      	set_asic_freq(hi.addr, ASIC_FREQ_225);
    	  }
 }
 
@@ -210,7 +228,10 @@ void enable_voltage_freq_and_engines_from_nvm() {
         for (h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
            HAMMER* a = &vm.hammer[l*HAMMERS_PER_LOOP + h];
            // Set freq
-           try_set_asic_freq(a, nvm.top_freq[l*HAMMERS_PER_LOOP + h] , NULL, NULL);
+           try_set_asic_freq(a, 
+					           nvm.top_freq[l*HAMMERS_PER_LOOP + h] , 
+					           NULL, 
+					           NULL);
          }
      }
    }
@@ -381,7 +402,7 @@ void recompute_corners_and_voltage_update_nvm() {
   int i;
 
   printf(ANSI_COLOR_MAGENTA "Checking ASIC speed...!\n" ANSI_COLOR_RESET);
-  ASIC_FREQ corner_passage_freq_at_081v[ASIC_CORNER_COUNT] = {ASIC_FREQ_105,ASIC_FREQ_105, ASIC_FREQ_225, ASIC_FREQ_345, ASIC_FREQ_510, ASIC_FREQ_705};
+  ASIC_FREQ corner_passage_freq_at_081v[ASIC_CORNER_COUNT] = {ASIC_FREQ_225,ASIC_FREQ_225, ASIC_FREQ_225, ASIC_FREQ_345, ASIC_FREQ_510, ASIC_FREQ_660};
     
 	printf("->>>--- %d %s\n", __LINE__, __FUNCTION__);
   for (i = ASIC_CORNER_SS; i < ASIC_CORNER_COUNT; i++) {
@@ -437,7 +458,7 @@ void create_default_nvm() {
 	for (i = 0; i < HAMMERS_COUNT; i++) {
 		nvm.working_engines[i] = 0xFF;	
 		nvm.asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
-		nvm.top_freq[i] = ASIC_FREQ_150;
+		nvm.top_freq[i] = ASIC_FREQ_225;
 	}
    
    nvm.dirty = 1;
@@ -572,20 +593,20 @@ HAMMER* get_hammer(uint32_t addr) {
 
 
 // Return 1 if needs urgent scaling
-
 int update_top_current_measurments() {
 	int err;
-    vm.ac2dc_current = ac2dc_get_power(); 
-	
-    for (int i = 0; i < LOOP_COUNT; i++) {
-        vm.loop[i].dc2dc.dc_current_16s_of_amper = dc2dc_get_current_16s_of_amper(i, &err);
-    }
-    
+	if (!vm.pause_miner) {
+	    vm.ac2dc_current = ac2dc_get_power(); 
+		
+	    for (int i = 0; i < LOOP_COUNT; i++) {
+	        vm.loop[i].dc2dc.dc_current_16s_of_amper = dc2dc_get_current_16s_of_amper(i, &err);
+	    }
+	}
     return 0;
 }
 
 
-int update_temperature_measurments() {
+int update_i2c_temperature_measurments() {
 	int err;
     vm.ac2dc_temp = ac2dc_get_temperature(); 
 	
@@ -757,7 +778,8 @@ void periodic_scaling_task() {
 			    while (hammer_iter_next_present(&hi)) {
                     if (vm.hammer[hi.addr].failed_bists) {
                         // Update NVM
-                        nvm.top_freq[hi.addr]--;
+                        nvm.top_freq[hi.addr] = (ASIC_FREQ)(nvm.top_freq[hi.addr]-1);
+						assert(nvm.top_freq[hi.addr] >= 0);
                         nvm.dirty = 1;
                     }
                 }

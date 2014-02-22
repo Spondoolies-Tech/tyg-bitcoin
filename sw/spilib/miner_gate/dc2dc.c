@@ -1,6 +1,8 @@
 #include "dc2dc.h"
 #include "i2c.h"
 #include "nvm.h"
+#include "defines.h"
+
 
 int volt_to_vtrim[ASIC_VOLTAGE_COUNT] = {
     0, 0xFFC4 ,  0xFFCF, 0xFFE1, 0xFFd4,  0xFFE5,0xfff7, 0x0, 0x8,
@@ -10,7 +12,49 @@ int volt_to_vmargin[ASIC_VOLTAGE_COUNT] = {
     0, 0x14, 0x14, 0x14, 0x0, 0x0, 0x0, 0x0, 0x0
 };
 
+
+
  
+ 
+ 
+ void dc2dc_print() {
+ 	/*
+	 int ac2dc_current = ac2dc_get_power();
+	 int ac2dc_temp = ac2dc_get_temperature();
+	 printf("AC2DC current: %d (%d by SW)\n", ac2dc_current, vm.ac2dc_current);
+	 printf("AC2DC temp: %d (%d by SW)\n", ac2dc_temp, vm.ac2dc_temp);
+	 */
+	 printf("VOLTAGE/CURRENT/TEMP:\n");
+	 for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
+		 int err;
+		 int volt = dc2dc_get_voltage(loop, &err);
+		 int temp = dc2dc_get_temp(loop, &err);
+		 int crnt = dc2dc_get_current_16s_of_amper(loop, &err);
+		 
+		 if (!err) {
+			 printf("%2i:",loop);
+			 int min_minivolts;
+			 VOLTAGE_ENUM_TO_MILIVOLTS(ASIC_VOLTAGE_555, min_minivolts);
+			 if (volt < min_minivolts) printf(ANSI_COLOR_RED);
+			 printf("%3d/", volt);printf(ANSI_COLOR_RESET);
+			 if (crnt < DC2DC_CURRENT_GREEN_LINE_16S) printf(ANSI_COLOR_GREEN);
+			 if (crnt > DC2DC_CURRENT_GREEN_LINE_16S) printf(ANSI_COLOR_RED);
+			 printf("%3d/", crnt/16);printf(ANSI_COLOR_RESET);
+			 if (temp < DC2DC_TEMP_GREEN_LINE) printf(ANSI_COLOR_GREEN);
+			 if (temp > DC2DC_TEMP_RED_LINE) printf(ANSI_COLOR_RED);
+			 printf("%3d\n",temp);printf(ANSI_COLOR_RESET);
+		 } else {
+			printf("%2i:XXX/XXX/XXX\n",loop);
+		 }
+		 if (loop == LOOP_COUNT/2-1) {
+			 printf("\n");
+		 }
+	 }
+	 printf("\n");
+ }
+
+
+
 
 
 void dc2dc_init() {

@@ -91,6 +91,7 @@ void write_spi(uint8_t addr, uint32_t data);
 uint32_t read_spi(uint8_t addr);
 void write_spi_mult(uint8_t addr, int count, int values[]);
 void read_spi_mult(uint8_t addr, int count, int values[]);
+void squid_wait_hammer_reads();
 
 
 void init_spi();

@@ -1,9 +1,18 @@
-
 #include "ac2dc_const.h"
 #include "ac2dc.h"
 #include "dc2dc.h"
 #include "i2c.h"
+#include "hammer.h"
 
+extern MINER_BOX vm;
+
+
+void ac2dc_print() {
+	int ac2dc_current = ac2dc_get_power();
+	int ac2dc_temp = ac2dc_get_temperature();
+	printf("AC2DC current: %d (%d by SW)\n", ac2dc_current, vm.ac2dc_current);
+	printf("AC2DC temp: %d (%d by SW)\n", ac2dc_temp, vm.ac2dc_temp);
+}
 
 int ac2dc_getint(int source) {
 	int n = (source & 0xF800) >> 11;

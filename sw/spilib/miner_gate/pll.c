@@ -1,9 +1,15 @@
-#include "pll.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "pll.h"
+#include "hammer.h"
+#include "squid.h"
+#include "spond_debug.h"
 
 
 pll_frequency_settings pfs[ASIC_FREQ_MAX] = {
-    	{0,0,0,0},
+    	{0,0,0},
         FREQ_225_0 ,
         FREQ_240_0 ,
         FREQ_255_0 ,
@@ -33,11 +39,36 @@ pll_frequency_settings pfs[ASIC_FREQ_MAX] = {
         FREQ_615_0 ,
         FREQ_630_0 ,
         FREQ_645_0 ,
-        FREQ_660_0     
+        FREQ_660_0 
 };
 
 void set_pll(int addr, ASIC_FREQ freq) {
-	write_reg_device(addr, ADDR_CURRENT_NONCE, );
+#ifdef HAS_PLL
+	write_reg_device(addr, ADDR_DLL_OFFSET_CFG_LOW, 0xC3C1C200);
+	write_reg_device(addr, ADDR_DLL_OFFSET_CFG_LOW, 0x0082C381);
+	passert(freq < ASIC_FREQ_MAX);
+	pll_frequency_settings *ppfs = &pfs[freq];
+	uint32_t pll_config = 0;
+	uint32_t M = ppfs->m_mult;
+	uint32_t N = 1;
+	uint32_t P = ppfs->p_div;
+
+	
+	pll_config = (M-1)&0xFF;
+	pll_config |= (N-1)&0xF << 8;
+	pll_config |= (P-1)&0x1F << 13;
+	write_reg_device(addr, ADDR_PLL_CONFIG, 0x0082C381);
+	write_reg_device(addr, ADDR_PLL_ENABLE, 0x0);
+	write_reg_device(addr, ADDR_PLL_ENABLE, 0x1);
+
+	while(
+		(read_reg_device(addr,0x54) != 0) &&
+		(read_reg_device(addr,ADDR_PLL_STATUS) != 3)) {
+		printf("Waiting PLL TODO make global\n");
+		usleep(50);
+	}
+#endif
+	//write_reg_device(addr, ADDR_CURRENT_NONCE, );
 /*
 ADDR_DLL_OFFSET_CFG_LOW
 ADDR_DLL_OFFSET_CFG_HIGH
