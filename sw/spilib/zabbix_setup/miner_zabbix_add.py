@@ -6,8 +6,7 @@ groups will be same as template
 1. create host
 2. link host to Base Data Template
 """
-
-from pyzabbix import ZabbixAPI
+from zabbix import zapi,zapi_interfaces
 import sys
 
 try:
@@ -18,32 +17,15 @@ except Exception:
     print "Usage: %s host_name ip template" % sys.argv[0]
     sys.exit()
 
-
-interface ={
-            "type": 1,
-            "main": 1,
-            "useip": 1,
-            "ip": ip,
-            "dns": "",
-            "port": "10050"
-            }
-
-server = "http://127.0.0.1/zabbix"
-user = "Admin"
-pw = "zabbix"
-zapi = ZabbixAPI(server)
-
-# Login to the Zabbix API
-zapi.login(user, pw)
-
-
 template_id = zapi.template.get(filter={"name":template}, output="hostid,groupids")[0]["templateid"]
 print "template id: ",template_id
-host_group_id = zapi.hostgroup.get(templateids=[template_id]})[0]["groupid"]
+host_group_id = zapi.hostgroup.get(templateids=[template_id])[0]["groupid"]
 print "group id: ",host_group_id
 
 # create host
 if not zapi.host.exists(name=name):
+    interface = zapi_interfaces[0]
+    interface["ip"] = ip
     zapi.host.create(host=name,interfaces=[interface],groups=[{"groupid": host_group_id}], templates = [{"templateid":template_id}])
 host = zapi.host.get(filter={"name":name})[0]
 print "new host id: ", int(host["hostid"])
