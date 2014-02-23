@@ -272,6 +272,9 @@ typedef struct {
   uint8_t asics_shut_down_powersave;
   uint32_t not_mining_counter; // in seconds how long we are not mining
 
+  // Stoped all work
+  uint8_t stopped_all_work;
+
   // jobs right one after another
   uint32_t cosecutive_jobs;
   

@@ -120,9 +120,13 @@ void stop_all_work() {
   }
 
   passert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
+  vm.stopped_all_work = 1;
 }
 
-void resume_all_work() { printf("------ Starting work again \n"); }
+void resume_all_work() { 
+  vm.stopped_all_work = 0;
+  printf("------ Starting work again \n"); 
+}
 
 void print_devreg(int reg, const char *name) {
   printf("%2x:  BR:%8x ", reg, read_reg_broadcast(reg));
@@ -759,7 +763,8 @@ void once_second_tasks() {
   print_adapter();
   // dc2dc_print();
 
-  peridic_current_throttle_task();
+  // Decrease frequencies if needed
+  decrease_asics_freqs();
 
   if (nvm.dirty) {
     spond_save_nvm();

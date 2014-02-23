@@ -4,7 +4,9 @@
 #define ASIC_SPEED_RAISE_TIME 10 // seconds between ASIC speed changes UP
 
 void periodic_upscale_task();
-void peridic_current_throttle_task();
+void decrease_asics_freqs();
 void enable_engines_from_nvm();
+
+#define TIME_FOR_DLL_USECS  1000
 
 #endif

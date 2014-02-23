@@ -79,6 +79,7 @@ void loop_disable_hw(int loop_id) {
 void set_asic_freq(int addr, ASIC_FREQ new_freq) {
   if (vm.hammer[addr].asic_freq != new_freq) {
     set_pll(addr, new_freq);
+    printf("Changes ASIC %x frequency from %d to %d\n", addr,vm.hammer[addr].asic_freq*15+210,new_freq*15+210);
     vm.hammer[addr].asic_freq = new_freq;
   } else {
     printf(ANSI_COLOR_YELLOW "Setting ASIC %x to same frequency?\n" ANSI_COLOR_RESET, addr);
@@ -552,7 +553,12 @@ HAMMER *find_asic_to_reduce_dc_current(int l) {
 void decrease_asics_freqs() {
   int l;
   int current_reduced = 0;
+  int changed = false;
 #if 1
+  struct timeval tv;
+  start_stopper(&tv);
+
+
   int ac_spare_power = ac2dc_spare_power();
 
   // First resolve the DC2DC current issues
@@ -560,11 +566,12 @@ void decrease_asics_freqs() {
     if (!vm.loop[l].enabled_loop) 
          continue;
        
-    int dc_spare_power = dc2dc_spare_power(l);
-    if (dc_spare_power <= 0) 
-      continue;
-
     while (vm.loop[l].dc2dc.dc_current_16s_of_amper >= DC2DC_CURRENT_RED_LINE_16S) {
+      if (!vm.stopped_all_work) {
+        changed = true;
+        stop_all_work();
+      }
+
       HAMMER *a = find_asic_to_reduce_dc_current(l);
       passert(a);
       printf("DC2DC OVER LIMIT, throttling ASIC:%d!\n", a->address);
@@ -587,6 +594,10 @@ void decrease_asics_freqs() {
   }
 
   while (vm.ac2dc_current >= AC2DC_POWER_RED_LINE) {
+    if (!vm.stopped_all_work) {
+      changed = true;
+      stop_all_work();
+    }
     HAMMER *a = find_asic_to_reduce_ac_current();
     int ac_delta = AC_CURRNT_PER_15_HZ[nvm.loop_voltage[a->address/HAMMERS_PER_LOOP]]; 
     if (vm.ac2dc_current > ac_delta) {
@@ -597,6 +608,11 @@ void decrease_asics_freqs() {
     printf("AC2DC OVER LIMIT, throttling ASIC:%d %d!\n", a->address, a->asic_freq);
     set_asic_freq(a->address, MINIMAL_FREQ_PER_CORNER[nvm.asic_corner[a->address]]);
   }
+  resume_all_work();
+  if (changed) {
+    usleep(TIME_FOR_DLL_USECS);
+  }
+  end_stopper(&tv, "DOWNSCALE");
 #endif
 }
 
@@ -653,10 +669,11 @@ HAMMER *find_asic_to_increase_speed() {
 }
 
 
-void increase_asics_freqs() {
+int increase_asics_freqs() {
+  int ret = 0; 
   // Don't increase speed when paused
   if (vm.asics_shut_down_powersave) {
-    return;
+    return ret;
   }
 
   int now = time(NULL);
@@ -665,9 +682,10 @@ void increase_asics_freqs() {
   // first handle critical system AC2DC current
   vm.ac2dc_spare_current = ac2dc_spare_power();
   if (vm.ac2dc_spare_current < 1) {
-    return;
+    return ret;
   }
 
+  // mark all ASICs we can increase speed
   for (l = 0; l < LOOP_COUNT; l++) {
     // Works for disabled loops too
     vm.loop[l].dc2dc.dc_spare_power = dc2dc_spare_power(l);
@@ -687,11 +705,20 @@ void increase_asics_freqs() {
   HAMMER *a;
   while (vm.ac2dc_spare_current &&
         (a = find_asic_to_increase_speed())) {
+    if (!vm.stopped_all_work) {
+      ret = 1;
+      stop_all_work();
+    }
     try_increase_asic_freq(a, 
                            &vm.ac2dc_spare_current,
                            &vm.loop[a->address/HAMMERS_PER_LOOP].dc2dc.dc_spare_power);
     a->can_scale_up = 0;
   }
+  resume_all_work();
+  if (ret) {
+    usleep(TIME_FOR_DLL_USECS);
+  }
+  return ret;
 }
 
 
@@ -704,15 +731,13 @@ void set_optimal_voltage() {
 void periodic_upscale_task() {
   struct timeval tv;
   start_stopper(&tv);
-  stop_all_work();
   int usec;
 #ifdef DBG_SCALING
   print_scaling();
 #endif
-  increase_asics_freqs();
+  int changed = increase_asics_freqs();
   // measure how long it took
   end_stopper(&tv, "UPSCALE");
-  resume_all_work();
 }
 
 
@@ -743,32 +768,6 @@ void periodic_bist_task() {
 }
 
 
-
-// Stop handling requests
-// Called from the main HW handling thread every 1 second
-void peridic_current_throttle_task() {
-
-  if (!enable_scaling) {
-    return;
-  }
-
-  bool critical_current = false;
-
-  if (vm.ac2dc_current >= AC2DC_POWER_RED_LINE) {
-    critical_current = true;
-  }
-
-  for (int i = 0; i < LOOP_COUNT; i++) {
-    if (vm.loop[i].dc2dc.dc_current_16s_of_amper >= DC2DC_CURRENT_RED_LINE_16S) {
-      critical_current = true;
-    }
-  }
-
-  if (critical_current) {
-    // Only brings rate down
-    decrease_asics_freqs();
-  }
-}
 
 // Callibration SW
 
