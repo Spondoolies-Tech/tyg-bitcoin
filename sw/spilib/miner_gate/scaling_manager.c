@@ -462,7 +462,7 @@ int update_top_current_measurments() {
       vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {
       vm.ac2dc_current = current;
     } else {
-      vm.ac2dc_current = AC2DC_POWER_GREEN_LINE;
+      vm.ac2dc_current = 0;
     }
 
     for (int i = 0; i < LOOP_COUNT; i++) {
@@ -472,7 +472,8 @@ int update_top_current_measurments() {
       vm.loop[i].dc2dc.dc_current_16s_of_amper =
           dc2dc_get_current_16s_of_amper(i, &err);
       } else {
-        vm.ac2dc_current = DC2DC_CURRENT_GREEN_LINE_16S;
+        // This will disable ac2dc scaling
+        vm.loop[i].dc2dc.dc_current_16s_of_amper = 0;
       }
     }
   }
@@ -558,15 +559,13 @@ void decrease_asics_freqs() {
   struct timeval tv;
   start_stopper(&tv);
 
-
-  int ac_spare_power = ac2dc_spare_power();
-
   // First resolve the DC2DC current issues
   for (l = 0; l < LOOP_COUNT; l++) {   
     if (!vm.loop[l].enabled_loop) 
          continue;
        
-    while (vm.loop[l].dc2dc.dc_current_16s_of_amper >= DC2DC_CURRENT_RED_LINE_16S) {
+    while (vm.loop[l].dc2dc.dc_current_16s_of_amper > 0 &&
+            vm.loop[l].dc2dc.dc_current_16s_of_amper >= DC2DC_CURRENT_RED_LINE_16S) {
       if (!vm.stopped_all_work) {
         changed = true;
         stop_all_work();
@@ -593,7 +592,8 @@ void decrease_asics_freqs() {
     }
   }
 
-  while (vm.ac2dc_current >= AC2DC_POWER_RED_LINE) {
+  while (vm.ac2dc_current > 0 && 
+          vm.ac2dc_current >= AC2DC_POWER_RED_LINE) {
     if (!vm.stopped_all_work) {
       changed = true;
       stop_all_work();

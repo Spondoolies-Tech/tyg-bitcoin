@@ -246,7 +246,7 @@ typedef struct {
 // 24 dc2dc
 typedef struct {
   uint8_t dc_temp;
-  uint32_t dc_current_16s_of_amper; // in 1/16 of amper
+  uint32_t dc_current_16s_of_amper; // in 1/16 of amper. 0 = bad reading
   int dc_spare_power;
 } DC2DC;
 
@@ -279,8 +279,8 @@ typedef struct {
   uint32_t cosecutive_jobs;
   
   // ac2dc current and temperature
-  uint32_t ac2dc_current;
-  int ac2dc_spare_current;
+  uint32_t ac2dc_current;  // in ampers. 0 = bad reading.
+  int ac2dc_spare_current; // in ampers.
   uint32_t ac2dc_temp;
 
   // our ASIC data

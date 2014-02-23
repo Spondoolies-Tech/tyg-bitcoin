@@ -229,6 +229,7 @@ int dc2dc_spare_power(int l) {
   int spare_dc2dc_current =
       (DC2DC_CURRENT_GREEN_LINE_16S - vm.loop[l].dc2dc.dc_current_16s_of_amper);
   if ((!vm.loop[l].enabled_loop) ||
+      (vm.loop[l].dc2dc.dc_current_16s_of_amper == 0) ||
       (vm.loop[l].dc2dc.dc_temp >= DC2DC_TEMP_GREEN_LINE) ||
       (spare_dc2dc_current < 0)) {
     return 0;

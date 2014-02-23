@@ -163,7 +163,8 @@ int ac2dc_get_eeprom(int offset, int *pError) {
 int ac2dc_spare_power() {
   // TODO
   int spare_ac2dc_current = (AC2DC_POWER_GREEN_LINE - vm.ac2dc_current);
-  if (vm.ac2dc_temp >= AC2DC_TEMP_GREEN_LINE) {
+  if (vm.ac2dc_temp == 0 ||
+      vm.ac2dc_temp >= AC2DC_TEMP_GREEN_LINE) {
     return 0;
   }
   return spare_ac2dc_current;
