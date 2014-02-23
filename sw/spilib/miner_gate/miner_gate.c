@@ -380,10 +380,52 @@ int  parse_squid_status(int v) {
 
 
 
+void test_asic_reset() {
+	printf("--------------- %d\n", __LINE__);
+	// Reset ASICs
+	write_reg_broadcast(ADDR_GOT_ADDR, 0);
+	
+	// If someone not reseted (has address) - we have a problem
+	int reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
+	if (reg == 0) {
+		// Don't remove - used by tests
+		printf("got reply from ASIC 0x%x\n", BROADCAST_READ_ADDR(reg));
+		printf("RESET BAD\n");
+	} else {
+		// Don't remove - used by tests
+		printf("RESET GOOD\n");
+	}	
+	return;
+}
 
 
+void test_harel() {
 
+    if (!noasic) {
+        printf("Running BISTs... :");
+        printf(do_bist_ok(false)?" OK":" FAIL");        
+        printf(do_bist_ok(false)?" OK":" FAIL");        
+        printf(do_bist_ok(false)?" OK\n":" FAIL\n");            
+    }
+    for (int l = 0; l < LOOP_COUNT; l++) {
+        for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
+            if (!vm.loop[l].enabled_loop) {
+                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
+                printf("Hammer %02d %02d DISCONNECTED\n", l, h);
+            } else if (!vm.hammer[l*HAMMERS_PER_LOOP+h].asic_present) {
+                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
+                printf("Hammer %02d %02d MISSING\n", l, h);
+            } else if (vm.hammer[l*HAMMERS_PER_LOOP + h].failed_bists) {
+                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
+                printf("Hammer %02d %02d BIST_FAIL\n", l, h);
+            } else {
+                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
+                printf("Hammer %02d %02d OK\n", l, h);
+            }
+        }
+    }
 
+}
 
 void reset_squid() {
     FILE *f = fopen("/sys/class/gpio/export", "w"); 
@@ -409,6 +451,7 @@ int main(int argc, char *argv[])
  int testreset_mode = 0;
  int init_mode = 0;
  int s;
+ int new_nvm = 1;
  
  setlogmask (LOG_UPTO (LOG_INFO));
  openlog ("minergate", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
@@ -476,8 +519,9 @@ int main(int argc, char *argv[])
  printf("init_pwm\n");
  init_pwm();
  printf("set_fan_level\n");
-// set_fan_level(FAN_LEVEL_MEDIUM);
-/*
+ set_fan_level(FAN_LEVEL_MEDIUM);
+ 
+#if 0
 int err;
 dc2dc_set_voltage(0, ASIC_VOLTAGE_555, &err);
 sleep(1);
@@ -512,21 +556,13 @@ sleep(1);
 tb_get_asic_voltage(0);
 sleep(1);
 return 0;
-*/
+#endif
 
-/*
- for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
-	 dc2dc_set_voltage(loop, ASIC_VOLTAGE_555);
-	 printf("%i SET VOLTAGE %d\n",loop);
- }
- */
 
  dc2dc_print();
  ac2dc_print();
 
-//sleep(10);
-
- 
+#if 0 
  //read_mgmt_temp();
 /*
  while (1) {
@@ -545,14 +581,15 @@ return 0;
  printf("Current temp1 = %d\n",power);
  power = ac2dc_get_temperature(2);
  printf("Current temp1 = %d\n",power);
-*/			
+*/		
+#endif
+
  // test SPI 
  int q_status = read_spi(ADDR_SQUID_PONG);
  passert((q_status == 0xDEADBEEF), "ERROR: no 0xdeadbeef in squid pong register!\n");
 
-
+#if 0
  // set voltage test
- /*
     dc2dc_set_voltage(0, ASIC_VOLTAGE_810);
     sleep(3);
     dc2dc_set_voltage(0, ASIC_VOLTAGE_790);
@@ -569,62 +606,69 @@ return 0;
     sleep(3);
     dc2dc_set_voltage(0, ASIC_VOLTAGE_555); 
     sleep(3);
- */
-	 printf("spi tested%d\n", __LINE__);
+#endif
 
  if (!load_nvm_ok() || !enable_scaling) {
     // Init NVM.
     // Finds good loops using broadcast reads. No addresses given.
-    printf("CREATING NEW NVM!\n");
+    printf("Creating new NVM\n");
+
+	// Sets all ASICs to ASIC_CORNER_SS
+	// Set working engines to 0xFF
+	// Set top frequency to ASIC_FREQ_225
     create_default_nvm();
+
 	// Find good loops 
 	if (!noasic) {
+		// Update nvm.loop_brocken
+		// Update nvm.good_loops
+		// Set ASICS on all disabled loops to asic_ok=0
 		discover_good_loops_update_nvm();
 	}
-    spond_save_nvm();
- } 
+ } else {
+	 new_nvm = 0;
+ }
+ printf("Parsing NVM info\n");
 
- printf("discover good loops done %d\n", __LINE__);
-
-
+ 
+ //  Here the NVM assumed to be updated (new or old), we work with it.
  if (!noasic) {
+ 	 // Update vm.loop[i].enabled_loop from NVM, set loops in FPGA
      if (!enable_nvm_loops_ok()) {
-         // reinitialise
-         
          printf("LOOP TEST FAILED, DELETE NVM AND RESTART:%x\n", nvm.good_loops);
          spond_delete_nvm();
-         // Exits on error.
          passert(0);
      }
  }
 
 
-
-
- 
- printf("enable nvm loops done %d\n", __LINE__);
+ printf("enable_nvm_loops_ok done %d\n", __LINE__);
  // Allocates addresses, sets nonce range.
  if (!noasic) {
+ 	 // Reset all hammers
      init_hammers(); 
+	 
+	 // Give addresses to devices. If NVM non-consistent - delete it and exit.
      allocate_addresses_to_devices();
      
-     // Loads NVM, sets freq`, enables engines... 
-     //passert(total_devices);
+     // Set nonce ranges
      set_nonce_range_in_engines(0xFFFFFFFF); 
 
      // Set default frequencies.
+     // Set all voltage to ASIC_VOLTAGE_810
+     // Set all frequency to ASIC_FREQ_225
      enable_voltage_freq_and_engines_default();
+
+	 // Set all engines to 0x7FFF
      enable_all_engines_all_asics();
 
 
      // UPDATE NVM DATA by running some tests.
-     if (!nvm.bad_engines_found) {
-         // Sets bad engines in NVM
-         find_bad_engines_update_nvm();
-     }
-     if (!nvm.corners_computed) {
-         // Sets asic Corner and loop voltages
-         recompute_corners_and_voltage_update_nvm();
+     if (new_nvm) {
+	     // Sets bad engines in NVM
+	     find_bad_engines_update_nvm();
+	     // Sets asic Corner and loop voltages
+	     recompute_corners_and_voltage_update_nvm();
      }
  }
  printf("hammer initialisation done %d\n", __LINE__);
@@ -641,66 +685,26 @@ return 0;
      init_scaling();
  }
 
- printf("init_scaling done %d\n", __LINE__);
-
+ printf("init_scaling done, ready to mine, saving NVM\n");
+ spond_save_nvm();
 
  if (testreset_mode) {
- 	printf("--------------- %d\n", __LINE__);
-	// Reset ASICs
-	write_reg_broadcast(ADDR_GOT_ADDR, 0);
-	
-	// If someone not reseted (has address) - we have a problem
-	int reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
-    if (reg == 0) {
-		// Don't remove - used by tests
-		printf("got reply from ASIC 0x%x\n", BROADCAST_READ_ADDR(reg));
-        printf("RESET BAD\n");
-		return 1;
-    } else {
-  	    // Don't remove - used by tests
-		printf("RESET GOOD\n");
-		return 0;
-    }
-
-	
+ 	test_asic_reset();
+	return 0;
  }
 
- printf("--------------- %d\n", __LINE__);
+ if (test_mode) {
+	test_harel();
+    return 0;
+ }
+
+ printf("Opening socket for cgminer\n");
  // test HAMMER read
  //passert(read_reg_broadcast(ADDR_VERSION), "No version found in ASICs");
  socket_fd = init_socket();
  passert(socket_fd > 0);
- printf("done\n");
 
- printf("--------------- %d\n", __LINE__);
-
- if (test_mode) {
-    if (!noasic) {
-        printf("Running BISTs... :");
-        printf(do_bist_ok(false)?" OK":" FAIL");        
-        printf(do_bist_ok(false)?" OK":" FAIL");        
-        printf(do_bist_ok(false)?" OK\n":" FAIL\n");            
-    }
-    for (int l = 0; l < LOOP_COUNT; l++) {
-        for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
-            if (!vm.loop[l].enabled_loop) {
-                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-                printf("Hammer %02d %02d DISCONNECTED\n", l, h);
-            } else if (!vm.hammer[l*HAMMERS_PER_LOOP+h].asic_present) {
-                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-                printf("Hammer %02d %02d MISSING\n", l, h);
-            } else if (vm.hammer[l*HAMMERS_PER_LOOP + h].failed_bists) {
-                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-                printf("Hammer %02d %02d BIST_FAIL\n", l, h);
-            } else {
-                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-                printf("Hammer %02d %02d OK\n", l, h);
-            }
-        }
-    }
-    return 0;
- }
-
+ printf("Starting HW thread\n");
  if (!noasic) {
     s = pthread_create(&main_thread,NULL,squid_regular_state_machine,(void*)NULL);
     passert (s == 0);

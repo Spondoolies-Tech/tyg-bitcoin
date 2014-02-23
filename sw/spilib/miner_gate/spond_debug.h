@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <syslog.h>
+#include <sys/time.h>
 
 
 #define DBG_NET 0
@@ -33,6 +34,8 @@ void _passert(int cond, const char *s = NULL);
 void _pabort(const char *s);
 
  
+void start_stopper(struct timeval *tv);
+void end_stopper(struct timeval *tv, const char *name);
 
 
 #endif 

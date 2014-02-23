@@ -71,7 +71,7 @@ start)
 	if [ ${NORMALBOOT} -eq 1 ]; then 
 		echo "Loading FPGA..."
 		sleep 1
-		start_mg
+		#start_mg
 	fi
 	;;
 stop)

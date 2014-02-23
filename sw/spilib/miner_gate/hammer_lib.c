@@ -352,22 +352,20 @@ int allocate_addresses_to_devices() {
     int reg;
     int l;
 
+	// Give resets to all ASICs
     DBG(DBG_HW,"Unallocate all chip addresses\n");
 	write_reg_broadcast(ADDR_GOT_ADDR, 0);
     
-    //  validate address reset
+    //  validate address reset worked
     reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
-	//printf("1\n");
     if (reg == 0) {
         passert(0);
     }
-	//printf("2\n");
 
-
-    // Do it loop by loop!
+	
     for (l = 0; l < LOOP_COUNT ; l++) {
+		// Only in loops discovered in "enable_nvm_loops_ok()"
         if (vm.loop[l].enabled_loop) {
-			printf("4\n");
             // Disable all other loops
             unsigned int bypass_loops = (~(1 << l) & 0xFFFFFF);
             printf("Giving address on loop (mask): %x\n", (~bypass_loops) & 0xFFFFFF);
@@ -385,13 +383,24 @@ int allocate_addresses_to_devices() {
                      total_devices++;
                      asics_in_loop++;
                      vm.hammer[l*HAMMERS_PER_LOOP + h].asic_present = 1;
+					 nvm.asic_ok[l*HAMMERS_PER_LOOP + h] = 1;
                      DBG(DBG_HW,"Address allocated: %x\n", addr);
+					 if (nvm.asic_ok[l*HAMMERS_PER_LOOP + h] == 0) {
+					 	printf("NEW ASIC found (%x), updating NVM!!\n", addr);
+						nvm.dirty = 1;
+					 }
 //                   for (total_devices = 0; read_reg_broadcast(ADDR_BR_NO_ADDR); ++total_devices) {
 //		             write_reg_broadcast(ADDR_CHIP_ADDR, total_devices + FIRST_CHIP_ADDR);            		
             	} else {
 //                   printf("No ASIC found at position %x!\n", addr);
+					 if (nvm.asic_ok[l*HAMMERS_PER_LOOP + h]) {
+						void spond_delete_nvm();
+						printf("ASIC stopped responding!!\n");
+						passert(0);
+					 } 
                      vm.hammer[l*HAMMERS_PER_LOOP + h].address = addr; 
                      vm.hammer[l*HAMMERS_PER_LOOP + h].asic_present = 0;
+					 nvm.asic_ok[l*HAMMERS_PER_LOOP + h] = 0;
 					 nvm.working_engines[l*HAMMERS_PER_LOOP + h] = 0;
 					 nvm.top_freq[l*HAMMERS_PER_LOOP + h] = ASIC_FREQ_0;
 					 nvm.asic_corner[l*HAMMERS_PER_LOOP + h] = ASIC_CORNER_NA;
@@ -402,7 +411,7 @@ int allocate_addresses_to_devices() {
             passert(read_reg_broadcast(ADDR_BR_NO_ADDR) == 0);
             write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm.good_loops));
         } else {
-            printf("ASICS in loop %d: %d\n",l,0);;
+            printf("ASICS in loop %d: 0\n",l);;
         }
 		
     }
@@ -724,8 +733,9 @@ int last_alive_jobs;
 
 
 void ten_second_tasks() {
-    periodic_bist_task();
-
+	if (!vm.asics_shut_down_powersave) {
+    	periodic_bist_task();
+	}
 }
 
 
@@ -743,6 +753,7 @@ void once_second_tasks() {
 			pause_all_mining_engines();
 		}
 	}
+	
 	pthread_mutex_unlock(&network_hw_mutex);
     update_top_current_measurments();
 	auto_select_fan_level();
@@ -758,6 +769,7 @@ void once_second_tasks() {
 		print_state();
 		passert(0);
 	}
+	
 	printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n", 
     	last_second_jobs,
     	spi_ioctls_read,
@@ -774,7 +786,8 @@ void once_second_tasks() {
     last_second_jobs = 0;            
     print_adapter();
 	//dc2dc_print();
-    // Once every X seconds.
+
+	
     periodic_scaling_task();
 
     if (nvm.dirty) {

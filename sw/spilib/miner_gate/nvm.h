@@ -94,12 +94,12 @@ typedef struct _spondoolies_nvm {
   uint32_t  good_loops; // good loops bitmask
   // It goes from loop 0 asic 0 to loop 23 asic 8.
   // Values are ASIC_CORNER_XXX
+  uint8_t   asic_ok[HAMMERS_COUNT];
   uint8_t   asic_corner[HAMMERS_COUNT];
+  uint16_t   working_engines[HAMMERS_COUNT];
   ASIC_FREQ   top_freq[HAMMERS_COUNT];
-  uint16_t   working_engines[HAMMERS_COUNT];    
   DC2DC_VOLTAGE   loop_voltage[LOOP_COUNT];
   uint8_t   corners_computed;
-  uint8_t   bad_engines_found;
   uint8_t   dirty;  
 
 

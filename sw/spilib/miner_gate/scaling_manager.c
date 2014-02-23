@@ -350,6 +350,7 @@ void discover_good_loops_update_nvm() {
                //vm.loop[i].present = false;
                for (int h = i*HAMMERS_PER_LOOP; h < (i+1)*HAMMERS_PER_LOOP;h++) {
 				  //printf("remove ASIC 0x%x\n", h);
+				  nvm.asic_ok[h] = 0;
 				  nvm.working_engines[h] = 0;
 				  nvm.top_freq[h] = ASIC_FREQ_0;
 				  nvm.asic_corner[h] = ASIC_CORNER_NA;
@@ -383,13 +384,18 @@ void find_bad_engines_update_nvm() {
    		hammer_iter_init(&hi);
 
    		while (hammer_iter_next_present(&hi)) {
-           if (vm.hammer[hi.addr].passed_last_bist_engines != ALL_ENGINES_BITMASK) {
               // Update NVM
-              nvm.working_engines[hi.addr] = vm.hammer[hi.addr].passed_last_bist_engines;
-           }
+              if (nvm.working_engines[hi.addr] != 
+			  	  vm.hammer[hi.addr].passed_last_bist_engines) {
+				  nvm.working_engines[hi.addr] = vm.hammer[hi.addr].passed_last_bist_engines;
+				  nvm.dirty = 1;   
+				  printf("After BIST setting %x enabled engines to %x\n",
+				  			hi.addr,
+				  			nvm.working_engines[hi.addr]);
+			  }
+              
    		}
    } 
-   nvm.dirty = 1;   
 }
 
 
@@ -448,10 +454,8 @@ void create_default_nvm() {
 
    
     // See max rate under ASIC_VOLTAGE_810 
-	nvm.corners_computed = 0; 
-	nvm.bad_engines_found = 0;
 	for (i = 0; i < HAMMERS_COUNT; i++) {
-		nvm.working_engines[i] = 0xFF;	
+		nvm.working_engines[i] = ALL_ENGINES_BITMASK;	
 		nvm.asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
 		nvm.top_freq[i] = ASIC_FREQ_225;
 	}
@@ -684,7 +688,10 @@ void set_optimal_voltage() {
 
 
 void periodic_bist_task() {
-     stop_all_work();
+	struct timeval tv;
+	start_stopper(&tv);
+    stop_all_work();
+	int usec;
 #ifdef DBG_SCALING
     print_scaling();
 #endif
@@ -697,7 +704,7 @@ void periodic_bist_task() {
 		hammer_iter_init(&hi);
 
 		while (hammer_iter_next_present(&hi)) {
-               vm.hammer[hi.addr].failed_bists = 0;
+            vm.hammer[hi.addr].failed_bists = 0;
         }
 
         
@@ -710,7 +717,10 @@ void periodic_bist_task() {
                 if (vm.hammer[hi.addr].failed_bists) {
                     // Update NVM
                     nvm.top_freq[hi.addr] = (ASIC_FREQ)(nvm.top_freq[hi.addr]-1);
-					assert(nvm.top_freq[hi.addr] >= 0);
+					if(nvm.top_freq[hi.addr] == ASIC_FREQ_0) {
+						// Bad ASIC :(
+						
+					}
                     nvm.dirty = 1;
                 }
             }
@@ -722,14 +732,8 @@ void periodic_bist_task() {
 
     
     // measure how long it took
-    gettimeofday(&last_scaling, NULL);  
-    usec=(last_scaling.tv_sec-tv.tv_sec)*1000000;
-    usec+=(last_scaling.tv_usec-tv.tv_usec);
-    DBG(DBG_SCALING, "SCALING TOOK: %d usecs\n",usec);
-    
+	end_stopper(&tv,"BIST");
     resume_all_work();
-
-
 }
 
 
@@ -757,9 +761,6 @@ void periodic_scaling_task() {
         // Only brings rate down
         solve_current_problems();
     }
-
-
-  
 }
 
 // Callibration SW
