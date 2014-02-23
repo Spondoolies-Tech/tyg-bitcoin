@@ -19,6 +19,7 @@
 #include <sys/time.h>
 #include "real_time_queue.h"
 #include "miner_gate.h"
+#include "scaling_manager.h"
 
 
 extern pthread_mutex_t network_hw_mutex;
@@ -31,7 +32,6 @@ int cur_leading_zeroes = 0;
 RT_JOB* add_to_sw_rt_queue(const RT_JOB *work);
 void reset_sw_rt_queue();
 RT_JOB* peak_rt_queue(uint8_t hw_id);
-void periodic_scaling_task();
 
 extern int rt_queue_size;
 extern int rt_queue_sw_write;
@@ -723,8 +723,16 @@ int last_second_jobs;
 int last_alive_jobs;
 
 
+void ten_second_tasks() {
+    periodic_bist_task();
+
+}
+
 
 void once_second_tasks() {
+	static int counter=0;
+
+	
 	pthread_mutex_lock(&network_hw_mutex);
 	//static int not_mining_counter = 0;
 	// See if we can stop engines
@@ -775,6 +783,10 @@ void once_second_tasks() {
     // print_state();
     dump_zabbix_stats();
 	//pthread_mutex_unlock(&network_hw_mutex);
+
+	if (++counter%10 == 0) {
+	   ten_second_tasks();
+    }
 }
 
 

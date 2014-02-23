@@ -683,6 +683,55 @@ void set_optimal_voltage() {
 }
 
 
+void periodic_bist_task() {
+     stop_all_work();
+#ifdef DBG_SCALING
+    print_scaling();
+#endif
+
+    while(1) {
+        update_asic_freq();
+
+        // We always assume BIST fails because ASIC too fast.
+        hammer_iter hi;
+		hammer_iter_init(&hi);
+
+		while (hammer_iter_next_present(&hi)) {
+               vm.hammer[hi.addr].failed_bists = 0;
+        }
+
+        
+        if (!do_bist_ok(false)) {
+            // IF FAILED BIST - reduce top speed of failed ASIC.
+            printf("BIST FAILED!\n");
+            hammer_iter_init(&hi);
+
+		    while (hammer_iter_next_present(&hi)) {
+                if (vm.hammer[hi.addr].failed_bists) {
+                    // Update NVM
+                    nvm.top_freq[hi.addr] = (ASIC_FREQ)(nvm.top_freq[hi.addr]-1);
+					assert(nvm.top_freq[hi.addr] >= 0);
+                    nvm.dirty = 1;
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
+
+    
+    // measure how long it took
+    gettimeofday(&last_scaling, NULL);  
+    usec=(last_scaling.tv_sec-tv.tv_sec)*1000000;
+    usec+=(last_scaling.tv_usec-tv.tv_usec);
+    DBG(DBG_SCALING, "SCALING TOOK: %d usecs\n",usec);
+    
+    resume_all_work();
+
+
+}
+
 
 // Stop handling requests
 // Called from the main HW handling thread every 1 second
@@ -692,13 +741,6 @@ void periodic_scaling_task() {
 		return;
 	}
 
-    struct timeval tv;
-    struct timeval now;
-    static struct timeval last_scaling = {0};    
-
-    gettimeofday(&tv, NULL);	
-    unsigned int usec=(tv.tv_sec-last_scaling.tv_sec)*1000000;
-    usec+=(tv.tv_usec-last_scaling.tv_usec);
     bool critical_current = false;
 
     if (vm.ac2dc_current >= AC2DC_POWER_RED_LINE) {
@@ -717,53 +759,7 @@ void periodic_scaling_task() {
     }
 
 
-    // Every X seconds.
-    if ((usec >= 5*1000*1000)) {
-        stop_all_work();
-#ifdef DBG_SCALING
-        print_scaling();
-#endif
-    
-        while(1) {
-            update_asic_freq();
-
-            // We always assume BIST fails because ASIC too fast.
-            hammer_iter hi;
-			hammer_iter_init(&hi);
-
-			while (hammer_iter_next_present(&hi)) {
-                   vm.hammer[hi.addr].failed_bists = 0;
-            }
-
-            
-            if (!do_bist_ok(false)) {
-                // IF FAILED BIST - reduce top speed of failed ASIC.
-                printf("BIST FAILED!\n");
-                hammer_iter_init(&hi);
-
-			    while (hammer_iter_next_present(&hi)) {
-                    if (vm.hammer[hi.addr].failed_bists) {
-                        // Update NVM
-                        nvm.top_freq[hi.addr] = (ASIC_FREQ)(nvm.top_freq[hi.addr]-1);
-						assert(nvm.top_freq[hi.addr] >= 0);
-                        nvm.dirty = 1;
-                    }
-                }
-            } else {
-                break;
-            }
-        }
-
-
-        
-        // measure how long it took
-        gettimeofday(&last_scaling, NULL);  
-        usec=(last_scaling.tv_sec-tv.tv_sec)*1000000;
-        usec+=(last_scaling.tv_usec-tv.tv_usec);
-        DBG(DBG_SCALING, "SCALING TOOK: %d usecs\n",usec);
-        
-        resume_all_work();
-    }
+  
 }
 
 // Callibration SW
