@@ -56,11 +56,6 @@ MINER_BOX vm = {0};
 extern SPONDOOLIES_NVM nvm;
 extern int enable_scaling;
 
-int pull_work_req(RT_JOB* w);
-extern int drop_job_requests;
-int one_done_sw_rt_queue(RT_JOB *work);
-int do_bist_ok(bool with_current_measurment);
-void push_work_rsp(RT_JOB* work);
 extern int assert_serial_failures;
 
 
@@ -185,19 +180,19 @@ void enable_voltage_freq_and_engines_default() {
 
 
 void pause_all_mining_engines() {
-	assert (vm.pause_miner == 0);
+	assert (vm.asics_shut_down_powersave == 0);
 	int some_asics_busy = read_reg_broadcast(BIT_INTR_CONDUCTOR_BUSY);
 	assert(some_asics_busy == 0);
 	// stop all ASICs
 	write_reg_broadcast(ADDR_ENABLE_ENGINE, 0);
 	//disable_all_engines_all_asics();
-	vm.pause_miner = 1;
+	vm.asics_shut_down_powersave = 1;
 	printf("PAUSING ALL MINING!!\n");
 }
 
 
 void unpause_all_mining_engines() {
-	assert (vm.pause_miner != 0);
+	assert (vm.asics_shut_down_powersave != 0);
 	vm.not_mining_counter = 0;
 	hammer_iter hi;
 	hammer_iter_init(&hi);
@@ -210,7 +205,7 @@ void unpause_all_mining_engines() {
     }
 	printf("STARTING ALL MINING!!\n");
 
-	vm.pause_miner = 0;
+	vm.asics_shut_down_powersave = 0;
 }
 
 
@@ -474,35 +469,6 @@ void init_scaling() {
      
 
 
-    
-void stop_all_work() {
-     drop_job_requests = 1;
-     // wait to finish real time queue requests
-     write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-     write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-     write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-     usleep(100);
-     RT_JOB work;
-    
-     // Move real-time q to complete.
-     while(one_done_sw_rt_queue(&work)) {
-         push_work_rsp(&work);
-     };
-    
-     // Move pending to complete
-     //RT_JOB w;
-     while (pull_work_req(&work)) {
-         push_work_rsp(&work);
-     }
-     
-     passert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
-}
-
-
-
-void resume_all_work() {
-    drop_job_requests = 0;
-}
 
 
 uint32_t ac_current_handler() {
@@ -595,7 +561,7 @@ HAMMER* get_hammer(uint32_t addr) {
 // Return 1 if needs urgent scaling
 int update_top_current_measurments() {
 	int err;
-	if (!vm.pause_miner) {
+	if (!vm.asics_shut_down_powersave) {
 	    vm.ac2dc_current = ac2dc_get_power(); 
 		
 	    for (int i = 0; i < LOOP_COUNT; i++) {

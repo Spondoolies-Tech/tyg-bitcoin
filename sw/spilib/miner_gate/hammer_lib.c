@@ -17,6 +17,10 @@
 #include <pthread.h>
 #include <spond_debug.h>	
 #include <sys/time.h>
+#include "real_time_queue.h"
+#include "miner_gate.h"
+
+
 extern pthread_mutex_t network_hw_mutex;
 
 int total_devices = 0;
@@ -104,6 +108,38 @@ int loop_iter_next_enabled(loop_iter* e) {
 				
 }
 
+
+
+
+
+void stop_all_work() {
+	 printf("------ Stopping work for scaling!\n");
+     // wait to finish real time queue requests
+     write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+     write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+     write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+     usleep(100);
+     RT_JOB work;
+    
+     // Move real-time q to complete.
+     while(one_done_sw_rt_queue(&work)) {
+         push_work_rsp(&work);
+     };
+    
+     // Move pending to complete
+     //RT_JOB w;
+     while (pull_work_req(&work)) {
+         push_work_rsp(&work);
+     }
+     
+     passert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
+}
+
+
+
+void resume_all_work() {
+	 printf("------ Starting work again \n");
+}
 
 
 
@@ -517,6 +553,7 @@ int init_hammers() {
 
 // returns 1 on success
 int do_bist_ok(bool with_current_measurment) {
+	printf("Doing bist!\n");
     static int bist_id = 0;
     bist_id = 1-bist_id; // 0,1,0,1,0,1...
 
@@ -686,12 +723,133 @@ int last_second_jobs;
 int last_alive_jobs;
 
 
+
+void once_second_tasks() {
+	pthread_mutex_lock(&network_hw_mutex);
+	//static int not_mining_counter = 0;
+	// See if we can stop engines
+	vm.not_mining_counter++;
+
+	if (vm.not_mining_counter >= IDLE_TIME_TO_PAUSE_ENGINES) {
+		if (!vm.asics_shut_down_powersave) {
+			pause_all_mining_engines();
+		}
+	}
+	pthread_mutex_unlock(&network_hw_mutex);
+    update_top_current_measurments();
+	auto_select_fan_level();
+	
+	//update_i2c_temperature_measurments();
+	//write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+	//int current_nonce =  read_reg_device(0, ADDR_CURRENT_NONCE);
+	//int nnce_start =  read_reg_device(0, ADDR_CURRENT_NONCE_START);
+	//int job_id =  read_reg_device(0, ADDR_CURRENT_NONCE_RANGE);
+	int no_addr =  read_reg_broadcast(ADDR_BR_NO_ADDR);
+	if (no_addr) {
+		printf("Error: lost address!\n");
+		print_state();
+		passert(0);
+	}
+	printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n", 
+    	last_second_jobs,
+    	spi_ioctls_read,
+    	spi_ioctls_write, 
+    	rt_queue_sw_write , 
+    	rt_queue_hw_done ,
+    	rt_queue_size);
+	printf("wins:%d, leading-zeroes:%d idle:%d/%d\n",
+		vm.solved_jobs_total,cur_leading_zeroes, vm.idle_probs, 
+		vm.busy_probs);
+
+	spi_ioctls_write = spi_ioctls_read = 0;
+    //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
+    last_second_jobs = 0;            
+    print_adapter();
+	//dc2dc_print();
+    // Once every X seconds.
+    periodic_scaling_task();
+
+    if (nvm.dirty) {
+        spond_save_nvm();
+    }
+    // print_state();
+    dump_zabbix_stats();
+	//pthread_mutex_unlock(&network_hw_mutex);
+}
+
+
+
+
+
+void once_25000_usec_tasks() {
+	//printf("-");
+	static int counter=0;
+	uint32_t reg;
+	while((reg = read_reg_broadcast(ADDR_BR_WIN))) {
+	  uint16_t winner_device = BROADCAST_READ_ADDR(reg);
+	  vm.hammer[winner_device].solved_jobs++;
+	  vm.solved_jobs_total++;
+	  //printf("\nSW:%x HW:%x\n",(actual_work)?actual_work->work_id_in_hw:0,jobid);
+	  printf ("reg:%x  \n",reg);
+	  int ok = get_print_win(winner_device);
+	  // Move on!
+	  //write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+	}
+	if (read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE)) {
+	  vm.idle_probs++;
+	} else {
+	  vm.busy_probs++;
+
+	};
+
+	// Here it is important to have right time.
+	read_some_asic_temperatures();
+
+	if (++counter%40 == 0) {
+	   once_second_tasks();
+    }
+}
+
+
+
+void once_2500_usec_tasks() {
+   static int counter=0;
+   int last_hw_job_id;
+   RT_JOB work;    			   
+   RT_JOB *actual_work = NULL;
+   int has_request = pull_work_req(&work);
+   if (has_request) {
+	   // Update leading zeroes?
+	   vm.not_mining_counter = 0;
+	   if (work.leading_zeroes != cur_leading_zeroes) {
+		   cur_leading_zeroes = work.leading_zeroes;
+		   write_reg_broadcast(ADDR_WIN_LEADING_0, cur_leading_zeroes);
+	   }
+	   actual_work = add_to_sw_rt_queue(&work);
+	   // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
+	   // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);				 
+	   push_to_hw_queue(actual_work);
+	   last_hw_job_id = actual_work->work_id_in_hw;
+	   assert(last_hw_job_id <= 0x100);
+	   last_second_jobs++;
+	   last_alive_jobs++;
+   }
+
+   if (++counter%10 == 0) {
+	   once_25000_usec_tasks();
+   }
+   // Move latest job to complete queue
+}
+
+
+
+
+
 // never returns - thread
 void* squid_regular_state_machine(void* p) {
 	reset_sw_rt_queue();
 	enable_reg_debug = 0;
 	int loop = 0;
-	RT_JOB work;	
 	printf("Starting squid_regular_state_machine!\n");
 	flush_spi_write();
     
@@ -702,150 +860,29 @@ void* squid_regular_state_machine(void* p) {
 	
 	struct timeval tv;
 	struct timeval last_job_pushed;
-	struct timeval last_print;
-    struct timeval last_test_win;    
+	//struct timeval last_print;
+    //struct timeval last_test_win;    
 	struct timeval last_force_queue;    
 	gettimeofday(&last_job_pushed, NULL);	
-	gettimeofday(&last_test_win, NULL);
-	gettimeofday(&last_print, NULL);            
+	//gettimeofday(&last_test_win, NULL);
+	//gettimeofday(&last_print, NULL);            
 	gettimeofday(&last_force_queue, NULL);    
 	gettimeofday(&tv, NULL);	
 	int usec;
-	last_second_jobs = 0;
-    last_alive_jobs = 0;
-    int last_hw_job_id;
-
-  
-	enable_reg_debug = 0;
-	RT_JOB *actual_work;
+//	enable_reg_debug = 0;
 	for (;;) {
-      
-		actual_work = NULL;
 		gettimeofday(&tv, NULL);
 	    usec=(tv.tv_sec-last_job_pushed.tv_sec)*1000000;
 		usec+=(tv.tv_usec-last_job_pushed.tv_usec);
         
 		if (usec >= 2500) { // new job every 2.5 msecs = 400 per second
-            last_job_pushed = tv;
-			
-			int has_request = pull_work_req(&work);
-			if (has_request) {
-                // Update leading zeroes?
-                if (work.leading_zeroes != cur_leading_zeroes) {
-                    cur_leading_zeroes = work.leading_zeroes;
-                    write_reg_broadcast(ADDR_WIN_LEADING_0, cur_leading_zeroes);
-                }
-				actual_work = add_to_sw_rt_queue(&work);
-                // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
-                // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);                
-				push_to_hw_queue(actual_work);
-				last_hw_job_id = actual_work->work_id_in_hw;
-				assert(last_hw_job_id <= 0x100);
-				last_second_jobs++;
-                last_alive_jobs++;
-			}
-            last_job_pushed = tv;
-            int drift = usec - 2500;
-            if (last_job_pushed.tv_usec > drift) {
-                last_job_pushed.tv_usec -= drift;
-            }
-            // Move latest job to complete queue
+			once_2500_usec_tasks();
+			 last_job_pushed = tv;
+		   int drift = usec - 2500;
+		   if (last_job_pushed.tv_usec > drift) {
+			   last_job_pushed.tv_usec -= drift;
+		   }	  
 		}
-
-
-
-		usec=(tv.tv_sec-last_print.tv_sec)*1000000;
-		usec+=(tv.tv_usec-last_print.tv_usec);
-		if (usec >= 1*1000*1000) {	
-			pthread_mutex_lock(&network_hw_mutex);
-			//static int not_mining_counter = 0;
-			// See if we can stop engines
-			int someone_busy =  read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
-			if (someone_busy) {
-				vm.not_mining_counter = 0;
-			} else {
-				vm.not_mining_counter++;
-			}
-
-			if (vm.not_mining_counter >= IDLE_TIME_TO_PAUSE_ENGINES) {
-				if (!vm.pause_miner) {
-					pause_all_mining_engines();
-				}
-			}
-			pthread_mutex_unlock(&network_hw_mutex);
-            update_top_current_measurments();
-			auto_select_fan_level();
-			
-			//update_i2c_temperature_measurments();
-			//write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-			//int current_nonce =  read_reg_device(0, ADDR_CURRENT_NONCE);
-			//int nnce_start =  read_reg_device(0, ADDR_CURRENT_NONCE_START);
-			//int job_id =  read_reg_device(0, ADDR_CURRENT_NONCE_RANGE);
-			int no_addr =  read_reg_broadcast(ADDR_BR_NO_ADDR);
-			if (no_addr) {
-				printf("Error: lost address!\n");
-				print_state();
-				passert(0);
-			}
-			printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n", 
-            	last_second_jobs,
-            	spi_ioctls_read,
-            	spi_ioctls_write, 
-            	rt_queue_sw_write , 
-            	rt_queue_hw_done ,
-            	rt_queue_size);
-			printf("wins:%d, leading-zeroes:%d idle:%d/%d\n",
-				vm.solved_jobs,cur_leading_zeroes, vm.idle_probs, 
-				vm.busy_probs);
-		
-			spi_ioctls_write = spi_ioctls_read = 0;
-            //parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
-            last_second_jobs = 0;            
-            print_adapter();
-			//dc2dc_print();
-            // Once every X seconds.
-            periodic_scaling_task();
-
-            if (nvm.dirty) {
-                spond_save_nvm();
-            }
-            // print_state();
-			last_print = tv;
-            dump_zabbix_stats();
-			//pthread_mutex_unlock(&network_hw_mutex);
-		}
-
-		
-
-        usec=(tv.tv_sec-last_test_win.tv_sec)*1000000;
-        usec+=(tv.tv_usec-last_test_win.tv_usec);
-        // Lookup win and test utilisation every 25 msec (40 times per second)
-        if (usec >= 25000) { 
-            //printf("-");
-            uint32_t reg;
-            while((reg = read_reg_broadcast(ADDR_BR_WIN))) {
-                uint16_t winner_device = BROADCAST_READ_ADDR(reg);
-                vm.hammer[winner_device].solved_jobs++;
-				vm.solved_jobs++;
-                //printf("\nSW:%x HW:%x\n",(actual_work)?actual_work->work_id_in_hw:0,jobid);
-				printf ("reg:%x current:%x \n",reg, last_hw_job_id);
-				int ok = get_print_win(winner_device);
-                // Move on!
-                //write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-            }
-			if (read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE)) {
-				vm.idle_probs++;
-			} else {
-				vm.busy_probs++;
-
-			};
-			
-			
-            // Here it is important to have right time.
-            read_some_asic_temperatures();
-            gettimeofday(&last_test_win, NULL);
-        }
-
 
 
         // force queue every 10 msecs

@@ -28,6 +28,10 @@ int hammer_iter_next_present(hammer_iter* e);
 void loop_iter_init(loop_iter* e);
 int loop_iter_next_enabled(loop_iter* e);
 
+void stop_all_work();
+void resume_all_work(); 
+
+	
 
 uint32_t read_reg_broadcast_test(uint8_t offset);
 extern int assert_serial_failures;

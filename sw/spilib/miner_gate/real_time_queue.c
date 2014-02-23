@@ -16,6 +16,7 @@
 #include <spond_debug.h>	
 #include <sys/time.h>
 #include "hammer_lib.h"
+#include "real_time_queue.h"
 
 
 
@@ -27,9 +28,6 @@ int rt_queue_hw_done;
 int rt_queue_size = MAX_PACKETS_IN_RT_QUEUE + 5; // to check that init was called
 //#define QUEUE_WORK_IN_PROGRESS 20
 
-
-int one_done_sw_rt_queue(RT_JOB *work);
-void push_work_rsp(RT_JOB* work);
 
 
 RT_JOB* peak_rt_queue(uint8_t hw_id) {

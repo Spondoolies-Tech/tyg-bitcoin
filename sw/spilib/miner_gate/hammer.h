@@ -289,13 +289,13 @@ typedef struct {
 	FAN_LEVEL fan_level;
 
 	// How many WINs we got
-    uint32_t solved_jobs;
+    uint32_t solved_jobs_total;
 	// random checking of ASICs to see utilisation.
 	uint32_t idle_probs;
 	uint32_t busy_probs;
 
 	// Pause all miner work to save electricity
-	uint8_t  pause_miner;
+	uint8_t  asics_shut_down_powersave;
 	uint32_t not_mining_counter; // in seconds how long we are not mining
 
 	// ac2dc current and temperature

@@ -40,7 +40,6 @@
 
 using namespace std;
 pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
-int drop_job_requests = 0;
 int noasic = 0;
 int enable_scaling = 1;
 
@@ -187,7 +186,7 @@ int has_work_req() {
 void push_work_req(minergate_do_job_req* req, minergate_adapter* adapter) {
     pthread_mutex_lock(&network_hw_mutex);
 
-    if (drop_job_requests || adapter->work_minergate_req.size() >= (MINERGATE_TOTAL_QUEUE - 10)) {
+    if (adapter->work_minergate_req.size() >= (MINERGATE_TOTAL_QUEUE - 10)) {
         minergate_do_job_rsp rsp;
         rsp.mrkle_root = req->mrkle_root;
         rsp.winner_nonce = 0;
@@ -221,10 +220,9 @@ int pull_work_rsp(minergate_do_job_rsp* r, minergate_adapter* adapter) {
 //
 void* connection_handler_thread(void* adptr)
 {
-	printf("New adapter connected -1!\n");
+	printf("New adapter connected!\n");
 	minergate_adapter* adapter = ( minergate_adapter*)adptr;
 	//DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
-	printf("New adapter connected 0!\n");
 
     adapter->adapter_id = 0;
     adapters[0] = adapter;
@@ -233,18 +231,15 @@ void* connection_handler_thread(void* adptr)
 
 	vm.idle_probs = 0;
 	vm.busy_probs = 0;
-	vm.solved_jobs = 0;
-	printf("New adapter connected 1!\n");
+	vm.solved_jobs_total = 0;
 
      if (!noasic) {
-	 	 printf("Adapter connected, pop all jobs.");
          RT_JOB work;
 		
          while(one_done_sw_rt_queue(&work)) {
              push_work_rsp(&work);
          }
      }
-	 printf("New adapter connected 2!\n");
      // (minergate_adapter*)malloc(sizeof(minergate_adapter));
      int nbytes;
      
@@ -252,15 +247,13 @@ void* connection_handler_thread(void* adptr)
      //minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
      //Read packet
      while((nbytes = read(adapter->connection_fd, (void*)adapter->last_req, sizeof( minergate_req_packet))) > 0) {
-		 printf("New adapter connected 3!\n");
-
 		 if (nbytes) {
                 //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
                 passert(adapter->last_req->magic == 0xcaf4);
 				
 				pthread_mutex_lock(&network_hw_mutex);
 				vm.not_mining_counter = 0;
-				if (vm.pause_miner) {
+				if (vm.asics_shut_down_powersave) {
 					unpause_all_mining_engines();
 				}
 				pthread_mutex_unlock(&network_hw_mutex);

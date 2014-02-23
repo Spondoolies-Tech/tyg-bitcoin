@@ -103,7 +103,7 @@ void auto_select_fan_level() {
 			set_fan_level(FAN_LEVEL_HIGH);
 		}
 	} else {
-		if (vm.fan_level != FAN_LEVEL_LOW && vm.pause_miner) {
+		if (vm.fan_level != FAN_LEVEL_LOW && vm.asics_shut_down_powersave) {
 			set_fan_level(FAN_LEVEL_LOW);
 		}
 	}
