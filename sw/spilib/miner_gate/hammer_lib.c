@@ -358,6 +358,8 @@ int allocate_addresses_to_devices() {
       for (h = 0; h < HAMMERS_PER_LOOP; h++) {
         uint16_t addr = (l * HAMMERS_PER_LOOP + h);
         vm.hammer[l * HAMMERS_PER_LOOP + h].address = addr;
+        vm.hammer[l * HAMMERS_PER_LOOP + h].loop_address = l;
+          
         printf(ANSI_COLOR_MAGENTA
                "TODO TODO Find bad engines in ASICs!\n" ANSI_COLOR_RESET);
         if (read_reg_broadcast(ADDR_BR_NO_ADDR)) {
@@ -383,6 +385,7 @@ int allocate_addresses_to_devices() {
             passert(0);
           }
           vm.hammer[l * HAMMERS_PER_LOOP + h].address = addr;
+          vm.hammer[l * HAMMERS_PER_LOOP + h].loop_address = l;
           vm.hammer[l * HAMMERS_PER_LOOP + h].asic_present = 0;
           nvm.asic_ok[l * HAMMERS_PER_LOOP + h] = 0;
           nvm.working_engines[l * HAMMERS_PER_LOOP + h] = 0;
@@ -516,7 +519,6 @@ void fill_random_work(RT_JOB *work) {
 }*/
 
 void init_scaling();
-int update_top_current_measurments();
 int update_i2c_temperature_measurments();
 
 int init_hammers() {
@@ -538,7 +540,7 @@ int init_hammers() {
 }
 
 // returns 1 on success
-int do_bist_ok(bool with_current_measurment) {
+int do_bist_ok() {
   printf("Doing bist!\n");
   static int bist_id = 0;
   bist_id = 1 - bist_id; // 0,1,0,1,0,1...
@@ -595,10 +597,7 @@ int do_bist_ok(bool with_current_measurment) {
     passert(0);
   }
 
-  // TODO - update this timing to work.
-  if (with_current_measurment) {
-    update_top_current_measurments();
-  }
+ 
 
   // POLL RESULT
   enable_reg_debug = 0;
@@ -732,7 +731,8 @@ void once_second_tasks() {
       pause_all_mining_engines();
     }
   } else {
-    update_top_current_measurments();
+    update_dc2dc_current_measurments();
+    update_ac2dc_current_measurments();
   }
 
   pthread_mutex_unlock(&network_hw_mutex);
@@ -865,7 +865,7 @@ void *squid_regular_state_machine(void *p) {
   printf("Starting squid_regular_state_machine!\n");
   flush_spi_write();
 
-  if (!do_bist_ok(true)) {
+  if (!do_bist_ok()) {
     printf("Init BIST failure!\n");
     passert(0);
   }

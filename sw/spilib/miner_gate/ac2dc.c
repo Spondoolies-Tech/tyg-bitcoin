@@ -158,15 +158,19 @@ int ac2dc_get_eeprom(int offset, int *pError) {
   return b;
 }
 
-
-
-int ac2dc_spare_power() {
-  // TODO
-  int spare_ac2dc_current = (AC2DC_POWER_GREEN_LINE - vm.ac2dc_current);
-  if (vm.ac2dc_temp == 0 ||
-      vm.ac2dc_temp >= AC2DC_TEMP_GREEN_LINE) {
-    return 0;
+// Return 1 if needs urgent scaling
+int update_ac2dc_current_measurments() {
+  int err;
+  if (!vm.asics_shut_down_powersave) {
+    int current = ac2dc_get_power();
+    if (current >= AC2DC_CURRENT_TRUSTWORTHY && 
+      vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {
+      vm.ac2dc_current = current;
+    } else {
+      vm.ac2dc_current = 0;
+    }
   }
-  return spare_ac2dc_current;
+  return 0;
 }
+
 

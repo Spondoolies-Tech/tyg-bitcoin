@@ -378,9 +378,9 @@ void test_harel() {
 
   if (!noasic) {
     printf("Running BISTs... :");
-    printf(do_bist_ok(false) ? " OK" : " FAIL");
-    printf(do_bist_ok(false) ? " OK" : " FAIL");
-    printf(do_bist_ok(false) ? " OK\n" : " FAIL\n");
+    printf(do_bist_ok() ? " OK" : " FAIL");
+    printf(do_bist_ok() ? " OK" : " FAIL");
+    printf(do_bist_ok() ? " OK\n" : " FAIL\n");
   }
   for (int l = 0; l < LOOP_COUNT; l++) {
     for (int h = 0; h < HAMMERS_PER_LOOP; h++) {

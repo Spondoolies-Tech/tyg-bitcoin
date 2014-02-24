@@ -37,7 +37,7 @@ void dc2dc_disable_dc2dc(int loop, int *err);
 void dc2dc_enable_dc2dc(int loop, int *err);
 void dc2dc_print();
 void dc2dc_init();
-int dc2dc_spare_power(int l);
+int update_dc2dc_current_measurments();
 
 // in takes 0.2second for voltage to be stable.
 // Remember to wait after you exit this function

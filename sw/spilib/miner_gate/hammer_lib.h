@@ -34,7 +34,7 @@ int one_done_sw_rt_queue(RT_JOB *work);
 void *squid_regular_state_machine(void *p);
 int init_hammers();
 void init_scaling();
-int do_bist_ok(bool with_current_measurment);
+int do_bist_ok();
 uint32_t crc32(uint32_t crc, const void *buf, size_t size);
 void enable_nvm_loops();
 void enable_voltage_freq_and_engines_from_nvm();

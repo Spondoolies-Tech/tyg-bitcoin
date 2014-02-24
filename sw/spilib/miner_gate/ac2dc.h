@@ -6,9 +6,9 @@
 
 #define MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT 200
 
-#define AC2DC_POWER_TRUSTWORTHY (200)
-#define AC2DC_POWER_GREEN_LINE (1040)
-#define AC2DC_POWER_RED_LINE (1080)
+#define AC2DC_CURRENT_TRUSTWORTHY (200)
+#define AC2DC_CURRENT_GREEN_LINE (1040)
+#define AC2DC_CURRENT_RED_LINE (1080)
 
 int ac2dc_get_power();
 unsigned char ac2dc_get_eeprom_quick(int offset, int *pError = 0);
@@ -23,7 +23,7 @@ typedef struct {
 int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd);
 int ac2dc_get_temperature(); // 0,1,2
 void ac2dc_print();
-int ac2dc_spare_power();
+int update_ac2dc_current_measurments();
 
 /*
  typedef enum {

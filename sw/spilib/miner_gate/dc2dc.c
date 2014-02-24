@@ -163,6 +163,27 @@ void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err) {
   dc2dc_i2c_close();
 }
 
+// Return 1 if needs urgent scaling
+int update_dc2dc_current_measurments() {
+  int err;
+  if (!vm.asics_shut_down_powersave) {
+    for (int i = 0; i < LOOP_COUNT; i++) {
+      int current = dc2dc_get_current_16s_of_amper(i, &err);
+      if (current >= DC2DC_POWER_TRUSTWORTHY && 
+          vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_DC2DC_MEASUREMENT) {
+        vm.loop[i].dc2dc.dc_current_16s =
+                          dc2dc_get_current_16s_of_amper(i, &err);
+      } else {
+        // This will disable ac2dc scaling
+        vm.loop[i].dc2dc.dc_current_16s = 0;
+      }
+    }
+  }
+  return 0;
+}
+
+
+
 // returns AMPERS
 int dc2dc_get_current_16s_of_amper(int loop, int *err) {
   // TODO - select loop!
@@ -222,19 +243,4 @@ int dc2dc_get_temp(int loop, int *err) {
   return temp1;
 }
 
-
-// in 16s of amper
-int dc2dc_spare_power(int l) {
-  // TODO
-  int spare_dc2dc_current =
-      (DC2DC_CURRENT_GREEN_LINE_16S - vm.loop[l].dc2dc.dc_current_16s_of_amper);
-  if ((!vm.loop[l].enabled_loop) ||
-      (vm.loop[l].dc2dc.dc_current_16s_of_amper == 0) ||
-      (vm.loop[l].dc2dc.dc_temp >= DC2DC_TEMP_GREEN_LINE) ||
-      (spare_dc2dc_current < 0)) {
-    return 0;
-  }
-      
-  return spare_dc2dc_current;
-}
 

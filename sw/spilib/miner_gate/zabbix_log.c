@@ -33,7 +33,7 @@ void update_zabbix_stats() {
 
   for (int l = 0; l < LOOP_COUNT; l++) {
     zabbix_log.loops[l].voltage = nvm.loop_voltage[l];
-    zabbix_log.loops[l].current = vm.loop[l].dc2dc.dc_current_16s_of_amper;
+    zabbix_log.loops[l].current = vm.loop[l].dc2dc.dc_current_16s;
     zabbix_log.loops[l].temp = vm.loop[l].dc2dc.dc_temp;
     zabbix_log.loops[l].enabled = vm.loop[l].enabled_loop;
   }
@@ -135,7 +135,7 @@ void dump_zabbix_stats() {
       // json_mknumber(vm.loop[l].broken));
       json_append_member(
           loop, "loop_current",
-          json_mknumber(vm.loop[l].dc2dc.dc_current_16s_of_amper));
+          json_mknumber(vm.loop[l].dc2dc.dc_current_16s));
       json_append_member(loop, "loop_volt", json_mknumber(nvm.loop_voltage[l]));
 
       JsonNode *asic_address = json_mkarray();
@@ -158,7 +158,7 @@ void dump_zabbix_stats() {
       json_append_member(loop, "asic_temp", asic_temp);
       json_append_member(loop, "asic_wins", asic_wins);
 
-      // vm.loop[l].dc2dc.dc_current_16s_of_amper = 0;
+      // vm.loop[l].dc2dc.dc_current_16s = 0;
 
       for (h = 0; h < HAMMERS_PER_LOOP; h++) {
         HAMMER *ham = &vm.hammer[l * HAMMERS_PER_LOOP + h];
@@ -169,13 +169,13 @@ void dump_zabbix_stats() {
                             json_mknumber(nvm.asic_corner[ham->address]));
         json_append_element(asic_freq, json_mknumber(ham->freq));
         json_append_element(asic_max_freq,
-                            json_mknumber(nvm.top_freq[ham->address]));
+                            json_mknumber(ham->max_freq));
         json_append_element(asic_engines_on,
                             json_mknumber(ham->enabled_engines_mask));
         json_append_element(asic_temp, json_mknumber(ham->temperature));
         json_append_element(asic_wins, json_mknumber(ham->solved_jobs));
 
-        // vm.loop[l].dc2dc.dc_current_16s_of_amper += ham->freq;
+        // vm.loop[l].dc2dc.dc_current_16s += ham->freq;
         // vm.ac2dc_top_current += ham->freq;
       }
     }

@@ -223,6 +223,9 @@ typedef struct {
   uint8_t asic_present;
   // address - loop*8 + offset
   uint8_t address;
+  uint8_t loop_address;
+  uint8_t corner;
+  uint8_t max_freq;
   // Failed bists (set by "do_bist_ok()")
   uint8_t failed_bists;
   // Passed engines (set by "do_bist_ok()")
@@ -246,8 +249,7 @@ typedef struct {
 // 24 dc2dc
 typedef struct {
   uint8_t dc_temp;
-  uint32_t dc_current_16s_of_amper; // in 1/16 of amper. 0 = bad reading
-  int dc_spare_power;
+  int dc_current_16s; // in 1/16 of amper. 0 = bad reading
 } DC2DC;
 
 typedef struct {
@@ -279,8 +281,7 @@ typedef struct {
   uint32_t cosecutive_jobs;
   
   // ac2dc current and temperature
-  uint32_t ac2dc_current;  // in ampers. 0 = bad reading.
-  int ac2dc_spare_current; // in ampers.
+  int ac2dc_current;  // in ampers. 0 = bad reading.
   uint32_t ac2dc_temp;
 
   // our ASIC data
