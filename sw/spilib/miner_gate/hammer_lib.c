@@ -14,6 +14,8 @@
 #include <string.h>
 #include "ac2dc.h"
 #include "hammer_lib.h"
+#include "asic_thermal.h"
+
 #include <pthread.h>
 #include <spond_debug.h>
 #include <sys/time.h>
@@ -26,7 +28,7 @@ extern pthread_mutex_t network_hw_mutex;
 int total_devices = 0;
 int engines_per_device = 0;
 extern int enable_reg_debug;
-int cur_leading_zeroes = 0;
+int cur_leading_zeroes = 20;
 
 RT_JOB *add_to_sw_rt_queue(const RT_JOB *work);
 void reset_sw_rt_queue();
@@ -43,6 +45,7 @@ void hammer_iter_init(hammer_iter *e) {
   e->done = 0;
   e->h = -1;
   e->l = 0;
+  e->a = NULL;
 }
 
 int hammer_iter_next_present(hammer_iter *e) {
@@ -57,6 +60,7 @@ int hammer_iter_next_present(hammer_iter *e) {
         e->l++;
         if (e->l == LOOP_COUNT) {
           e->done = 1;
+          e->a = NULL;          
           return 0;
         }
       }
@@ -64,6 +68,7 @@ int hammer_iter_next_present(hammer_iter *e) {
 
     if (e->l == LOOP_COUNT) {
       e->done = 1;
+      e->a = NULL;
       return 0;
     }
 
@@ -71,7 +76,8 @@ int hammer_iter_next_present(hammer_iter *e) {
       found++;
     }
   }
-  e->addr = e->l * HAMMERS_PER_LOOP + e->h;
+  e->addr = e->l * HAMMERS_PER_LOOP + e->h;  
+  e->a = vm.hammer + e->addr;
   return 1;
 }
 
@@ -124,8 +130,10 @@ void stop_all_work() {
 }
 
 void resume_all_work() { 
-  vm.stopped_all_work = 0;
-  printf("------ Starting work again \n"); 
+  if (vm.stopped_all_work) {
+    vm.stopped_all_work = 0;
+    printf("------ Starting work again \n");
+  } 
 }
 
 void print_devreg(int reg, const char *name) {
@@ -136,7 +144,7 @@ void print_devreg(int reg, const char *name) {
   hammer_iter_init(&hi);
 
   while (hammer_iter_next_present(&hi)) {
-    printf("DEV-%04x:%8x ", vm.hammer[hi.addr].address,
+    printf("DEV-%04x:%8x ", hi.a->address,
            read_reg_device(hi.addr, reg));
   }
   printf("  %s\n", name);
@@ -174,8 +182,8 @@ void parse_int_register(const char *label, int reg) {
     printf("1_OVER ");
   if (reg & BIT_INTR_1_UNDER)
     printf("1_UNDER ");
-  if (reg & BIT_INTR_RESERVED2)
-    printf("RESERVED2 ");
+  if (reg & BIT_INTR_PLL_NOT_READY)
+    printf("PLL_NOT_READY ");
   printf("\n");
 }
 
@@ -183,7 +191,6 @@ void print_state() {
   uint32_t i;
   static int print = 0;
   print++;
-  enable_reg_debug = 0;
   dprintf("**************** DEBUG PRINT %x ************\n", print);
   print_devreg(ADDR_CURRENT_NONCE, "CURRENT NONCE");
   print_devreg(ADDR_BR_FIFO_FULL, "FIFO FULL");
@@ -262,16 +269,13 @@ void print_state() {
   parse_int_register("ADDR_INTR_SOURCE", read_reg_broadcast(ADDR_INTR_SOURCE));
 
   // print_engines();
-  enable_reg_debug = 0;
 }
 
 // Queues work to actual HW
 // returns 1 if found nonce
 void push_to_hw_queue(RT_JOB *work) {
   // ASSAF - JOBPUSH
-  int old_dbg;
-  old_dbg = enable_reg_debug;
-  enable_reg_debug = 0;
+  
   static int j = 0;
   int i;
   // printf("Push!\n");
@@ -292,19 +296,15 @@ void push_to_hw_queue(RT_JOB *work) {
   write_reg_broadcast(ADDR_JOB_ID, work->work_id_in_hw);
   write_reg_broadcast(ADDR_COMMAND, BIT_CMD_LOAD_JOB);
   flush_spi_write();
-  enable_reg_debug = old_dbg;
 }
 
 // destribute range between 0 and max_range
 void set_nonce_range_in_engines(unsigned int max_range) {
   int d, e;
   unsigned int current_nonce = 0;
-  // enable_reg_debug = 0;
   unsigned int engine_size;
-  engines_per_device = read_reg_broadcast(ADDR_ENGINES_PER_CHIP_BITS) & 0xFF;
+  engines_per_device = ENGINES_PER_ASIC;
   printf("%d engines found\n", engines_per_device);
-  int old_dbg = enable_reg_debug;
-  // enable_reg_debug = 0;
   printf("engines %x\n", engines_per_device);
   int total_engines = engines_per_device * total_devices;
   engine_size = ((max_range) / (total_engines));
@@ -325,7 +325,7 @@ void set_nonce_range_in_engines(unsigned int max_range) {
       current_nonce += engine_size;
     }
   }
-  // enable_reg_debug = 0;
+  //   
   flush_spi_write();
   // print_state();
 }
@@ -360,8 +360,7 @@ int allocate_addresses_to_devices() {
         vm.hammer[l * HAMMERS_PER_LOOP + h].address = addr;
         vm.hammer[l * HAMMERS_PER_LOOP + h].loop_address = l;
           
-        printf(ANSI_COLOR_MAGENTA
-               "TODO TODO Find bad engines in ASICs!\n" ANSI_COLOR_RESET);
+        printf(ANSI_COLOR_MAGENTA "TODO TODO Find bad engines in ASICs!\n" ANSI_COLOR_RESET);
         if (read_reg_broadcast(ADDR_BR_NO_ADDR)) {
           write_reg_broadcast(ADDR_CHIP_ADDR, addr);
           total_devices++;
@@ -421,7 +420,6 @@ void memprint(const void *m, size_t n) {
   }
 }
 
-void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t *p_value);
 
 int SWAP32(int x);
 void compute_hash(const unsigned char *midstate, unsigned int mrkle_root,
@@ -525,82 +523,122 @@ int init_hammers() {
   int i;
   // enable_reg_debug = 1;
   printf("VERSION SW:%x\n", 1);
-  enable_reg_debug = 0;
-  // Clearing all interrupts
+  // FOR FPGA ONLY!!! TODO
+  printf(ANSI_COLOR_RED "FPGA TODO REMOVE!\n" ANSI_COLOR_RESET);
+  write_reg_broadcast(ADDR_LEADER_ENGINE, 0x0);
   write_reg_broadcast(ADDR_SW_OVERRIDE_PLL, 0x1);
   write_reg_broadcast(ADDR_PLL_RSTN, 0x1);
+  
+  
+  // Clearing all interrupts
   write_reg_broadcast(ADDR_INTR_MASK, 0x0);
   write_reg_broadcast(ADDR_INTR_CLEAR, 0xffff);
   write_reg_broadcast(ADDR_INTR_CLEAR, 0x0);
-  write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-  write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+
+
   flush_spi_write();
   // print_state();
   return 0;
 }
 
+
+typedef struct {
+  uint32_t nonce_start;
+  uint32_t nonce_range;
+  uint32_t nonce_winner;
+  uint32_t midstate[8];
+  uint32_t mrkl;
+  uint32_t timestamp;
+  uint32_t difficulty;
+  uint32_t leading;
+} BIST_VECTOR;
+
+
+#define TOTAL_BISTS 8
+BIST_VECTOR bist_tests[TOTAL_BISTS] = 
+{
+{0x1DAC2B7C - 0x10000,0x00100000,0x1DAC2B7C,
+  {0xBC909A33,0x6358BFF0,0x90CCAC7D,0x1E59CAA8,0xC3C8D8E9,0x4F0103C8,0x96B18736,0x4719F91B},
+    0x4B1E5E4A,0x29AB5F49,0xFFFF001D,0x26},
+
+{0x227D01DA - 0x10000,0x00100000,0x227D01DA,
+  {0xD83B1B22,0xD5CEFEB4,0x17C68B5C,0x4EB2B911,0x3C3D668F,0x5CCA92CA,0x80E63EEC,0x77415443},
+    0x31863FE8,0x68538051,0x3DAA011A,0x20},
+    
+{0x481df739 - 0x10000  ,0x00100000,0x481df739,
+  {0x4a41f9ac,0x30309e3f,0x06d49e05,0x938f5ceb,0x90ef75e3,0x94fb77e4,0x9e851664,0x3a89aa95},
+  0x73ae0eb3, 0xb8d6fb46, 0xf72e17e4, 36},
+
+
+{  0xbf9d8004 - 0x10000  ,0x00100000,0xbf9d8004,
+  { 0x55a41303,0xeea9d4d3,0x39aa38f4,0x985a231f,0xbea0d01f,0x23218acc,0x08c65f3f,0x9535c3f7},
+  0x86fb069c, 0xb0a01a68, 0xaf7f89b0, 36},
+
+
+{0xbbff18c5 - 0x1000  ,0x00100000,0xbbff18c5,
+  {0x02c397d8,0xececa9bc,0xc31e67f0,0x9a6c1b50,0x684206bc,0xd09e1e48,0x32a30c61,0x4f7f9717},
+0xb9a63c7e,0x0fa4fe30,0x7ebf0578,34},
+
+
+
+{  0x331f38d8 - 0x10000  ,0x00100000,0x331f38d8,
+  { 0x72608c6a,0xb1dae622,0x74e0fd9d,0x80af02b4,0x0d3c4f66,0x3a0868d6,0x30d6d1cd,0x54b0e059},
+  0x4dc7d05e, 0x45716f49, 0x25b433d9, 36},
+
+{ 0x339bc585 - 0x10000  ,0x00100000,0x339bc585,
+  { 0xa40ebbec,0x6aa3645e,0xc0ef8027,0xb83c0010,0x0eeda850,0xbc407eae,0x0d892b47,0x6b1f7541},
+  0xd6b747c9, 0xd12764f2, 0xd026d972, 35},
+
+{  0xbbed44a1  - 0x10000  ,0x00100000,0xbbed44a1 ,
+  {   0x0dd441c1,0x5802c0da,0xf2951ee4,0xd77909da,0xb25c02cb,0x009b6349,0xfe2d9807,0x257609a8 },
+  0x5064218c, 0x57332e1b, 0xcef3abae, 35}
+
+
+};
+
+
 // returns 1 on success
 int do_bist_ok() {
-  printf("Doing bist!\n");
-  static int bist_id = 0;
-  bist_id = 1 - bist_id; // 0,1,0,1,0,1...
+  // Choose random bist.
+  static int bist_id = 2;
+  int next_bist;
+  do {
+    next_bist = rand()%TOTAL_BISTS;
+  } while (next_bist == bist_id);
+  bist_id = next_bist;
+ 
 
-  int old_dbg;
+  
   int poll_counter = 0;
-  old_dbg = enable_reg_debug;
-  enable_reg_debug = 0;
+     
   // Enter BIST mode
   write_reg_broadcast(ADDR_CONTROL_SET1, BIT_CTRL_BIST_MODE);
   poll_counter = 0;
 
+
   // Give BIST job
-  if (bist_id == 0) {
-    write_reg_broadcast(ADDR_BIST_NONCE_START, 0x1DAC0000);
-    write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 0x00010000);
-    write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, 0x1DAC2B7C); // 0x1DAC2B7C
-    write_reg_broadcast(ADDR_MID_STATE + 0, 0xBC909A33);
-    write_reg_broadcast(ADDR_MID_STATE + 1, 0x6358BFF0);
-    write_reg_broadcast(ADDR_MID_STATE + 2, 0x90CCAC7D);
-    write_reg_broadcast(ADDR_MID_STATE + 3, 0x1E59CAA8);
-    write_reg_broadcast(ADDR_MID_STATE + 4, 0xC3C8D8E9);
-    write_reg_broadcast(ADDR_MID_STATE + 5, 0x4F0103C8);
-    write_reg_broadcast(ADDR_MID_STATE + 6, 0x96B18736);
-    write_reg_broadcast(ADDR_MID_STATE + 7, 0x4719F91B);
-    write_reg_broadcast(ADDR_MERKLE_ROOT, 0x4B1E5E4A);
-    write_reg_broadcast(ADDR_TIMESTEMP, 0x29AB5F49);
-    write_reg_broadcast(ADDR_DIFFICULTY, 0xFFFF001D);
-    write_reg_broadcast(ADDR_WIN_LEADING_0, 0x26);
-    write_reg_broadcast(ADDR_JOB_ID, 0xEE);
-    write_reg_broadcast(ADDR_COMMAND, BIT_CMD_LOAD_JOB);
-    flush_spi_write();
-  } else if (bist_id == 1) {
-    write_reg_broadcast(ADDR_BIST_NONCE_START, 0x227D0000);
-    write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 0x00010000);
-    write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, 0x227D01DA /*0x227D01DA*/);
+  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_start);
+  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, bist_tests[bist_id].nonce_range);
+  write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, bist_tests[bist_id].nonce_winner); // 0x1DAC2B7C
+  write_reg_broadcast(ADDR_MID_STATE + 0, bist_tests[bist_id].midstate[0]);
+  write_reg_broadcast(ADDR_MID_STATE + 1, bist_tests[bist_id].midstate[1]);
+  write_reg_broadcast(ADDR_MID_STATE + 2, bist_tests[bist_id].midstate[2]);
+  write_reg_broadcast(ADDR_MID_STATE + 3, bist_tests[bist_id].midstate[3]);
+  write_reg_broadcast(ADDR_MID_STATE + 4, bist_tests[bist_id].midstate[4]);
+  write_reg_broadcast(ADDR_MID_STATE + 5, bist_tests[bist_id].midstate[5]);
+  write_reg_broadcast(ADDR_MID_STATE + 6, bist_tests[bist_id].midstate[6]);
+  write_reg_broadcast(ADDR_MID_STATE + 7, bist_tests[bist_id].midstate[7]);
+  write_reg_broadcast(ADDR_MERKLE_ROOT, bist_tests[bist_id].mrkl);
+  write_reg_broadcast(ADDR_TIMESTEMP, bist_tests[bist_id].timestamp);
+  write_reg_broadcast(ADDR_DIFFICULTY, bist_tests[bist_id].difficulty);
+  write_reg_broadcast(ADDR_WIN_LEADING_0, bist_tests[bist_id].leading);
+  write_reg_broadcast(ADDR_JOB_ID, 0xEE);
+  write_reg_broadcast(ADDR_COMMAND, BIT_CMD_LOAD_JOB);
 
-    write_reg_broadcast(ADDR_MID_STATE + 0, 0xD83B1B22);
-    write_reg_broadcast(ADDR_MID_STATE + 1, 0xD5CEFEB4);
-    write_reg_broadcast(ADDR_MID_STATE + 2, 0x17C68B5C);
-    write_reg_broadcast(ADDR_MID_STATE + 3, 0x4EB2B911);
-    write_reg_broadcast(ADDR_MID_STATE + 4, 0x3C3D668F);
-    write_reg_broadcast(ADDR_MID_STATE + 5, 0x5CCA92CA);
-    write_reg_broadcast(ADDR_MID_STATE + 6, 0x80E63EEC);
-    write_reg_broadcast(ADDR_MID_STATE + 7, 0x77415443);
-    write_reg_broadcast(ADDR_MERKLE_ROOT, 0x31863FE8);
-    write_reg_broadcast(ADDR_TIMESTEMP, 0x68538051);
-    write_reg_broadcast(ADDR_DIFFICULTY, 0x3DAA011A);
-    write_reg_broadcast(ADDR_WIN_LEADING_0, 0x20);
-    write_reg_broadcast(ADDR_JOB_ID, 0xEE);
-    write_reg_broadcast(ADDR_COMMAND, BIT_CMD_LOAD_JOB);
-    flush_spi_write();
-  } else {
-    passert(0);
-  }
+  flush_spi_write();
 
- 
 
-  // POLL RESULT
-  enable_reg_debug = 0;
+  // POLL RESULT    
   poll_counter = 0;
   // usleep(10);
   int res;
@@ -614,10 +652,10 @@ int do_bist_ok() {
     if (i % 3000 == 0) {
       printf("Waiting on bist ADDR_BR_CONDUCTOR_BUSY %x\n", res);
       print_state();
+      passert(0);
+      //return 0;
     }
-  }
-
-  enable_reg_debug = 0;
+  }    
 
   // Exit BIST
   int bist_fail;
@@ -629,67 +667,33 @@ int do_bist_ok() {
     h->passed_last_bist_engines = read_reg_device(failed_addr, ADDR_BIST_PASS);
     // printf("Writing %x to %x because read %d\n", BIT_INTR_BIST_FAIL,
     // failed_addr, bist_fail);
+    printf(ANSI_COLOR_RED "FailedBist %d on address %d, PASSED engines:%x\n" ANSI_COLOR_RESET,bist_id, failed_addr, h->passed_last_bist_engines);
     write_reg_device(failed_addr, ADDR_INTR_CLEAR, BIT_INTR_BIST_FAIL);
     write_reg_device(failed_addr, ADDR_INTR_CLEAR, BIT_INTR_WIN);
     write_reg_device(failed_addr, ADDR_CONTROL_SET0, BIT_CTRL_BIST_MODE);
     // print_devreg(ADDR_INTR_RAW , "ADDR_INTR_RAW ");
+    failed++;
+    //assert(0);
 
-    failed = 1;
+  }
+ 
+
+  if (!failed) {
+    printf(ANSI_COLOR_GREEN "Passed BIST %d:\n" ANSI_COLOR_RESET, bist_id);
   }
 
-  write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-  write_reg_broadcast(ADDR_INTR_CLEAR, BIT_INTR_BIST_FAIL);
+  // write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
+  // write_reg_broadcast(ADDR_INTR_CLEAR, BIT_INTR_BIST_FAIL);
   write_reg_broadcast(ADDR_INTR_CLEAR, BIT_INTR_WIN);
   write_reg_broadcast(ADDR_CONTROL_SET0, BIT_CTRL_BIST_MODE);
   write_reg_broadcast(ADDR_WIN_LEADING_0, cur_leading_zeroes);
   flush_spi_write();
-  enable_reg_debug = old_dbg;
   return !failed;
 }
 
 int pull_work_req(RT_JOB *w);
 void print_adapter();
 int has_work_req();
-
-void read_some_asic_temperatures(int loop, ASIC_TEMP temp_measure_temp) {
-  if (!vm.loop[loop].enabled_loop) {
-    return;
-  }
-  
-  uint32_t val[HAMMERS_PER_LOOP];
-  // printf("T:%d L:%d\n",temp_measure_temp, loop);
-
-  // Push temperature measurment to the whole loop
-  // read_reg_device(uint16_t cpu,uint8_t offset)
-  write_reg_broadcast(ADDR_TS_SET_0, temp_measure_temp-1);
-  write_reg_broadcast(ADDR_COMMAND, BIT_CMD_TS_RESET_0);
-  for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
-    HAMMER *a = &vm.hammer[loop * HAMMERS_PER_LOOP + h];
-    val[h] = 0;
-    if (a->asic_present) {
-      push_hammer_read(a->address, ADDR_TS_DATA_0, &(val[h]));
-    }
-  }
-  squid_wait_hammer_reads();
-  
-  for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
-    HAMMER *a = &vm.hammer[loop * HAMMERS_PER_LOOP + h];
-    if (a->asic_present) {
-      if (val[h]) { 
-        // This ASIC is at least this temperature high
-        if (a->temperature < temp_measure_temp) {
-          a->temperature = temp_measure_temp;
-        }
-      } else { 
-        // ASIC is colder then this temp!
-        if (a->temperature > temp_measure_temp) {
-          a->temperature = (ASIC_TEMP)(temp_measure_temp-1);
-        }
-      }
-      DBG(DBG_SCALING, "UPDATED a[%x] to %d\n", a->address, a->temperature);
-    }
-  }
-}
 
 int last_second_jobs;
 int last_alive_jobs;
@@ -805,16 +809,16 @@ void once_25000_usec_tasks() {
   // We complete full cycle of all loops all temperatures over 6 seconds
   static int temp_measure_loop = 0;
   static ASIC_TEMP temp_measure_temp = ASIC_TEMP_83;
-  read_some_asic_temperatures(temp_measure_loop, temp_measure_temp);
+  read_some_asic_temperatures(temp_measure_loop, temp_measure_temp, (ASIC_TEMP)(temp_measure_temp+1));
   // Progress loop and (maybe) temperature
   temp_measure_loop = (temp_measure_loop + 1) % LOOP_COUNT;
   if (temp_measure_loop == 0) {
-    temp_measure_temp=(ASIC_TEMP)(temp_measure_temp+1);
-    if (temp_measure_temp == ASIC_TEMP_COUNT) {
+    temp_measure_temp=(ASIC_TEMP)(temp_measure_temp+2);
+    if (temp_measure_temp >= ASIC_TEMP_COUNT) {
       temp_measure_temp = ASIC_TEMP_83;
     }
   }
-  if (temp_measure_temp == ASIC_TEMP_83 &&
+  if (temp_measure_temp >= ASIC_TEMP_83 &&
       temp_measure_loop == 0) {
     printf("Temperature cycle - done.\n");
   }
@@ -860,10 +864,18 @@ void once_2500_usec_tasks() {
 // never returns - thread
 void *squid_regular_state_machine(void *p) {
   reset_sw_rt_queue();
-  enable_reg_debug = 0;
+    
   int loop = 0;
   printf("Starting squid_regular_state_machine!\n");
   flush_spi_write();
+
+  // Do BIST before start
+  hammer_iter hi;
+  hammer_iter_init(&hi);
+  while (hammer_iter_next_present(&hi)) {
+    hi.a->failed_bists = 0;
+    hi.a->passed_last_bist_engines = ALL_ENGINES_BITMASK;
+  }
 
   if (!do_bist_ok()) {
     printf("Init BIST failure!\n");
@@ -881,16 +893,16 @@ void *squid_regular_state_machine(void *p) {
   gettimeofday(&last_force_queue, NULL);
   gettimeofday(&tv, NULL);
   int usec;
-  //  enable_reg_debug = 0;
+  //    
   for (;;) {
     gettimeofday(&tv, NULL);
     usec = (tv.tv_sec - last_job_pushed.tv_sec) * 1000000;
     usec += (tv.tv_usec - last_job_pushed.tv_usec);
 
-    if (usec >= 2500) { // new job every 2.5 msecs = 400 per second
+    if (usec >= JOB_PUSH_PERIOD_US) { // new job every 2.5 msecs = 400 per second
       once_2500_usec_tasks();
       last_job_pushed = tv;
-      int drift = usec - 2500;
+      int drift = usec - JOB_PUSH_PERIOD_US;
       if (last_job_pushed.tv_usec > drift) {
         last_job_pushed.tv_usec -= drift;
       }
@@ -900,7 +912,7 @@ void *squid_regular_state_machine(void *p) {
     // NEEDED ONLY ON FPGA!! TODO REMOVE!!
     usec = (tv.tv_sec - last_force_queue.tv_sec) * 1000000;
     usec += (tv.tv_usec - last_force_queue.tv_usec);
-    if (usec >= 10000) {
+    if (usec >= JOB_PUSH_PERIOD_US*4) {
       // printf("-");
       // move job forward every 10 milli
       // TODO - remove!!
@@ -909,6 +921,6 @@ void *squid_regular_state_machine(void *p) {
     }
 
     // print_state();
-    usleep(250);
+    usleep(JOB_PUSH_PERIOD_US/10);
   }
 }

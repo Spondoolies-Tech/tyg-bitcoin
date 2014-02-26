@@ -6,8 +6,9 @@
 void periodic_upscale_task();
 void decrease_asics_freqs();
 void enable_engines_from_nvm();
+int test_serial(int loopid);
 
 #define TIME_FOR_DLL_USECS  1000
-#define MIN_COSECUTIVE_JOBS_FOR_SCALING 200
+#define MIN_COSECUTIVE_JOBS_FOR_SCALING 400
 
 #endif

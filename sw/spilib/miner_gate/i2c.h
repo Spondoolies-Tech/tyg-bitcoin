@@ -35,15 +35,17 @@
 #define I2C_DC2DC 0x1b
 #define PRIMARY_TESTBOARD_SWITCH 0x75
 
-void i2c_init(int *pError = NULL);
-uint8_t i2c_read(uint8_t addr, int *pError = NULL);
-void i2c_write(uint8_t addr, uint8_t value, int *pError = NULL);
-uint8_t i2c_read_byte(uint8_t addr, uint8_t command, int *pError = NULL);
+extern int ignorable_err;
+
+void i2c_init(int *pError = &ignorable_err);
+uint8_t i2c_read(uint8_t addr, int *pError = &ignorable_err);
+void i2c_write(uint8_t addr, uint8_t value, int *pError = &ignorable_err);
+uint8_t i2c_read_byte(uint8_t addr, uint8_t command, int *pError = &ignorable_err);
 void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value,
-                    int *pError = NULL);
-uint16_t i2c_read_word(uint8_t addr, uint8_t command, int *pError = NULL);
+                    int *pError = &ignorable_err);
+uint16_t i2c_read_word(uint8_t addr, uint8_t command, int *pError = &ignorable_err);
 void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value,
-                    int *pError = NULL);
+                    int *pError = &ignorable_err);
 
 uint16_t read_mgmt_temp();
 

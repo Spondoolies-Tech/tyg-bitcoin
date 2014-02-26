@@ -89,5 +89,6 @@ uint32_t read_reg_broadcast(uint8_t offset);
     OFFSET = ADDR % HAMMERS_PER_LOOP;                                          \
   }
 #define ASIC_GET_BY_ADDR(ADDR) (&vm.hammer[ADDR])
+extern int enable_reg_debug;
 
 #endif

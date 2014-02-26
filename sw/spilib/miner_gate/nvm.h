@@ -76,6 +76,7 @@ typedef enum {
   ASIC_TEMP_COUNT = 9,
 } ASIC_TEMP;
 
+
 typedef struct _spondoolies_nvm {
   // Fore competibility tests.
   uint32_t nvm_version;

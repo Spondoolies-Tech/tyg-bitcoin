@@ -12,6 +12,7 @@ typedef struct {
   int h;
   int addr;
   int done;
+  HAMMER *a;
 } hammer_iter;
 
 typedef struct {
@@ -38,17 +39,16 @@ int do_bist_ok();
 uint32_t crc32(uint32_t crc, const void *buf, size_t size);
 void enable_nvm_loops();
 void enable_voltage_freq_and_engines_from_nvm();
-void enable_voltage_freq_and_engines_default();
+void set_safe_voltage_and_frequency();
+void restore_nvm_voltage_and_frequency();
+void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t *p_value);
 
-void recompute_corners_and_voltage_update_nvm();
 void spond_save_nvm();
 void create_default_nvm();
-void find_bad_engines_update_nvm();
 int enable_nvm_loops_ok();
 int allocate_addresses_to_devices();
 void set_nonce_range_in_engines(unsigned int max_range);
 void enable_all_engines_all_asics();
-void discover_good_loops_update_nvm();
 void periodic_bist_task();
 
 #endif

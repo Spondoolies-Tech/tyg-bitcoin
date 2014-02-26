@@ -87,7 +87,7 @@
 #define AC2DC_I2C_CML_PCK_ERR_CHK_FLT (1 << 5)
 #define AC2DC_I2C_CML_MEM_FLT_DETECTED (1 << 4)
 #define AC2DC_I2C_CML_PROC_FLT_DETECTED (1 << 3)
-//#define Reserved			(1 << 2)
+//#define Reserved      (1 << 2)
 #define AC2DC_I2C_CML_OTHER_COMM_FLT (1 << 1)
 #define AC2DC_I2C_CML_OTHER_MEM_FLT (1 << 0)
 
