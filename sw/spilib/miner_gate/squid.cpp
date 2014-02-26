@@ -26,7 +26,7 @@ static int fd = 0;
 int assert_serial_failures = true;
 int spi_ioctls_read = 0;
 int spi_ioctls_write = 0;
-int enable_reg_debug = 0;
+int   enable_reg_debug;
 
 #define SPI_CMD_READ 0x01
 #define SPI_CMD_WRITE 0x41
@@ -256,11 +256,6 @@ void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t *p_value) {
   create_serial_pkt(&d1, &d2, offset, 1, addr, 0, GENERAL_BITS_COMPLETION);
   // printf("---> %x %x\n",d1,d2);
   push_hammer_serial_packet_to_hw(d1, d2);
-
-  if (enable_reg_debug) {
-    printf("READ CMD  %04x:%02x = ???????? (%08x %08x)\n", addr, offset, d1,
-           d2);
-  }
 }
 
 void push_hammer_write(uint32_t addr, uint32_t offset, uint32_t value) {
@@ -282,8 +277,7 @@ void push_hammer_write(uint32_t addr, uint32_t offset, uint32_t value) {
   // printf("---> %x %x\n",d1,d2);
   push_hammer_serial_packet_to_hw(d1, d2);
   if (enable_reg_debug) {
-    printf("WRITE CMD %04x:%02x = %08x (%08x %08x)\n", addr, offset, value, d1,
-           d2);
+    printf("./reg h %x %x %x\n", addr, offset, value);
   }
 }
 
@@ -310,7 +304,7 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
       printf("FAILED TO READ 0x%x 0x%x\n", address, offset);
       passert(0);
     } else {
-      // printf("FAILED TO READ 0x%x 0x%x\n",address,offset);
+      printf("Rx queue timeout.\n");
       return 0;
     }
   }
@@ -340,8 +334,7 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
       ((values[0] & 0x3F) << (32 - 6)) | ((values[1] >> 6) & 0x03FFFFFF);
 
   if (enable_reg_debug) {
-    printf("READ RSP  %04x:%02x = %08x : (%08x %08x)\n", address, offset, value,
-           values[0], values[1]);
+    printf("./reg h %x %x  #=%x\n", address, offset, value);
   }
 
   return value;

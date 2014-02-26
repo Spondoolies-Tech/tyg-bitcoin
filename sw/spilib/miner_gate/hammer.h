@@ -27,7 +27,7 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 #define BROADCAST_ADDR 0xffff
 
 //#define FIRST_CHIP_ADDR                 0xAAA
-#define ENGINES_PER_ASIC 1
+#define ENGINES_PER_ASIC 15
 
 #define ADDR_CHIP_ADDR 0x0
 #define ADDR_GOT_ADDR 0x1
@@ -52,6 +52,11 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 #define ADDR_CONTROL_SET0 0x6
 #define ADDR_CONTROL_SET1 0x7
 
+
+#define ADDR_TS_RSTN_0 0xe
+#define ADDR_TS_RSTN_1 0xf
+
+
 #define ADDR_PLL_FIX 0x10
 #define ADDR_PLL_CONFIG 0x11
 #define ADDR_PLL_ENABLE 0x12
@@ -66,13 +71,14 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 #define ADDR_PLL_RESET 0x1a
 #define ADDR_PLL_STATUS 0x1b
 #define ADDR_TS_SET_0 0x1c // 0:2 setting, 3: thermal shutdown
+#define ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE 0x8
 #define ADDR_TS_SET_1 0x1d
 #define ADDR_TS_DATA_0 0x1e
 #define ADDR_TS_DATA_1 0x1f
 
 #define ADDR_TS_EN_0 0x20
 #define ADDR_TS_EN_1 0x21
-#define ADDR_SHUTDOWN_ACTION 0x22
+#define ADDR_SHUTDOWN_ACTION 0x22 
 #define ADDR_PLL_DIV_DISABLE 0x23
 #define ADDR_DLL_OVERRIDE_CFG_LOW 0x24
 #define ADDR_DLL_OVERRIDE_CFG_HIGH 0x25
@@ -103,7 +109,7 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 #define BIT_INTR_0_UNDER 0x1000
 #define BIT_INTR_1_OVER 0x2000
 #define BIT_INTR_1_UNDER 0x4000
-#define BIT_INTR_RESERVED2 0x8000
+#define BIT_INTR_PLL_NOT_READY 0x8000
 //////////////////////
 
 #define ADDR_PLL_RSTN 0x1A
@@ -127,12 +133,12 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 #define ADDR_BR_0_UNDER 0x4C
 #define ADDR_BR_1_OVER 0x4D
 #define ADDR_BR_1_UNDER 0x4E
+#define ADDR_BR_PLL_NOT_READY 0x4F
 
-//#define ADDR_BR_BIST_ERROR			  0x47
+//#define ADDR_BR_BIST_ERROR        0x47
 
 #define ADDR_MID_STATE 0x50
-#define ADDR_MERKLE_ROOT                                                       \
-  0x58 // 50 - 57, 8'b0100.0XXX, 8  words of 32-bits = 256
+#define ADDR_MERKLE_ROOT  0x58 // 50 - 57, 8'b0100.0XXX, 8  words of 32-bits = 256
 #define ADDR_TIMESTEMP 0x59
 #define ADDR_DIFFICULTY 0x5A
 #define ADDR_WIN_LEADING_0 0x5B
@@ -140,7 +146,7 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 
 #define ADDR_WINNER_JOBID_WINNER_ENGINE 0x60
 #define ADDR_WINNER_NONCE 0x61 // Sticky forever.
-                               //#define ADDR_WINNER_MRKL 				0x62
+                               //#define ADDR_WINNER_MRKL         0x62
 #define ADDR_CURRENT_NONCE 0x63
 #define ADDR_LEADER_ENGINE 0x64
 
@@ -149,8 +155,7 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 //#define ADDR_ENGINES_PER_CLUSTER_BITS   0x72
 #define ADDR_LOOP_LOG2 0x73
 
-#define ADDR_ENABLE_ENGINE                                                     \
-  0x80 // 80 - 9F, 8'b100X.XXXX, 32 words of 32-bits = 1024
+#define ADDR_ENABLE_ENGINE 0x80 // 80 - 9F, 8'b100X.XXXX, 32 words of 32-bits = 1024
 #define ADDR_FIFO_OUT 0xA0
 
 /* A0 - BF, 8'b101X.XXXX, 32 words of 32-bits = 1024 */
@@ -162,10 +167,8 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 #define ADDR_FIFO_OUT_DIFFICULTY        0xAA
  */
 
-#define ADDR_CURRENT_NONCE_START                                               \
-  0xB0 /* B0 - BF, 8'b1011.XXXX, up to 16 words of 32-bits = 512  */
-#define ADDR_CURRENT_NONCE_RANGE                                               \
-  0xC3 /* C0 - CF, 8'b1100.XXXX, up to 16 words of 32-bits = 512  */
+#define ADDR_CURRENT_NONCE_START    0xB0 /* B0 - BF, 8'b1011.XXXX, up to 16 words of 32-bits = 512  */
+#define ADDR_CURRENT_NONCE_RANGE    0xC3 /* C0 - CF, 8'b1100.XXXX, up to 16 words of 32-bits = 512  */
 
 // READ ONLY
 #define ADDR_FIFO_OUT_MID_STATE_LSB 0xA0
@@ -264,6 +267,9 @@ typedef struct {
   // Fans set to high
   FAN_LEVEL fan_level;
 
+  // pll can be changed
+  uint8_t engines_disabled;
+
   // How many WINs we got
   uint32_t solved_jobs_total;
   // random checking of ASICs to see utilisation.
@@ -298,7 +304,7 @@ extern MINER_BOX vm;
 #define WIN_CHECK_PERIOD_US 25000
 #define QUEUE_FLUSH_PERIOD_US 25000 // 0 = disable
 #else
-#define JOB_PUSH_PERIOD_US 2300
+#define JOB_PUSH_PERIOD_US (2500)
 #define WIN_CHECK_PERIOD_US 25000
 #define QUEUE_FLUSH_PERIOD_US 24000 // 0 = disable
 #endif

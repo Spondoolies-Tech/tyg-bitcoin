@@ -33,7 +33,8 @@
 #include "hammer_lib.h"
 #include "miner_gate.h"
 #include "scaling_manager.h"
-
+#include "corner_discovery.h"
+#include "asic_thermal.h"
 #include <syslog.h>
 #include "asic_testboard.h"
 
@@ -428,7 +429,8 @@ int main(int argc, char *argv[]) {
   int init_mode = 0;
   int s;
   int new_nvm = 1;
-
+  enable_reg_debug = 1;
+  printf("ENABLING REG DEBUG\n");
   setlogmask(LOG_UPTO(LOG_INFO));
   openlog("minergate", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
   syslog(LOG_NOTICE, "minergate started");
@@ -538,11 +540,11 @@ return 0;
  //read_mgmt_temp();
 /*
  while (1) {
- 	printf("Current power::: = %d\n",ac2dc_get_power());
-		printf("Current tmp0::: = %d\n",ac2dc_get_temperature(0));
-			printf("Current tmp1::: = %d\n",ac2dc_get_temperature(1));
-				printf("Current tmp2::: = %d\n",ac2dc_get_temperature(2));
-	sleep(1);
+   printf("Current power::: = %d\n",ac2dc_get_power());
+    printf("Current tmp0::: = %d\n",ac2dc_get_temperature(0));
+      printf("Current tmp1::: = %d\n",ac2dc_get_temperature(1));
+        printf("Current tmp2::: = %d\n",ac2dc_get_temperature(2));
+  sleep(1);
  }
  */
  
@@ -628,24 +630,27 @@ return 0;
     // Set default frequencies.
     // Set all voltage to ASIC_VOLTAGE_810
     // Set all frequency to ASIC_FREQ_225
-    enable_voltage_freq_and_engines_default();
-
+    set_safe_voltage_and_frequency();
     // Set all engines to 0x7FFF
-    enable_all_engines_all_asics();
-
+    enable_engines_from_nvm();
     // UPDATE NVM DATA by running some tests.
     if (new_nvm) {
       // Sets bad engines in NVM
       find_bad_engines_update_nvm();
       enable_engines_from_nvm();
       // Sets asic Corner and loop voltages
-      recompute_corners_and_voltage_update_nvm();
+      //recompute_corners_and_voltage_update_nvm();  
+      fulltest_test_board();
+      assert(0);
     }
-  }
 
+    restore_nvm_voltage_and_frequency();
+  }
+ 
   printf("setting ASIC engines %d\n", __LINE__);
   enable_engines_from_nvm();
   printf("hammer initialisation done %d\n", __LINE__);
+  thermal_init();
 
   // Save NVM unless running without scaling
   spond_save_nvm();
@@ -670,6 +675,9 @@ return 0;
     test_harel();
     return 0;
   }
+
+
+  enable_reg_debug = 0;
 
   printf("Opening socket for cgminer\n");
   // test HAMMER read
@@ -706,6 +714,3 @@ return 0;
   return 0;
 }
 
-#ifdef ASIC_TESTBOARD // ASIC_TEST_BOARD
-#include "asic_testboard.c"
-#endif

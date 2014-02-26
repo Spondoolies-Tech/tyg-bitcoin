@@ -2,7 +2,7 @@
 /*
 This file is part of the ARM-Crypto-Lib.
 Copyright (C) 2008  Daniel Otte (daniel.otte@rub.de)
-6	    This program is free software: you can redistribute it and/or modify
+6      This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.

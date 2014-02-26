@@ -92,15 +92,9 @@ void dc2dc_set_channel(int channel_mask, int *err) {
 }
 
 void dc2dc_disable_dc2dc(int loop, int *err) {
-  /*	
-   miner-# i2cset -y 0 0x1b 0x02 0x12
-   miner-# i2cset -y 0 0x1b 0x02 0x02
-  */
   dc2dc_select_i2c(loop, err);
-
   i2c_write_byte(I2C_DC2DC, 0x02, 0x12, err);
   dc2dc_i2c_close();
-  // i2c_write_byte(I2C_DC2DC, 0x00, channel_mask, err);
 }
 
 void dc2dc_enable_dc2dc(int loop, int *err) {
@@ -122,11 +116,11 @@ void dc2dc_select_i2c_ex(int top,          // 1 or 0
                          int i2c_group,    // 0 or 1
                          int dc2dc_offset, // 0..7
                          int *err) { // 0x00=first, 0x01=second, 0x81=both
-
+ 
   if (top) {
-    i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_TOP_MAIN_PIN); // TOP
+    i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_TOP_MAIN_PIN,err); // TOP
   } else {
-    i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN); // BOTTOM
+    i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN, err); // BOTTOM
   }
 
   if (i2c_group == 0) {
