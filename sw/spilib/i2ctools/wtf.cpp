@@ -46,7 +46,6 @@ int main(int argc, char* argv[]) {
 	
 	int skval = lseek(fd,0,SEEK_END) ;	
 
-	printf("end file offset %d \n",skval);
 
 
 	if (skval < start ){
@@ -63,6 +62,10 @@ int main(int argc, char* argv[]) {
 
 	lseek(fd,start,SEEK_SET) ;	
 	
-	write(fd,wstr,len);
+	if (write(fd,wstr,len) < 0)
+	{
+		fprintf(stderr,"write error\n");
+		return 7;
+	}
 	return 0;
 }

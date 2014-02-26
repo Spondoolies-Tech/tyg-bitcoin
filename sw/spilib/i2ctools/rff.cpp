@@ -64,7 +64,11 @@ int main(int argc, char* argv[]) {
 
 	lseek(fd,start,SEEK_SET) ;	
 
-	read(fd,buff,(1 + end - start));
+	if (read(fd,buff,(1 + end - start)) < 0)
+	{
+		fprintf(stderr,"read error\n");
+		return 7;
+	}
 
 //    for (ind = start ; ind <= end ; ind++){
 //	read(fd, &c, sizeof(c));
@@ -74,7 +78,7 @@ int main(int argc, char* argv[]) {
 //    }
 
 	buff[1 + end - start] = 0;
-printf("%s\n",buff);
+	printf("%s\n",buff);
 
-    return 0;
+    	return 0;
 }
