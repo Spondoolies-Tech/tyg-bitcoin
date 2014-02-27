@@ -3,3 +3,19 @@
 
 # Where to store DHCP Option 17 (Root Path) if received from DHCP server.
 ROOTPATH_FILE=/tmp/rootpath
+
+###
+### Mount points
+###
+
+# SD Card boot partition mount point.
+MP_SD_BOOT=/mnt/sd-boot
+
+# eMMC boot partition mount point.
+MP_MMC_BOOT=/mnt/mmc-boot
+
+# eMMC configuration partition mount point.
+MP_MMC_CONF=/mnt/mmc-config
+
+# NFS mount point.
+MP_NFS=/mnt/nfs
