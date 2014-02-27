@@ -76,7 +76,14 @@ copy_all_spond_files() {
 	
 	#binaries
 	cp ${CUR_DIR}/../../scripts/eeprom-read-hostname.sh usr/local/bin
-	cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
+	cp ${CUR_DIR}/../../scripts/rff usr/local/bin
+	cp ${CUR_DIR}/../../scripts/wtf usr/local/bin
+	cp ${CUR_DIR}/../../scripts/ac2dcvpd usr/local/bin
+	cp ${CUR_DIR}/../../scripts/readmngvpd.sh usr/local/bin
+	cp ${CUR_DIR}/../../scripts/readboxvpd.sh usr/local/bin
+	cp ${CUR_DIR}/../../scripts/writemngvpd.sh usr/local/bin
+	cp ${CUR_DIR}/../../scripts/writeboxvpd.sh usr/local/bin
+#	cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_arm usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
 #	cp ${CUR_DIR}/../cgminer-3.4.3/cgminer usr/local/bin
