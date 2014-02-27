@@ -4,6 +4,7 @@
 #
 # Written by Vladik Goytin.
 
+. /etc/common-defs
 
 SYSMMC_DIR=/sys/bus/mmc/devices
 comment_out='SD=yes'
@@ -49,11 +50,20 @@ mount_partitions()
 	done
 }
 
+
+mount_unionfs()
+{
+	grep "${MP_MMC_CONF}" /proc/mounts &&
+		mount unionfs ||
+		echo 'WARNING: UnionFS is NOT mounted!'
+}
+
 mount_media()
 {
 	detect_media
 	select_partitions
 	mount_partitions
+	mount_unionfs
 }
 
 unmount_media()
