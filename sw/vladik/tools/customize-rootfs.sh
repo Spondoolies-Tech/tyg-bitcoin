@@ -2,6 +2,7 @@
 
 # Rootfs customization.
 
+. ../add-ons/common-defs
 
 # This is provided by Buildroot
 TARGET_DIR=$1
@@ -78,7 +79,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_arm usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
-	cp ${CUR_DIR}/../cgminer-3.4.3/cgminer usr/local/bin
+#	cp ${CUR_DIR}/../cgminer-3.4.3/cgminer usr/local/bin
 	cp ${CUR_DIR}/../../spilib/zabbix_reader/zabbix_reader_arm  usr/local/bin
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
@@ -87,6 +88,10 @@ copy_all_spond_files() {
 	
 }
 
+common_defs()
+{
+	cp -a ${CUR_DIR}/../add-ons/common-defs etc
+}
 
 watchdog()
 {
@@ -119,6 +124,7 @@ main()
 	cleanup
 	fix_mdev_conf
 	copy_all_spond_files
+	common_defs
 	spi_stuff
 	watchdog
 	memtester

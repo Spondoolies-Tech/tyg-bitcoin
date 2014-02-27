@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2013.05-g6b120f3-dirty Configuration
+# Buildroot 2013.05-g7a877a2-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 # BR2_arcle is not set
@@ -459,8 +459,26 @@ BR2_PACKAGE_XFSPROGS=y
 # BR2_PACKAGE_ENSCRIPT is not set
 # BR2_PACKAGE_HASERL is not set
 # BR2_PACKAGE_JAMVM is not set
-# BR2_PACKAGE_LUA is not set
+BR2_PACKAGE_LUA=y
+BR2_PACKAGE_LUA_INTERPRETER_EDITING_NONE=y
+# BR2_PACKAGE_LUA_INTERPRETER_READLINE is not set
+# BR2_PACKAGE_LUA_INTERPRETER_LINENOISE is not set
 # BR2_PACKAGE_LUAJIT is not set
+
+#
+# LUA libraries/modules
+#
+# BR2_PACKAGE_CGILUA is not set
+# BR2_PACKAGE_COPAS is not set
+# BR2_PACKAGE_COXPCALL is not set
+# BR2_PACKAGE_LUACJSON is not set
+# BR2_PACKAGE_LUAEXPAT is not set
+# BR2_PACKAGE_LUAFILESYSTEM is not set
+# BR2_PACKAGE_LUASOCKET is not set
+# BR2_PACKAGE_LUA_MSGPACK_NATIVE is not set
+# BR2_PACKAGE_RINGS is not set
+# BR2_PACKAGE_WSAPI is not set
+# BR2_PACKAGE_XAVANTE is not set
 # BR2_PACKAGE_NODEJS is not set
 # BR2_PACKAGE_PERL is not set
 # BR2_PACKAGE_PHP is not set

@@ -1,0 +1,5 @@
+# Common definitions.
+# Shared between host and target.
+
+# Where to store DHCP Option 17 (Root Path) if received from DHCP server.
+ROOTPATH_FILE=/tmp/rootpath
