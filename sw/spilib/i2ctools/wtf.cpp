@@ -7,8 +7,8 @@ int main(int argc, char* argv[]) {
     int fd;
     unsigned char c;
 
-    int start = 0;
-    int end = 0;
+    int start = -1;
+    int end = -1;
     int ind = 0;
     unsigned char * wstr;
 
@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     sscanf(argv[2],"%d",&start);
     //sscanf(argv[3],"%d",&end);
 
-	if (start == 0 )//|| end == 0)
+	if (start == -1 )
 	{
 		fprintf(stderr,"parm 2-start (%s) should be int\n",argv[2]);
 		return 2;
