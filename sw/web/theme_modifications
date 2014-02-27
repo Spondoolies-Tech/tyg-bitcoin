@@ -1,0 +1,3 @@
+# delirium
+For the slideshow to work, it was necessary to add the slideshow code to delirium/woocommerce/archive_product.php, and to change the test from is_home to is_front_page
+It is also necesary to make the same change in functions/theme/functions.php, line 431, function carouFredSel_scripts()

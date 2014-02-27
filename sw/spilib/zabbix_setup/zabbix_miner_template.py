@@ -1,8 +1,5 @@
-from pyzabbix import ZabbixAPI
 import sys
-server = "http://127.0.0.1/zabbix"
-user = "Admin"
-pw = "zabbix"
+from zabbix import zapi,zapi_interfaces
 
 try:
     group_name=sys.argv[1]
@@ -10,22 +7,6 @@ try:
 except Exception:
     print "usage: %s group_name base_template_name"%sys.argv[0]
     sys.exit(1)
-
-interfaces=[
-            {
-                "type": 1,
-                "main": 1,
-                "useip": 1,
-                "ip": "127.0.0.1",
-                "dns": "",
-                "port": "10050"
-            }
-        ]
-
-zapi = ZabbixAPI(server)
-
-# Login to the Zabbix API
-zapi.login(user, pw)
 
 def get_items(hostid, key, loop=None, asic=None, miner=None):
     #params=["total","avg","sum"]
@@ -40,8 +21,7 @@ def get_items(hostid, key, loop=None, asic=None, miner=None):
     if asic:
         if type(asic) != type([]): asic = [asic]
         keys.extend(["loop%d.asic%d.%s" % (l,a,key) for l in loop for a in asic])
-    print keys
-    return [int(i) for i in  zapi.item.get(hostids=hostid,filter={"key_": keys}, output="itemids")]
+    return [int(i["itemid"]) for i in  zapi.item.get(hostids=hostid,filter={"key_": keys}, output="itemids")]
 
 def create_graph(name, items, settings, graph_settings):
     if type(items) != type([]): items = [];
@@ -91,12 +71,11 @@ def create_graph(name, items, settings, graph_settings):
 
 def main():
 
-
     #test if group exists
     if not zapi.hostgroup.exists(name=group_name):
         host_group_id = zapi.hostgroup.create(name=group_name)["groupids"][0]
     else:
-        host_group_id = zapi.hostgroup.get(name=group_name)[0]["groupid"]
+        host_group_id = zapi.hostgroup.get(filter={"name":group_name})[0]["groupid"]
 
     print "using group id #", host_group_id
 
@@ -106,7 +85,7 @@ def main():
     for t, td in templates.iteritems():
         tn = td["name"]
         if not zapi.template.exists(name=tn):
-            zapi.template.create(host=tn,interfaces=interfaces,groups=[{"groupid": host_group_id}])
+            zapi.template.create(host=tn,interfaces=zapi_interfaces,groups=[{"groupid": host_group_id}])
         template_id = int(zapi.template.get(filter={"name":tn})[0]["templateid"])
         templates[t]["id"] = template_id
         print "template name: %s [id: %d]: " % (tn, template_id)
@@ -142,7 +121,6 @@ def main():
             templates["asics"]["items"].append({"name":"Cycles", "key_":"loop%d.asic%d.cycles" % (l,a), "delay":10, "value_type":3, "description":"Cycles", "type": 2, "hostid": templates["asics"]["id"]})
 
     for t, td in templates.iteritems():
-        print t, td["items"]
         try:
             templates[t]["itemids"] = [int(iid) for iid in zapi.item.create(*td["items"])["itemids"]]
             print "created %d %s items"%(len(td["items"]), t)
