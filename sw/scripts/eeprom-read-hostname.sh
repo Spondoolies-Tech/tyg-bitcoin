@@ -4,8 +4,10 @@
 HOST_PREF="miner-"
 
 # mng board eeprom range start for box serial name
-START=28
-
+START=84
+END=95
+EEP=/sys/bus/i2c/devices/0-0050/eeprom
 # mng board eeprom range start for box serial name
-END=39
-echo "${HOST_PREF=}`read-mng-eeprom-stripped.sh 28 39`"
+
+#echo "${HOST_PREF=}`read-mng-eeprom-stripped.sh ${START} ${END}`"
+echo "${HOST_PREF=}`rff ${EEP} ${START} ${END}`"
