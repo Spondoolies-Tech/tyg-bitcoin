@@ -1,7 +1,5 @@
 #!/bin/sh
 
-# Written by Vladik Goytin
-
 EEPROM=''
 #0 - 3 BBB Magic
 EEPROM=${EEPROM}'\xaa\x55\x33\xee'
