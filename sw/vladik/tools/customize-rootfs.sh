@@ -2,6 +2,7 @@
 
 # Rootfs customization.
 
+. ../add-ons/common-defs
 
 # This is provided by Buildroot
 TARGET_DIR=$1
@@ -87,6 +88,10 @@ copy_all_spond_files() {
 	
 }
 
+common_defs()
+{
+	cp -a ${CUR_DIR}/../add-ons/common-defs etc
+}
 
 watchdog()
 {
@@ -119,6 +124,7 @@ main()
 	cleanup
 	fix_mdev_conf
 	copy_all_spond_files
+	common_defs
 	spi_stuff
 	watchdog
 	memtester
