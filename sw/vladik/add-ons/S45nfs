@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Mount NFS if available.
+#
+# Written by Vladik Goytin.
+
+. /etc/common-defs
+
+
+mount_nfs()
+{
+	if [ -f ${ROOTPATH_FILE} ]; then
+		read rootpath < ${ROOTPATH_FILE}
+		mount -t nfs ${rootpath} ${MP_NFS} -o nolock,udp &&
+			echo "Mounted NFS ${rootpath} at ${MP_NFS}" ||
+			echo "ERROR: cannot mount NFS ${rootpath}"
+	fi
+}
+
+unmount_nfs()
+{
+	grep -q 'nfs' /proc/mounts && umount ${MP_NFS}
+}
+
+
+case "$1" in
+start)
+	mount_nfs
+	;;
+stop)
+	unmount_nfs
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+

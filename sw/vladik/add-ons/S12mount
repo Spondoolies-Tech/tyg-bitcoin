@@ -1,0 +1,92 @@
+#!/bin/sh
+#
+# Mount non-volatile storage.
+#
+# Written by Vladik Goytin.
+
+. /etc/common-defs
+
+SYSMMC_DIR=/sys/bus/mmc/devices
+comment_out='SD=yes'
+
+
+detect_media()
+{
+	cd ${SYSMMC_DIR}
+	for dev in *
+	do
+		read dev_type < ${dev}/type
+
+		case ${dev_type} in
+		SD)	comment_out='SD=no'
+			;;
+		MMC)
+			;;
+		*)	echo "Unknown device type: ${dev_type}"
+		esac
+	done
+}
+
+# /etc/fstab contains 2 sets of mount points: for case SD Card is present
+# and for case SD Card is not present.
+# Comment out irrelevant mount points.
+select_partitions()
+{
+	sed "/# ${comment_out}/s/^/#/" -i /etc/fstab
+}
+
+
+mount_partitions()
+{
+	# Intentionally do not mount the 1st partition of a device
+	# as it contains boot-related files.
+	# I do not want to expose those sensitive files to everyone
+	# without real need.
+	# Vladik, 18.02.2014
+	for part in /dev/mmcblk?p[2-9]
+	do
+		[ -b ${part} ] && grep -q "^${part}" /etc/fstab &&
+			mount ${part}
+	done
+}
+
+
+mount_unionfs()
+{
+	grep "${MP_MMC_CONF}" /proc/mounts &&
+		mount unionfs ||
+		echo 'WARNING: UnionFS is NOT mounted!'
+}
+
+mount_media()
+{
+	detect_media
+	select_partitions
+	mount_partitions
+	mount_unionfs
+}
+
+unmount_media()
+{
+	:
+}
+
+
+case "$1" in
+start)
+	mount_media
+	;;
+stop)
+	unmount_media
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
