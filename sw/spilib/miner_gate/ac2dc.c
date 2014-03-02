@@ -33,10 +33,10 @@ int ac2dc_get_power() {
   i2c_write(PRIMARY_I2C_SWITCH, 0x00);
   if (err) {
     if ((warned++) < 10)
-      psyslog(ANSI_COLOR_RED "FAILED TO INIT AC2DC\n" ANSI_COLOR_RESET);
+      psyslog(RED "FAILED TO INIT AC2DC\n" RESET);
     if ((warned) == 9)
-      psyslog(ANSI_COLOR_RED
-              "FAILED TO INIT AC2DC, giving up :(\n" ANSI_COLOR_RESET);
+      psyslog(RED
+              "FAILED TO INIT AC2DC, giving up :(\n" RESET);
     return 100;
   }
 
@@ -52,7 +52,7 @@ int ac2dc_get_temperature() {
   int temp1 = ac2dc_getint(
       i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD, &err));
   if (err) {
-    psyslog(ANSI_COLOR_RED "ERR reading AC2DC temp\n" ANSI_COLOR_RESET);
+    psyslog(RED "ERR reading AC2DC temp\n" RESET);
     return AC2DC_TEMP_GREEN_LINE - 1;
   }
   int temp2 = ac2dc_getint(
@@ -122,8 +122,8 @@ int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd) {
 ac2dc_get_eeprom_quick_err:
 
   if (err) {
-    fprintf(stderr, ANSI_COLOR_RED
-            "Failed reading AC2DC eeprom (err %d)\n" ANSI_COLOR_RESET,
+    fprintf(stderr, RED
+            "Failed reading AC2DC eeprom (err %d)\n" RESET,
             err);
     return err;
   }
@@ -161,14 +161,15 @@ int ac2dc_get_eeprom(int offset, int *pError) {
 // Return 1 if needs urgent scaling
 int update_ac2dc_current_measurments() {
   int err;
-  if (!vm.asics_shut_down_powersave) {
-    int current = ac2dc_get_power();
-    if (current >= AC2DC_CURRENT_TRUSTWORTHY && 
-      vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {
-      vm.ac2dc_current = current;
-    } else {
-      vm.ac2dc_current = 0;
-    }
+  int current = ac2dc_get_power();
+  if (
+    !vm.asics_shut_down_powersave &&
+    current >= AC2DC_CURRENT_TRUSTWORTHY && 
+    vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {
+    vm.ac2dc_current = current;
+  } else {
+    //printf(GREEN "CONSEC = %d\n" RESET, vm.cosecutive_jobs); 
+    vm.ac2dc_current = 0;
   }
   return 0;
 }

@@ -228,16 +228,17 @@ typedef struct {
   uint8_t address;
   uint8_t loop_address;
   uint8_t corner;
-  uint8_t max_freq;
+
+  
   // Failed bists (set by "do_bist_ok()")
   uint8_t failed_bists;
   // Passed engines (set by "do_bist_ok()")
   uint16_t passed_last_bist_engines;
 
   // Asic temperature/frequency (polled periodicaly)
-  ASIC_TEMP temperature; // periodic measurments - ASIC_TEMP_
+  ASIC_TEMP asic_temp; // periodic measurments - ASIC_TEMP_
   ASIC_FREQ asic_freq;        // *15 Hz
-  int last_freq_increase_time; // time() when we increased ASIC frequency
+  int last_freq_change_time; // time() when we increased ASIC frequency
 
   // Set durring initialisation currently enabled engines
   uint8_t enabled_engines_mask;
@@ -253,6 +254,8 @@ typedef struct {
 typedef struct {
   uint8_t dc_temp;
   int dc_current_16s; // in 1/16 of amper. 0 = bad reading
+  int dc_fail_time;  
+  // Guessing added current
 } DC2DC;
 
 typedef struct {
@@ -266,6 +269,12 @@ typedef struct {
 typedef struct {
   // Fans set to high
   FAN_LEVEL fan_level;
+
+  uint8_t newest_hw_job_id;
+  uint8_t oldest_hw_job_id;
+
+  uint32_t good_loops;
+    
 
   // pll can be changed
   uint8_t engines_disabled;
@@ -284,14 +293,25 @@ typedef struct {
   uint8_t stopped_all_work;
 
   // jobs right one after another
-  uint32_t cosecutive_jobs;
+  int cosecutive_jobs;
+
+  int bist_fatal_err;  
+  int bist_current;  
+  int bist_voltage;  
+
   
   // ac2dc current and temperature
   int ac2dc_current;  // in ampers. 0 = bad reading.
   uint32_t ac2dc_temp;
 
+  // When system just started, search optimal speed agressively
+  int scaling_up_system; 
+
+
   // our ASIC data
   HAMMER hammer[HAMMERS_COUNT];
+  uint32_t working_engines[HAMMERS_COUNT];
+    
 
   // our loop and dc2dc data
   LOOP loop[LOOP_COUNT];
@@ -299,14 +319,7 @@ typedef struct {
 
 extern MINER_BOX vm;
 
-#if 0
-#define JOB_PUSH_PERIOD_US 2500
-#define WIN_CHECK_PERIOD_US 25000
-#define QUEUE_FLUSH_PERIOD_US 25000 // 0 = disable
-#else
-#define JOB_PUSH_PERIOD_US (2500)
-#define WIN_CHECK_PERIOD_US 25000
-#define QUEUE_FLUSH_PERIOD_US 24000 // 0 = disable
-#endif
+
+#define JOB_PUSH_PERIOD_US (1500)
 
 #endif

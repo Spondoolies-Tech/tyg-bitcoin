@@ -7,10 +7,10 @@
 
 extern MINER_BOX vm;
 
-int volt_to_vtrim[ASIC_VOLTAGE_COUNT] = { 0, 0xFFC4, 0xFFCF, 0xFFE1, 0xFFd4,
+int volt_to_vtrim[ASIC_VOLTAGE_COUNT] = { 0, 0xFFC4, 0xFFCF, 0xFFE1, 0xFFd4, 0xFFdc,
                                           0xFFE5, 0xfff7, 0x0, 0x8, };
 
-int volt_to_vmargin[ASIC_VOLTAGE_COUNT] = { 0, 0x14, 0x14, 0x14, 0x0, 0x0, 0x0,
+int volt_to_vmargin[ASIC_VOLTAGE_COUNT] = { 0, 0x14, 0x14, 0x14, 0x0, 0x0, 0x0, 0x0,
                                             0x0, 0x0 };
 
 void dc2dc_print() {
@@ -26,23 +26,23 @@ void dc2dc_print() {
       int min_minivolts;
       VOLTAGE_ENUM_TO_MILIVOLTS(ASIC_VOLTAGE_555, min_minivolts);
       if (volt < min_minivolts)
-        printf(ANSI_COLOR_RED);
+        printf(RED);
       printf("%3d/", volt);
-      printf(ANSI_COLOR_RESET);
-      if (crnt < DC2DC_CURRENT_GREEN_LINE_16S)
-        printf(ANSI_COLOR_GREEN);
-      if (crnt > DC2DC_CURRENT_GREEN_LINE_16S)
-        printf(ANSI_COLOR_RED);
+      printf(RESET);
+      if (crnt < DC2DC_CURRENT_WARNING_16S)
+        printf(GREEN);
+      if (crnt > DC2DC_CURRENT_WARNING_16S)
+        printf(RED);
       printf("%3d/", crnt / 16);
-      printf(ANSI_COLOR_RESET);
+      printf(RESET);
       if (temp < DC2DC_TEMP_GREEN_LINE)
-        printf(ANSI_COLOR_GREEN);
+        printf(GREEN);
       if (temp > DC2DC_TEMP_RED_LINE)
-        printf(ANSI_COLOR_RED);
+        printf(RED);
       printf("%3d\n", temp);
-      printf(ANSI_COLOR_RESET);
+      printf(RESET);
     } else {
-      printf(ANSI_COLOR_RED "%2i:XXX/XXX/XXX\n" ANSI_COLOR_RESET, loop);
+      printf(RED "%2i:XXX/XXX/XXX\n" RESET, loop);
     }
     if (loop == LOOP_COUNT / 2 - 1) {
       printf("\n");
@@ -55,10 +55,22 @@ void dc2dc_init() {
   int err = 0;
   // static int warned = 0;
   // Write defaults
+#if TEST_BOARD == 1
+  for (int loop = 0; loop < 1; loop++) {
+#else
   for (int loop = 0; loop < LOOP_COUNT; loop++) {
+#endif    
+
+#if NO_TOP == 1 
+    if (loop < LOOP_COUNT/2) {
+      continue;
+    }
+#endif
+    
+
     dc2dc_select_i2c(loop, &err);
     if (err) {
-      psyslog(ANSI_COLOR_RED "FAILED TO INIT DC2DC1 %d\n" ANSI_COLOR_RESET,
+      psyslog(RED "FAILED TO INIT DC2DC1 %d\n" RESET,
               loop);
       dc2dc_i2c_close();
       continue;
@@ -66,7 +78,7 @@ void dc2dc_init() {
 
     i2c_write_byte(I2C_DC2DC, 0x00, 0x81, &err);
     if (err) {
-      psyslog(ANSI_COLOR_RED "FAILED TO INIT DC2DC2 %d\n" ANSI_COLOR_RESET,
+      psyslog(RED "FAILED TO INIT DC2DC2 %d\n" RESET,
               loop);
       dc2dc_i2c_close();
       continue;
@@ -81,10 +93,26 @@ void dc2dc_init() {
     i2c_write_byte(I2C_DC2DC, 0xd7, 0x03);
     i2c_write_byte(I2C_DC2DC, 0x02, 0x02);
     i2c_write(I2C_DC2DC, 0x15);
+    usleep(100000);
     i2c_write(I2C_DC2DC, 0x03);
     psyslog("OK INIT DC2DC\n");
     dc2dc_i2c_close();
   }
+
+#if NO_TOP == 1
+  dc2dc_disable_dc2dc(12, &err);
+  dc2dc_disable_dc2dc(13, &err);
+  dc2dc_disable_dc2dc(14, &err);
+  dc2dc_disable_dc2dc(16, &err);
+  dc2dc_disable_dc2dc(17, &err);
+  dc2dc_disable_dc2dc(18, &err);
+  dc2dc_disable_dc2dc(19, &err);
+  dc2dc_disable_dc2dc(20, &err);
+  dc2dc_disable_dc2dc(21, &err);
+  dc2dc_disable_dc2dc(22, &err);
+  dc2dc_disable_dc2dc(23, &err);
+#endif
+  
 }
 
 void dc2dc_set_channel(int channel_mask, int *err) {
@@ -92,12 +120,26 @@ void dc2dc_set_channel(int channel_mask, int *err) {
 }
 
 void dc2dc_disable_dc2dc(int loop, int *err) {
+#if NO_TOP == 1 
+    if (loop < LOOP_COUNT/2) {
+      return;
+    }
+#endif
+
+  
+#if TEST_BOARD != 1
   dc2dc_select_i2c(loop, err);
   i2c_write_byte(I2C_DC2DC, 0x02, 0x12, err);
   dc2dc_i2c_close();
+#endif
 }
 
 void dc2dc_enable_dc2dc(int loop, int *err) {
+#if NO_TOP == 1 
+    if (loop != 15) {
+      return;
+    }
+#endif  
   dc2dc_select_i2c(loop, err);
   i2c_write_byte(I2C_DC2DC, 0x02, 0x02, err);
   dc2dc_i2c_close();
@@ -107,8 +149,12 @@ void dc2dc_enable_dc2dc(int loop, int *err) {
 // miner-# i2cset -y 0 0x1b 0x02 0x02
 
 void dc2dc_i2c_close() {
-  i2c_write(I2C_DC2DC_SWITCH_GROUP0, 0);
-  i2c_write(I2C_DC2DC_SWITCH_GROUP1, 0);
+#if TEST_BOARD == 1
+      i2c_write(PRIMARY_TESTBOARD_SWITCH, 0); // TOP
+#else
+      i2c_write(I2C_DC2DC_SWITCH_GROUP0, 0);
+      i2c_write(I2C_DC2DC_SWITCH_GROUP1, 0);
+#endif    
   i2c_write(PRIMARY_I2C_SWITCH, 0);
 }
 
@@ -116,27 +162,40 @@ void dc2dc_select_i2c_ex(int top,          // 1 or 0
                          int i2c_group,    // 0 or 1
                          int dc2dc_offset, // 0..7
                          int *err) { // 0x00=first, 0x01=second, 0x81=both
- 
+//#if TEST_BOARD == 1
+//  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_TOP_MAIN_PIN,err); // TOP
+//  i2c_write(PRIMARY_TESTBOARD_SWITCH, 0x40, err); //
+//#else 
   if (top) {
     i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_TOP_MAIN_PIN,err); // TOP
   } else {
     i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN, err); // BOTTOM
   }
+//#endif
 
   if (i2c_group == 0) {
-#ifdef ASIC_TESTBOARD
+#if TEST_BOARD == 1
     i2c_write(PRIMARY_TESTBOARD_SWITCH, 0x40); // TOP
 #else
     i2c_write(I2C_DC2DC_SWITCH_GROUP0, 1 << dc2dc_offset); // TOP
 #endif
     i2c_write(I2C_DC2DC_SWITCH_GROUP1, 0); // TO
   } else {
+#if TEST_BOARD != 1  
     i2c_write(I2C_DC2DC_SWITCH_GROUP1, 1 << dc2dc_offset); // TOP
     i2c_write(I2C_DC2DC_SWITCH_GROUP0, 0);                 // TOP
+#endif    
   }
 }
 
 void dc2dc_select_i2c(int loop, int *err) { // 1 or 0
+#if NO_TOP == 1 
+      if (loop < LOOP_COUNT/2) {
+        return;
+      }
+#endif
+
+
   int top = (loop < 12);
   int i2c_group = ((loop % 12) >= 8);
   int dc2dc_offset = loop % 12;
@@ -148,6 +207,16 @@ void dc2dc_select_i2c(int loop, int *err) { // 1 or 0
 }
 
 void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err) {
+  int millis;
+  VOLTAGE_ENUM_TO_MILIVOLTS(v, millis);   
+  printf("Set VOLTAGE Loop %d Milli:%d Enum:%d\n",loop, millis, v);
+#if NO_TOP == 1 
+    if (loop != 15) {
+      *err = 1;
+      return;
+      
+    }
+#endif  
   // printf("%d\n",v);
   // int err = 0;
   dc2dc_select_i2c(loop, err);
@@ -157,20 +226,68 @@ void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err) {
   dc2dc_i2c_close();
 }
 
+
+
 // Return 1 if needs urgent scaling
-int update_dc2dc_current_measurments() {
+int get_dc2dc_error(int loop) {
+   // TODO - select loop!
+  // int err = 0;
+#if NO_TOP == 1 
+  if (loop != 15) {
+    return 0;
+  }
+#endif    
+
+  int err; 
+  int error_happened = 0;
+
+  static int warned = 0;
+  int current = 0;
+  dc2dc_select_i2c(loop, &err);
+  dc2dc_set_channel(0, &err);
+  error_happened |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
+  if (error_happened) {
+    printf(RED "DC2DC ERR0 %x\n" RESET,error_happened);
+    i2c_write(I2C_DC2DC,3,&err);
+  }
+  dc2dc_set_channel(1, &err);
+  error_happened |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
+  if (error_happened) {
+    printf(RED "DC2DC ERR1 %x\n" RESET,error_happened);
+    i2c_write(I2C_DC2DC,3,&err);
+  }
+  dc2dc_set_channel(0x81,&err);
+  if (err) {
+    dc2dc_i2c_close();
+    return 0;
+  }
+  dc2dc_i2c_close();
+  return error_happened;
+}
+
+
+
+// Return 1 if needs urgent scaling
+int update_dc2dc_current_temp_measurments(int loop) {
   int err;
-  if (!vm.asics_shut_down_powersave) {
-    for (int i = 0; i < LOOP_COUNT; i++) {
-      int current = dc2dc_get_current_16s_of_amper(i, &err);
-      if (current >= DC2DC_POWER_TRUSTWORTHY && 
-          vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_DC2DC_MEASUREMENT) {
+  int i = loop;
+#if NO_TOP == 1 
+  if (i != 15) {
+    return 0;
+  }
+#endif    
+  if (vm.loop[i].enabled_loop) {
+    vm.loop[i].dc2dc.dc_temp = dc2dc_get_temp(i, &err);
+    int current = dc2dc_get_current_16s_of_amper(i, &err);
+    if (!vm.asics_shut_down_powersave &&
+        current >= DC2DC_POWER_TRUSTWORTHY && 
+        vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_DC2DC_MEASUREMENT) {
         vm.loop[i].dc2dc.dc_current_16s =
-                          dc2dc_get_current_16s_of_amper(i, &err);
-      } else {
-        // This will disable ac2dc scaling
-        vm.loop[i].dc2dc.dc_current_16s = 0;
-      }
+                        dc2dc_get_current_16s_of_amper(i, &err);
+    } else {
+      // This will disable ac2dc scaling
+      vm.loop[i].dc2dc.dc_current_16s = 0;
+      printf(GREEN "Loop %d current not saved = %d" RESET, i, vm.loop[i].dc2dc.dc_current_16s *1000/16);
     }
   }
   return 0;
@@ -182,6 +299,13 @@ int update_dc2dc_current_measurments() {
 int dc2dc_get_current_16s_of_amper(int loop, int *err) {
   // TODO - select loop!
   // int err = 0;
+#if NO_TOP == 1 
+      if (loop != 15) {
+        return 0;
+      }
+#endif    
+
+  
   passert(err != NULL);
   static int warned = 0;
   int current = 0;
@@ -200,10 +324,16 @@ int dc2dc_get_current_16s_of_amper(int loop, int *err) {
 }
 
 int dc2dc_get_voltage(int loop, int *err) {
+#if NO_TOP == 1 
+      if (loop < LOOP_COUNT/2) {
+        return 0;
+      }
+#endif    
+  
   //*err = 0;
   passert(err != NULL);
   static int warned = 0;
-  int voltage = ASIC_VOLTAGE_810;
+  int voltage;
   dc2dc_select_i2c(loop, err);
   voltage = i2c_read_word(I2C_DC2DC, 0x8b, err) * 1000 / 512;
   if (*err) {
@@ -215,6 +345,12 @@ int dc2dc_get_voltage(int loop, int *err) {
 }
 
 int dc2dc_get_temp(int loop, int *err) {
+#if NO_TOP == 1 
+      if (loop != 15) {
+        return 0;
+      }
+#endif    
+  
   // returns max temperature of the 2 sensors
   passert(err != NULL);
   int temp1, temp2;

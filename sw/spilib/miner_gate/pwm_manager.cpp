@@ -75,9 +75,9 @@ void set_fan_level(FAN_LEVEL fan_level) {
   FILE *f;
   passert(fan_level < FAN_LEVEL_COUNT);
   int val = pwm_values[fan_level];
-  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.13/duty", "w");
+  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
   if (f <= 0) {
-    printf(ANSI_COLOR_RED "Fan PWM not found\n" ANSI_COLOR_RESET);
+    printf(RED "Fan PWM not found\n" RESET);
   } else {
     fprintf(f, "%d", val);
     fclose(f);
@@ -89,20 +89,36 @@ void auto_select_fan_level() {
   int hottest_asic_temp = ASIC_TEMP_77;
   hammer_iter hi;
   hammer_iter_init(&hi);
+  int higher_then_medium = 0;
+  int higher_then_high = 0;  
+    
   while (hammer_iter_next_present(&hi)) {
     HAMMER *a = &vm.hammer[hi.addr];
-    if (a->temperature > hottest_asic_temp)
-      hottest_asic_temp = a->temperature;
+	//printf(GREEN "FAN ?? %d\n" RESET,a->asic_temp);
+    if (a->asic_temp >= ASIC_TEMPERATURE_TO_SET_FANS_HIGH) {
+      higher_then_high++;
+	  //printf(GREEN "FAN MED %d\n" RESET, higher_then_high);
+   }
+	
+    if (a->asic_temp >= ASIC_TEMPERATURE_TO_SET_FANS_MEDIUM) {
+      higher_then_medium++;	  
+	  //printf(GREEN "FAN HIGH %d\n" RESET,higher_then_medium);
+   	}
   }
 
-  if (hottest_asic_temp >= ASIC_TEMPERATURE_TO_SET_FANS_HIGH) {
+  
+  if (higher_then_high >= ASIC_TO_SET_FANS_HIGH_COUNT) {
     if (vm.fan_level != FAN_LEVEL_HIGH) {
       set_fan_level(FAN_LEVEL_HIGH);
     }
-  } else {
-    if (vm.fan_level != FAN_LEVEL_LOW && vm.asics_shut_down_powersave) {
-      set_fan_level(FAN_LEVEL_LOW);
+  } else if (higher_then_medium >= ASIC_TO_SET_FANS_MEDIUM_COUNT)  {
+    if (vm.fan_level != FAN_LEVEL_MEDIUM) {
+      set_fan_level(FAN_LEVEL_MEDIUM);
     }
+  } else {
+    if (vm.fan_level != FAN_LEVEL_LOW) {
+      	set_fan_level(FAN_LEVEL_LOW);
+   	}	
   }
 }
 

@@ -66,6 +66,30 @@ static uint32_t crc32_tab[] = {
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
+
+void print_nvm() {
+  printf(MAGENTA "NVM\n");
+  int i;
+  // See max rate under ASIC_VOLTAGE_810
+  for (i = 0; i < HAMMERS_COUNT; i++) {
+    /*
+    vm.working_engines[i] = ALL_ENGINES_BITMASK;
+    nvm.asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
+    nvm.top_freq[i] = ASIC_FREQ_SAFE;
+    */
+  } 
+
+  for (i = 0; i < LOOP_COUNT; i++) {
+    printf("LOOP %d: Voltage:%d Top DC2DC:%d\n" ,
+      i, 
+      nvm.loop_voltage[i],
+      nvm.top_dc2dc_current_16s[i]);
+  }
+  
+  printf(RESET);
+
+}
+
 uint32_t crc32(uint32_t crc, const void *buf, size_t size) {
   const uint8_t *p;
 
@@ -115,10 +139,9 @@ int load_nvm_ok() {
   return 1;
 }
 
-extern int enable_scaling;
 void spond_save_nvm() {
   // dont store NVM in noscaling
-  if (nvm.dirty && (enable_scaling)) {
+  if (nvm.dirty) {
     nvm.dirty = 0;
     nvm.crc32 = crc32(0, (const void *)&nvm,
                       sizeof(SPONDOOLIES_NVM) - sizeof(uint32_t));

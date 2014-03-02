@@ -50,10 +50,40 @@ typedef struct {
 #define FREQ_615_0      { 41, 1230, 1 }
 #define FREQ_630_0      { 42, 1260, 1 }
 #define FREQ_645_0      { 43, 1290, 1 }
-#define FREQ_660_0      { 44, 1320, 1 }
+#define FREQ_660_0      { 44, 0, 1 }
+#define FREQ_675_0      { 45, 0, 1 }
+#define FREQ_690_0      { 46, 0, 1 }
+#define FREQ_705_0      { 47, 0, 1 }
+#define FREQ_720_0      { 48, 0, 1 }
+// Remove later!!! TODO not true
+/*
+#define FREQ_735_0      { 49, 0, 1 }
+#define FREQ_750_0      { 50, 0, 1 }
+#define FREQ_765_0      { 51, 0, 1 }
+#define FREQ_780_0      { 52, 0, 1 }
+#define FREQ_795_0      { 53, 0, 1 }
+*/
+#define FREQ_735_0      { 49, 0, 1 }
+#define FREQ_750_0      { 50, 0, 1 }
+#define FREQ_765_0      { 51, 0, 1 }
+#define FREQ_780_0      { 52, 0, 1 }
+#define FREQ_795_0      { 53, 0, 1 }
+
+#define FREQ_810_0      { 54, 0, 1 }
+#define FREQ_825_0      { 55, 0, 1 }
+#define FREQ_840_0      { 56, 0, 1 }
+#define FREQ_855_0      { 57, 0, 1 }
+#define FREQ_870_0      { 58, 0, 1 }
+
+
+
+
 
 void disable_engines_all_asics();
+void disable_engines_asic(int addr);
 void set_pll(int addr, ASIC_FREQ freq);
-void enable_nvm_engines_all_asics();
+int enable_nvm_engines_all_asics_ok();
+void disable_asic_forever(int addr);
+void enable_all_engines_all_asics();
 
 #endif

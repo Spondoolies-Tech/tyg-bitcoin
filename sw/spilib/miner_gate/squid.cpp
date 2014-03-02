@@ -13,6 +13,7 @@
 #include <time.h>
 #include <syslog.h>
 #include <spond_debug.h>
+#include "hammer_lib.h"
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define BROADCAST_ADDR 0xffff
@@ -63,6 +64,10 @@ void read_spi_mult(uint8_t addr, int count, uint32_t values[]) {
   if (ret < 1)
     pabort("can't send spi message");
 
+  for (int j = 0 ; j < count ; j++) {
+	 //printf("SPI[%x]=>%x\n", addr, values[j]);
+  }
+
   // printf("%02X %02X %08X\n",rx.addr, rx.cmd, rx.i);
 }
 
@@ -89,7 +94,7 @@ uint32_t read_spi(uint8_t addr) {
   if (ret < 1)
     pabort("can't send spi message");
 
-  // printf("%02X %02X %08X\n",rx.addr, rx.cmd, rx.i);
+  //printf("SPI[%x]=>%x\n", addr,rx.i[0]);
   return rx.i[0];
 }
 
@@ -121,6 +126,9 @@ void write_spi_mult(uint8_t addr, int count, int values[]) {
     pabort("can't send spi message");
     passert(0);
   }
+  for (int j = 0 ; j < count ; j++) {
+  	//printf("SPI[%x]<=%x\n", addr, values[j]);
+  }
 }
 
 void write_spi(uint8_t addr, uint32_t data) {
@@ -147,6 +155,8 @@ void write_spi(uint8_t addr, uint32_t data) {
     pabort("can't send spi message");
     passert(0);
   }
+
+  //printf("SPI[%x]<=%x\n", addr, data);
 }
 
 void init_spi() {
@@ -189,7 +199,7 @@ void init_spi() {
     pabort("can't get max speed hz");
 
   /*
-  printf("spi mode: %d\n", mode);
+  //printf("SPI mode: %d\n", mode);
   printf("bits per word: %d\n", bits);
   printf("max speed: %d Hz (%d KHz)\n", speed, speed/1000);
   */
@@ -242,13 +252,14 @@ void flush_spi_write() {
 
 void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t *p_value) {
   QUEUED_REG_ELEMENT *e = &cmd_queue[current_cmd_queue_ptr++];
+  //printf("%x %x %x %x\n",current_cmd_queue_ptr,e->addr,e->offset,e->value);
   passert(current_cmd_queue_ptr < MAX_FPGA_CMD_QUEUE);
   passert(e->addr == 0);
   passert(e->offset == 0);
   passert(e->value == 0);
   e->addr = addr;
   e->offset = offset;
-  e->p_value = p_value;
+  e->p_value = p_value;	
   e->b_read = 1;
 
   uint32_t d1;
@@ -276,7 +287,7 @@ void push_hammer_write(uint32_t addr, uint32_t offset, uint32_t value) {
                     /*GENERAL_BITS_COMPLETION*/ 0);
   // printf("---> %x %x\n",d1,d2);
   push_hammer_serial_packet_to_hw(d1, d2);
-  if (enable_reg_debug) {
+  if (enable_reg_debug) { 
     printf("./reg h %x %x %x\n", addr, offset, value);
   }
 }
@@ -302,7 +313,10 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
     // TODO  - handle timeout?
     if (assert_serial_failures) {
       printf("FAILED TO READ 0x%x 0x%x\n", address, offset);
-      passert(0);
+#ifdef DC2DC_CHECK_ON_ERROR
+	  check_for_dc2dc_errors();
+#endif
+      return 0;
     } else {
       printf("Rx queue timeout.\n");
       return 0;

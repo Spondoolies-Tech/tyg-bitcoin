@@ -4,6 +4,5 @@
 #include "defines.h"
 int pull_work_req(RT_JOB *w);
 
-extern int enable_scaling;
 
 #endif

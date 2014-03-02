@@ -11,7 +11,7 @@
 // discovered, but max_freq/corner/engines not detected
 void recompute_corners_and_voltage_update_nvm();
 void find_bad_engines_update_nvm();
-void discover_good_loops_update_nvm();
+void discover_good_loops();
 
 
 #endif

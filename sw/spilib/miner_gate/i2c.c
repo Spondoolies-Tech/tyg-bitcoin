@@ -32,7 +32,6 @@ static char buf[10] = { 0 };
 // set the I2C slave address for all subsequent I2C device transfers
 static void i2c_set_address(int address, int *pError) {
   passert(file);
-  passert(pError);
   int ioctl_err;
   if ((ioctl_err = ioctl(file, I2C_SLAVE, address)) < 0) {
     passert(0, "i2c-ff");
@@ -47,33 +46,36 @@ uint8_t i2c_read(uint8_t addr, int *pError) {
   pthread_mutex_lock(&i2cm);
   i2c_set_address(addr, pError);
   if (*pError != 0) {
-    printf(ANSI_COLOR_RED "i2c read 0x%x error\n" ANSI_COLOR_RESET, addr);
-    res = 0xFF;
+    printf(RED "i2c read 0x%x error\n" RESET, addr);
+    res = 0;
   } else // no reason to call read, if we failed to set address.
       {
     res = i2c_smbus_read_byte(file, pError);
   }
   // usleep(SLEEP_TIME_I2C);
   pthread_mutex_unlock(&i2cm);
-  // printf("i2c_read [%x] = %x\n",addr,res);
+  //printf("i2c_read [%x] = %x\n",addr,res);
   return res;
 }
 
 void i2c_write(uint8_t addr, uint8_t value, int *pError) {
+  
   pthread_mutex_lock(&i2cm);
    passert(pError);
   i2c_set_address(addr, pError);
   if (pError != NULL && *pError != 0) {
-       printf(ANSI_COLOR_RED "i2c write 0x%x = 0x%x error\n" ANSI_COLOR_RESET, addr, value); 
+       printf(RED "i2c write 0x%x = 0x%x error\n" RESET, addr, value); 
+       passert(0);
   } else {
     if (i2c_smbus_write_byte(file, value) == -1) {
-      printf(ANSI_COLOR_RED "i2c write 0x%x = 0x%x error\n" ANSI_COLOR_RESET, addr, value); 
+      printf(RED "i2c write 0x%x = 0x%x error\n" RESET, addr, value); 
       if (pError != NULL)
         *pError = -1;
+      passert(0);
     }
-    usleep(SLEEP_TIME_I2C);
+    //usleep(SLEEP_TIME_I2C);
   }
-  // printf("i2c_write [%x] = %x\n",addr,value);
+  //printf("i2c_write [%x] = %x\n",addr,value);
   pthread_mutex_unlock(&i2cm);
 }
 
@@ -86,19 +88,19 @@ uint8_t i2c_read_byte(uint8_t addr, uint8_t command, int *pError) {
 
   i2c_set_address(addr, pError);
   if (*pError != 0) {
-    // printf("i2c_read_byte(%d): call to i2c_set_address returned with err
-    // %d\n",__LINE__ , *pError);    
-    printf(ANSI_COLOR_RED "i2c read byte 0x%x 0x%x error\n" ANSI_COLOR_RESET, addr, command);
-    res = 0xFF;
+    //printf("i2c_read_byte(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);    
+    printf(RED "i2c read byte 0x%x 0x%x error\n" RESET, addr, command);
+  //  res = 0xFF;
   } else {
     r = i2c_smbus_read_byte_data(file, command, pError);
     res = r & 0xFF;
-    if (pError) {
-      printf(ANSI_COLOR_RED "i2c read byte 0x%x 0x%x error\n" ANSI_COLOR_RESET, addr, command);
+    if (*pError) {
+      printf(RED "i2c read byte 0x%x 0x%x error\n" RESET, addr, command);
+     // res = 0;
     }
   }
   pthread_mutex_unlock(&i2cm);
-  // printf("i2c_read [%x:%x] = %x\n",addr,command ,res);
+  //printf("i2c_read [%x:%x] = %x\n",addr,command ,res);
   return res;
 }
 
@@ -125,18 +127,18 @@ void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value, int *pError) {
   passert(pError);
   i2c_set_address(addr, pError);
   if (*pError != 0) {
-    printf(ANSI_COLOR_RED "i2c write byte 0x%x 0x%x = 0x%x error\n" ANSI_COLOR_RESET, 
+    printf(RED "i2c write byte 0x%x 0x%x = 0x%x error\n" RESET, 
       addr, command, value);
 
   } else {
     if (i2c_smbus_write_byte_data(file, command, value) == -1) {
-      printf(ANSI_COLOR_RED "i2c write byte 0x%x 0x%x = 0x%x error\n" ANSI_COLOR_RESET, 
+      printf(RED "i2c write byte 0x%x 0x%x = 0x%x error\n" RESET, 
               addr, command, value);
         *pError = -1;
     }
     usleep(SLEEP_TIME_I2C);
   }
-  // printf("i2c_write [%x:%x] = %x\n",addr,command,value);
+  //printf("i2c_write [%x:%x] = %x\n",addr,command,value);
   pthread_mutex_unlock(&i2cm);
 }
 
@@ -146,19 +148,20 @@ uint16_t i2c_read_word(uint8_t addr, uint8_t command, int *pError) {
   passert(pError);
   i2c_set_address(addr, pError);
   if ( *pError != 0) {
-    printf(ANSI_COLOR_RED "i2c read word 0x%x 0x%x error\n" ANSI_COLOR_RESET, addr, command);
+    printf(RED "i2c read word 0x%x 0x%x error\n" RESET, addr, command);
     r = 0xFFFF;
   } else {
     r = i2c_smbus_read_word_data(file, command, pError);
     if ( *pError != 0) {
-      printf(ANSI_COLOR_RED "i2c read word 0x%x 0x%x error\n" ANSI_COLOR_RESET, addr, command);
-      r = 0xFFFF;
+      printf(RED "i2c read word 0x%x 0x%x error\n" RESET, addr, command);
+      r = 0x0;
+      return r;
     } 
   }
-  // printf("i2c[%x:%x] -> %x\n",addr, command, r);
+  ////printf("i2c[%x:%x] -> %x\n",addr, command, r);
   // usleep(SLEEP_TIME_I2C);
   pthread_mutex_unlock(&i2cm);
-  // printf("i2c_read [%x:%x] = %x\n",addr,command ,r);
+  //printf("i2c_read [%x:%x] = %x\n",addr,command ,r);
   return r;
 }
 
@@ -167,17 +170,17 @@ void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value,
   pthread_mutex_lock(&i2cm);
   i2c_set_address(addr, pError);
   if (pError != NULL && *pError != 0) {
-    printf(ANSI_COLOR_RED "i2c write word 0x%x 0x%x = 0x%x error\n" ANSI_COLOR_RESET, addr, command, value);        
+    printf(RED "i2c write word 0x%x 0x%x = 0x%x error\n" RESET, addr, command, value);        
   } else {
     if ((i2c_smbus_write_word_data(file, command, value) == -1) &&
         (pError != NULL)) {
-      printf(ANSI_COLOR_RED "i2c write word 0x%x 0x%x = 0x%x error\n" ANSI_COLOR_RESET, addr, command, value);        
+      printf(RED "i2c write word 0x%x 0x%x = 0x%x error\n" RESET, addr, command, value);        
       *pError = -1;
     }
 
     usleep(SLEEP_TIME_I2C);
   }
-  // printf("i2c_write [%x:%x] = %x\n",addr,command,value);
+  //printf("i2c_write [%x:%x] = %x\n",addr,command,value);
   pthread_mutex_unlock(&i2cm);
 }
 
@@ -187,7 +190,7 @@ void i2c_init(int *pError) {
     printf("Failed to open the i2c bus.\n");
     /* ERROR HANDLING; you can check errno to see what went wrong */
     if (pError != NULL) {      
-      printf(ANSI_COLOR_RED "i2c init error\n" ANSI_COLOR_RESET);
+      printf(RED "i2c init error\n" RESET);
       *pError = -1;
     }
   }

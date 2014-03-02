@@ -17,7 +17,7 @@ DC2DC_VOLTAGE CORNER_TO_VOLTAGE_TABLE[ASIC_CORNER_COUNT] = {
 
 
 
-void discover_good_loops_update_nvm() {
+void discover_good_loops() {
   DBG(DBG_NET, "RESET SQUID\n");
 
   uint32_t good_loops = 0;
@@ -34,12 +34,12 @@ void discover_good_loops_update_nvm() {
   if (success) {
     for (i = 0; i < LOOP_COUNT; i++) {
       // vm.loop[i].present = true;
-      nvm.loop_brocken[i] = false;
+      //nvm.loop_brocken[i] = false;
       ret++;
     }
   } else {
     for (i = 0; i < LOOP_COUNT; i++) {
-      // vm.loop[i].id =i;
+      vm.loop[i].id = i;
       unsigned int bypass_loops = (~(1 << i) & 0xFFFFFF);
       write_spi(ADDR_SQUID_LOOP_BYPASS, bypass_loops);
       //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
@@ -47,19 +47,17 @@ void discover_good_loops_update_nvm() {
       printf("Testing loop::::::\n");
       if (test_serial(i)) {
         // printf("--00--\n");
-        nvm.loop_brocken[i] = false;
-        // vm.loop[i].present = true;
+        vm.loop[i].enabled_loop = 1;
         good_loops |= 1 << i;
         ret++;
       } else {
         // printf("--11--\n");
-        nvm.loop_brocken[i] = true;
-        // vm.loop[i].present = false;
+        vm.loop[i].enabled_loop = 0;
         for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP;
              h++) {
           // printf("remove ASIC 0x%x\n", h);
-          nvm.asic_ok[h] = 0;
-          nvm.working_engines[h] = 0;
+          vm.hammer[h].asic_present = 0;
+          vm.working_engines[h] = 0;
           nvm.top_freq[h] = ASIC_FREQ_0;
           nvm.asic_corner[h] = ASIC_CORNER_NA;
         }
@@ -68,17 +66,17 @@ void discover_good_loops_update_nvm() {
         dc2dc_disable_dc2dc(i, &err);
       }
     }
-    nvm.good_loops = good_loops;
-    write_spi(ADDR_SQUID_LOOP_BYPASS, ~(nvm.good_loops));
+    write_spi(ADDR_SQUID_LOOP_BYPASS, ~(good_loops));
+    vm.good_loops = good_loops;
     test_serial(-1);
   }
-  nvm.dirty = 1;
+ 
   printf("Found %d good loops\n", ret);
   passert(ret);
 }
 
 void test_asics_in_freq(ASIC_FREQ freq_to_pass, ASIC_CORNER corner_to_set) {
-  printf(ANSI_COLOR_MAGENTA "TODO TODO testing freq!\n" ANSI_COLOR_RESET);
+  printf(MAGENTA "TODO TODO testing freq!\n" RESET);
 }
 
 
@@ -93,15 +91,16 @@ void find_bad_engines_update_nvm() {
 
     while (hammer_iter_next_present(&hi)) {
       // Update NVM
-      if (nvm.working_engines[hi.addr] != hi.a->passed_last_bist_engines) {
-        nvm.working_engines[hi.addr] = hi.a->passed_last_bist_engines;
+      if (vm.working_engines[hi.addr] != hi.a->passed_last_bist_engines) {
+        vm.working_engines[hi.addr] = hi.a->passed_last_bist_engines;
         nvm.dirty = 1;
         printf("After BIST setting %x enabled engines to %x\n", 
                hi.addr,
-               nvm.working_engines[hi.addr]);
+               vm.working_engines[hi.addr]);
       }
     }
+    
   }
-  restore_nvm_voltage_and_frequency();
+  set_nvm_dc2dc_voltage();
 }
 

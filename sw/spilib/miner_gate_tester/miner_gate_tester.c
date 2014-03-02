@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
  srand (time(NULL));
 
  while (1) {
-  assert(jobs_per_time <= MAX_REQUESTS);
+  passert(jobs_per_time <= MAX_REQUESTS);
      for (i = 0; i < (jobs_per_time); i++) {
         minergate_do_job_req* p = mp_req->req+i;
         fill_random_work2(p);

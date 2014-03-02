@@ -18,7 +18,7 @@
 #include "hammer_lib.h"
 #include "real_time_queue.h"
 
-#define MAX_PACKETS_IN_RT_QUEUE 25
+#define MAX_PACKETS_IN_RT_QUEUE 50
 // hash table
 RT_JOB rt_queue[0x100] = { 0 };
 int rt_queue_sw_write;
@@ -41,12 +41,13 @@ RT_JOB *add_to_sw_rt_queue(const RT_JOB *work) {
   if (rt_queue_size == MAX_PACKETS_IN_RT_QUEUE) {
     RT_JOB old_w;
     one_done_sw_rt_queue(&old_w);
+    vm.newest_hw_job_id = old_w.work_id_in_hw;
     push_work_rsp(&old_w);
   }
   passert(rt_queue[rt_queue_sw_write].work_state == WORK_STATE_FREE);
   RT_JOB *work_in_queue = &rt_queue[rt_queue_sw_write];
   *work_in_queue = *work;
-  assert(rt_queue_sw_write < 0x100);
+  passert(rt_queue_sw_write < 0x100);
   work_in_queue->work_id_in_hw = rt_queue_sw_write;
   work_in_queue->work_state = WORK_STATE_HAS_JOB;
   // to make sure...

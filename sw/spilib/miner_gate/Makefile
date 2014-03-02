@@ -1,7 +1,7 @@
 # Makefile to build monte_pi_sprng program
 # --- macros
 CC=arm-none-linux-gnueabi-g++
-CFLAGS= -g -O0 -fpermissive -rdynamic -lpthread -static-libstdc++ -static-libgcc 
+CFLAGS= -O0 -fpermissive -rdynamic -lpthread -static-libstdc++ -static-libgcc -DDC2DC_CHECK_ON_ERROR
 OBJECTS= 
 LIBS = -L./ -lpthread
 SRCS=zabbix_log.c pll.c asic_testboard.c asic_thermal.c pwm_manager.cpp  spond_debug.cpp corner_discovery.c i2c.c dc2dc.c ac2dc.c  json.c miner_gate.c mg_proto_parser.c scaling_manager.c hammer_lib.c nvm.c squid.cpp sha256.c real_time_queue.c 

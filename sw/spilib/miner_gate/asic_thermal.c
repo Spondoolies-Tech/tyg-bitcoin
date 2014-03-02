@@ -17,7 +17,7 @@
 #include "miner_gate.h"
 #include "scaling_manager.h"
 
-//#if ASIC_TESTBOARD 
+//#if TEST_BOARD
 
 
 void enable_thermal_shutdown() {
@@ -26,9 +26,12 @@ void enable_thermal_shutdown() {
   write_reg_broadcast(ADDR_SHUTDOWN_ACTION, ALL_ENGINES_BITMASK | 0x78);  
   write_reg_broadcast(ADDR_TS_RSTN_0, 0);
   write_reg_broadcast(ADDR_TS_RSTN_1, 0);
-  write_reg_broadcast(ADDR_TS_SET_0, (ASIC_TEMP_125 - 1) | 
+  /*
+  write_reg_broadcast(ADDR_TS_SET_0, (ASIC_TEMP_125- 1) | 
                           ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
-  write_reg_broadcast(ADDR_TS_SET_0, (ASIC_TEMP_101 - 1));
+  write_reg_broadcast(ADDR_TS_SET_1, (ASIC_TEMP_125- 1) | 
+                          ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
+  */
   write_reg_broadcast(ADDR_TS_RSTN_0, 1);
   write_reg_broadcast(ADDR_TS_RSTN_1, 1);
   flush_spi_write();
@@ -43,7 +46,7 @@ void thermal_init() {
 
 
 
-
+ 
 
 void read_some_asic_temperatures(int loop, 
                                  ASIC_TEMP temp_measure_temp0, 
@@ -77,32 +80,39 @@ void read_some_asic_temperatures(int loop,
     if (a->asic_present) {
       if (val[h] & BIT_INTR_0_OVER) { 
         // This ASIC is at least this temperature high
-        if (a->temperature < temp_measure_temp0) {
-          a->temperature = temp_measure_temp0;
-          printf("ASIC %x Temp:%d\n",a->temperature*6+77);
+        if (a->asic_temp < temp_measure_temp0) {
+            printf(GREEN "0+:ASIC %x Temp was %d now %d \n" RESET,a->address,
+              a->asic_temp*6+77, temp_measure_temp0*6+77);
+          a->asic_temp = temp_measure_temp0;
+         
         }
       } else { 
         // ASIC is colder then this temp!
-        if (a->temperature > temp_measure_temp0) {
-          a->temperature = (ASIC_TEMP)(temp_measure_temp0-1);
-          printf("ASIC %x Temp:%d\n",a->temperature*6+77);
+        if (a->asic_temp >= temp_measure_temp0) {
+            printf(GREEN "0-:ASIC %x Temp was %d now %d \n" RESET,a->address,
+              a->asic_temp*6+77, (temp_measure_temp0-1)*6+77);
+          a->asic_temp = (ASIC_TEMP)(temp_measure_temp0-1);
+          
         }
       }
 
       if (val[h] & BIT_INTR_1_OVER) { 
          // This ASIC is at least this temperature high
-         if (a->temperature < temp_measure_temp1) {
-           a->temperature = temp_measure_temp1;
-           printf("ASIC %x Temp:%d\n",a->temperature*6+77);
+         if (a->asic_temp < temp_measure_temp1) {
+            printf(GREEN "1+:ASIC %x Temp was %d now %d \n" RESET,a->address,
+              a->asic_temp*6+77, temp_measure_temp1*6+77);
+           a->asic_temp = temp_measure_temp1;
+         
          }
        } else { 
          // ASIC is colder then this temp!
-         if (a->temperature > temp_measure_temp1) {
-           a->temperature = (ASIC_TEMP)(temp_measure_temp1-1);
-           printf("ASIC %x Temp:%d\n",a->temperature*6+77);
+         if (a->asic_temp >= temp_measure_temp1) {
+           printf(GREEN "1-:ASIC %x Temp was %d now %d \n" RESET,a->address,
+              a->asic_temp*6+77, (temp_measure_temp1-1)*6+77);
+            a->asic_temp = (ASIC_TEMP)(temp_measure_temp1-1);
          }
        }
-      DBG(DBG_SCALING, "THERMAL UPDATED a[%x] to %d\n", a->address, a->temperature);
+      DBG(DBG_SCALING, "THERMAL UPDATED a[%x] to %d\n", a->address, a->asic_temp);
     }
     // enable back thermal shutdown
     enable_thermal_shutdown();

@@ -41,10 +41,10 @@ void update_zabbix_stats() {
   int t = time(NULL);
   for (int l = 0; l < HAMMERS_COUNT; l++) {
     zabbix_log.asics[l].freq = vm.hammer[l].asic_freq;
-    zabbix_log.asics[l].temp = vm.hammer[l].temperature;
-    zabbix_log.asics[l].working_engines = nvm.working_engines[l];
+    zabbix_log.asics[l].temp = vm.hammer[l].asic_temp;
+    zabbix_log.asics[l].working_engines = vm.working_engines[l];
     zabbix_log.asics[l].failed_bists = vm.hammer[l].failed_bists;
-    zabbix_log.asics[l].freq_time = t - vm.hammer[l].last_freq_increase_time;
+    zabbix_log.asics[l].freq_time = t - vm.hammer[l].last_freq_change_time;
   }
 }
 
@@ -172,7 +172,7 @@ void dump_zabbix_stats() {
                             json_mknumber(ham->max_freq));
         json_append_element(asic_engines_on,
                             json_mknumber(ham->enabled_engines_mask));
-        json_append_element(asic_temp, json_mknumber(ham->temperature));
+        json_append_element(asic_temp, json_mknumber(ham->asic_temp));
         json_append_element(asic_wins, json_mknumber(ham->solved_jobs));
 
         // vm.loop[l].dc2dc.dc_current_16s += ham->freq;

@@ -6,6 +6,7 @@
 #gcc -g -O0 -rdynamic miner_gate.c minergate_lib.c hammer_kit.c  spilib.c  -o miner_gate 
 
 cd miner_gate
+touch nvm.c
 make
 cd ../
 

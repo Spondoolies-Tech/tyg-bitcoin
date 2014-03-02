@@ -75,6 +75,7 @@ copy_all_spond_files() {
 		mkdir spond-data
 	fi
 	cp ${CUR_DIR}/../add-ons/squid_top.jam spond-data
+	cp ${CUR_DIR}/../arm-binaries/*  usr/local/bin
 	
 	#binaries
 	cp ${CUR_DIR}/../../scripts/eeprom-read-hostname.sh usr/local/bin

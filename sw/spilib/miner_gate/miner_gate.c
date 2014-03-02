@@ -37,11 +37,11 @@
 #include "asic_thermal.h"
 #include <syslog.h>
 #include "asic_testboard.h"
+#include "pll.h"
 
 using namespace std;
 pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
-int noasic = 0;
-int enable_scaling = 1;
+
 
 // SERVER
 void compute_hash(const unsigned char *midstate, unsigned int mrkle_root,
@@ -207,12 +207,11 @@ void *connection_handler_thread(void *adptr) {
   vm.busy_probs = 0;
   vm.solved_jobs_total = 0;
 
-  if (!noasic) {
-    RT_JOB work;
 
-    while (one_done_sw_rt_queue(&work)) {
-      push_work_rsp(&work);
-    }
+  RT_JOB work;
+
+  while (one_done_sw_rt_queue(&work)) {
+    push_work_rsp(&work);
   }
   // (minergate_adapter*)malloc(sizeof(minergate_adapter));
   int nbytes;
@@ -377,12 +376,11 @@ void test_asic_reset() {
 
 void test_harel() {
 
-  if (!noasic) {
-    printf("Running BISTs... :");
-    printf(do_bist_ok() ? " OK" : " FAIL");
-    printf(do_bist_ok() ? " OK" : " FAIL");
-    printf(do_bist_ok() ? " OK\n" : " FAIL\n");
-  }
+  printf("Running BISTs... :");
+  printf(do_bist_ok() ? " OK" : " FAIL");
+  printf(do_bist_ok() ? " OK" : " FAIL");
+  printf(do_bist_ok() ? " OK\n" : " FAIL\n");
+  
   for (int l = 0; l < LOOP_COUNT; l++) {
     for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
       if (!vm.loop[l].enabled_loop) {
@@ -423,13 +421,18 @@ void reset_squid() {
   fclose(f);
 }
 
+
+int loop_to_measure;
+
 int main(int argc, char *argv[]) {
+  printf(RESET);
   int test_mode = 0;
   int testreset_mode = 0;
   int init_mode = 0;
   int s;
   int new_nvm = 1;
-  enable_reg_debug = 1;
+  srand (time(NULL));
+  enable_reg_debug = 0;
   printf("ENABLING REG DEBUG\n");
   setlogmask(LOG_UPTO(LOG_INFO));
   openlog("minergate", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
@@ -441,9 +444,9 @@ int main(int argc, char *argv[]) {
     test_mode = 1;
     printf("--testreset = Test asic reset!!!\n");
     printf("--test = Test mode, remove NVM!!!\n");
-    printf("--noscale = No scaling mode!!!\n");
-    printf("--noasic = NO HW MODE!!!\n");
     printf("--init = Re-init mode!!!\n");
+    printf("<num> = Asic to mesure\n");
+    
     return 0;
   }
 
@@ -459,15 +462,7 @@ int main(int argc, char *argv[]) {
     spond_delete_nvm();
   }
 
-  if ((argc > 1) && strcmp(argv[1], "--noscale") == 0) {
-    enable_scaling = 0;
-    printf("No scaling mode!!!\n");
-  }
 
-  if ((argc > 1) && strcmp(argv[1], "--noasic") == 0) {
-    printf("NO HW MODE!!!!\n");
-    noasic = 1;
-  }
 
   if ((argc > 1) && strcmp(argv[1], "--init") == 0) {
     printf("Re-init mode!!!\n");
@@ -475,10 +470,19 @@ int main(int argc, char *argv[]) {
     spond_delete_nvm();
   }
 
+#if TEST_BOARD == 1
+   if ((argc > 2) && (loop_to_measure = atoi(argv[2]))) {
+    printf("||||||||||||||| --->>> loop_to_measure=%d\n", loop_to_measure);
+    // Delete NVM
+    spond_delete_nvm();
+  }
+#endif
+
   struct sockaddr_un address;
   int socket_fd, connection_fd;
   socklen_t address_length = sizeof(address);
   pthread_t main_thread;
+  pthread_t dc2dc_thread;
   // pthread_t conn_pth;
   pid_t child;
   printf("reset_squid\n");
@@ -492,176 +496,131 @@ int main(int argc, char *argv[]) {
   printf("init_pwm\n");
   init_pwm();
   printf("set_fan_level\n");
-  set_fan_level(FAN_LEVEL_MEDIUM);
-
-#if 0
-int err;
-dc2dc_set_voltage(0, ASIC_VOLTAGE_555, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_585, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_630, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_675, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_720, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_765, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_790, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_810, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-return 0;
-#endif
+  set_fan_level(FAN_LEVEL_LOW);
+  //exit(0);
 
   printf("dc2dc_print\n");
 
-  dc2dc_print();
-  ac2dc_print();
+ // dc2dc_print();
+ // ac2dc_print();
 
-#if 0 
- //read_mgmt_temp();
-/*
- while (1) {
-   printf("Current power::: = %d\n",ac2dc_get_power());
-    printf("Current tmp0::: = %d\n",ac2dc_get_temperature(0));
-      printf("Current tmp1::: = %d\n",ac2dc_get_temperature(1));
-        printf("Current tmp2::: = %d\n",ac2dc_get_temperature(2));
-  sleep(1);
- }
- */
- 
- /*
- int power = ac2dc_get_temperature(0);
- printf("Current temp1 = %d\n",power);
- power = ac2dc_get_temperature(1);
- printf("Current temp1 = %d\n",power);
- power = ac2dc_get_temperature(2);
- printf("Current temp1 = %d\n",power);
-*/
-#endif
+
 
   // test SPI
   int q_status = read_spi(ADDR_SQUID_PONG);
   passert((q_status == 0xDEADBEEF),
           "ERROR: no 0xdeadbeef in squid pong register!\n");
 
-#if 0
- // set voltage test
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_810);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_790);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_765);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_720);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_675);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_630);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_585);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_555); 
-    sleep(3);
-#endif
 
-  if (!load_nvm_ok() || !enable_scaling) {
+
+  if (!load_nvm_ok()) {
     // Init NVM.
     // Finds good loops using broadcast reads. No addresses given.
-    printf("Creating new NVM\n");
+    printf(RED "Creating new NVM\n" RESET);
 
     // Sets all ASICs to ASIC_CORNER_SS
     // Set working engines to 0xFF
     // Set top frequency to ASIC_FREQ_225
     create_default_nvm();
-
-    // Find good loops
-    if (!noasic) {
-      // Update nvm.loop_brocken
-      // Update nvm.good_loops
-      // Set ASICS on all disabled loops to asic_ok=0
-      discover_good_loops_update_nvm();
-    }
   } else {
     new_nvm = 0;
   }
-  printf("Parsing NVM info\n");
-
+  
+  // Find good loops
+  // Update vm.good_loops
+  // Set ASICS on all disabled loops to asic_ok=0
+  discover_good_loops();
+  print_nvm();
   //  Here the NVM assumed to be updated (new or old), we work with it.
-  if (!noasic) {
-    // Update vm.loop[i].enabled_loop from NVM, set loops in FPGA
-    if (!enable_nvm_loops_ok()) {
-      printf("LOOP TEST FAILED, DELETE NVM AND RESTART:%x\n", nvm.good_loops);
-      spond_delete_nvm();
-      passert(0);
-    }
-  }
 
-  printf("enable_nvm_loops_ok done %d\n", __LINE__);
-  // Allocates addresses, sets nonce range.
-  if (!noasic) {
-    // Reset all hammers
-    init_hammers();
-
-    // Give addresses to devices. If NVM non-consistent - delete it and exit.
-    allocate_addresses_to_devices();
-
-    // Set nonce ranges
-    set_nonce_range_in_engines(0xFFFFFFFF);
-
-    // Set default frequencies.
-    // Set all voltage to ASIC_VOLTAGE_810
-    // Set all frequency to ASIC_FREQ_225
-    set_safe_voltage_and_frequency();
-    // Set all engines to 0x7FFF
-    enable_engines_from_nvm();
-    // UPDATE NVM DATA by running some tests.
-    if (new_nvm) {
-      // Sets bad engines in NVM
-      find_bad_engines_update_nvm();
-      enable_engines_from_nvm();
-      // Sets asic Corner and loop voltages
-      //recompute_corners_and_voltage_update_nvm();  
-      fulltest_test_board();
-      assert(0);
-    }
-
-    restore_nvm_voltage_and_frequency();
-  }
  
+
+  // Update vm.loop[i].enabled_loop from NVM, set loops in FPGA
+  if (!enable_good_loops_ok()) {
+    printf("LOOP TEST FAILED, DELETE NVM AND RESTART:%x\n", vm.good_loops);
+    spond_delete_nvm();
+    passert(0);
+  }
+
+
+
+  printf("enable_good_loops_ok done %d\n", __LINE__);
+  // Allocates addresses, sets nonce range.
+  // Reset all hammers
+  init_hammers();
+
+  /*
+  int addr;
+     //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
+   
+     while (addr = BROADCAST_READ_ADDR(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
+        printf(RED "CONDUCTOR BUZY IN %x (%X)\n" RESET, addr,read_reg_broadcast(ADDR_VERSION));
+        disable_asic_forever(addr);
+     }
+     */
+  // Give addresses to devices. If NVM non-consistent - delete it and exit.
+  allocate_addresses_to_devices();
+
+ 
+     //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
+   
+     
+
+  // Set nonce ranges
+  set_nonce_range_in_engines(0xFFFFFFFF);
+
+
+
+
+  // Set default frequencies.
+  // Set all voltage to ASIC_VOLTAGE_810
+  // Set all frequency to ASIC_FREQ_225
+  set_safe_voltage_and_frequency();
+  // Set all engines to 0x7FFF
+  enable_nvm_engines_all_asics_ok();
+ 
+ 
+  //assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
+  // UPDATE NVM DATA by running some tests.
+  if (new_nvm) {
+    // Sets bad engines in NVM
+    find_bad_engines_update_nvm();
+    enable_nvm_engines_all_asics_ok();
+    // Sets asic Corner and loop voltages
+    //recompute_corners_and_voltage_update_nvm(); 
+    //
+//      int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
+//    assert(some_asics_busy == 0);
+ //   fulltest_test_board();
+ //   assert(0);
+  }
+
+
+  set_nvm_dc2dc_voltage();
+
+
+ // assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
+
+
+  
   printf("setting ASIC engines %d\n", __LINE__);
-  enable_engines_from_nvm();
+  enable_nvm_engines_all_asics_ok();
+  
+  
+   
   printf("hammer initialisation done %d\n", __LINE__);
   thermal_init();
-
+  
   // Save NVM unless running without scaling
   spond_save_nvm();
 
-  if ((!noasic) && enable_scaling) {
-    // Enables NVM engines in ASICs.
-    printf("enable_voltage_freq_and_engines_from_nvm\n");
-    enable_voltage_freq_and_engines_from_nvm();
-    printf("init_scaling\n");
-    init_scaling();
-  }
+  // Enables NVM engines in ASICs.
+  printf("enable_voltage_from_nvm\n");
+  enable_voltage_from_nvm();
+  printf("init_scaling\n");
+  init_scaling();
+
+
 
   printf("init_scaling done, ready to mine, saving NVM\n");
   spond_save_nvm();
@@ -676,6 +635,12 @@ return 0;
     return 0;
   }
 
+  
+   
+
+  //assert((read_reg_broadcast(ADDR_VERSION)&0xFF) == 0x3c);
+  //assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
+
 
   enable_reg_debug = 0;
 
@@ -686,11 +651,14 @@ return 0;
   passert(socket_fd > 0);
 
   printf("Starting HW thread\n");
-  if (!noasic) {
-    s = pthread_create(&main_thread, NULL, squid_regular_state_machine,
-                       (void *)NULL);
-    passert(s == 0);
-  }
+
+  s = pthread_create(&main_thread, NULL, squid_regular_state_machine,
+                     (void *)NULL);
+  passert(s == 0);
+  s = pthread_create(&dc2dc_thread, NULL, dc2dc_state_machine,
+                     (void *)NULL);
+  passert(s == 0);
+
 
   minergate_adapter *adapter = new minergate_adapter;
   passert((int)adapter);

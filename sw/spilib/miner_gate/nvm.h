@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include "dc2dc.h"
+#include "defines.h"
 
 #define NVM_VERSION (0xCAF10000 + sizeof(SPONDOOLIES_NVM))
 #define RECOMPUTE_NVM_TIME_SEC (60 * 60 * 24) // once every 24 hours
@@ -13,8 +14,6 @@
 #define HAMMERS_COUNT (LOOP_COUNT *HAMMERS_PER_LOOP)
 #define ALL_ENGINES_BITMASK 0x7FFF
 #define NVM_FILE_NAME "/nvm/nvm.bin"
-
-#define MINIMAL_ASIC_FREQ ASIC_FREQ_225
 
 typedef enum {
   ASIC_FREQ_0 = 0,
@@ -48,6 +47,20 @@ typedef enum {
   ASIC_FREQ_630,
   ASIC_FREQ_645,
   ASIC_FREQ_660,
+  ASIC_FREQ_675,
+  ASIC_FREQ_690,
+  ASIC_FREQ_705,
+  ASIC_FREQ_720,
+  ASIC_FREQ_735,
+  ASIC_FREQ_750,
+  ASIC_FREQ_765,
+  ASIC_FREQ_780,
+  ASIC_FREQ_795,
+  ASIC_FREQ_810,
+  ASIC_FREQ_825,
+  ASIC_FREQ_840,
+  ASIC_FREQ_855,
+  ASIC_FREQ_870,
   ASIC_FREQ_MAX
 } ASIC_FREQ;
 
@@ -82,15 +95,10 @@ typedef struct _spondoolies_nvm {
   uint32_t nvm_version;
   // time(NULL) at store time.
   uint32_t store_time;
-  // Remembers bad loops.
-  uint8_t loop_brocken[LOOP_COUNT];
-  uint32_t good_loops;
-  // Remember bad ASICs.
-  uint8_t asic_ok[HAMMERS_COUNT];
   // Values are ASIC_CORNER_XXX
   uint8_t asic_corner[HAMMERS_COUNT];
   // Working engines at each ASIC
-  uint16_t working_engines[HAMMERS_COUNT];
+  // uint16_t working_engines[HAMMERS_COUNT];
   // Top frequency per ASIC
   ASIC_FREQ top_freq[HAMMERS_COUNT];
   // Each loop voltage
@@ -98,6 +106,10 @@ typedef struct _spondoolies_nvm {
   // Save nvm
   uint8_t dirty;
 
+  // Known top working DC2DC current
+  uint32_t top_dc2dc_current_16s[LOOP_COUNT];
+
+  
   // This field must be last!
   uint32_t crc32;
 } SPONDOOLIES_NVM;
@@ -106,5 +118,6 @@ extern SPONDOOLIES_NVM nvm;
 int load_nvm_ok();
 void spond_save_nvm();
 void spond_delete_nvm();
+void print_nvm();
 
 #endif

@@ -3,7 +3,7 @@
 
 #include "defines.h"
 
-//#if ASIC_TESTBOARD != 0
+//#if TEST_BOARD!= 0
 
 int tb_get_asic_current(int id);
 void fulltest_test_board();
