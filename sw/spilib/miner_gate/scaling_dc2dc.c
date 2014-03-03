@@ -395,6 +395,6 @@ void asic_frequency_update_with_bist() {
         asic_upscale(hh);
       }   
     }
-  
+}  
 
 
