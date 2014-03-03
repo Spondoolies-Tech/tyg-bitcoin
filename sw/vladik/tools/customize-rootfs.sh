@@ -137,7 +137,7 @@ generate_fstab()
 	/dev/mmcblk0p2	${MP_MMC_CONF}	xfs	defaults,noauto,noatime	0 0 # SD=no
 	#/dev/mmcblk0p3	/var/log	xfs	defaults,noauto,noatime	0 0 # SD=no
 
-	unionfs		/etc		unionfs	dirs=${MP_MMC_CONF}/etc=rw:/etc=ro 0 0
+	unionfs		/etc		unionfs	noauto,dirs=${MP_MMC_CONF}/etc=rw:/etc=ro 0 0
 	EOF
 }
 
