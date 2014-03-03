@@ -26,6 +26,7 @@ typedef enum {
 
 
 #define VTRIM_MIN 0xFFd4  // 0.675
+#define VTRIM_MEDIUM 0xffe3 
 #define VTRIM_MAX 0xfff7  // 0.765
 
 #define VTIRM_TO_VOLTAGE(XX)    (675 + (XX-VTRIM_MIN)*(3))  

@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
  int i;
  int requests = 0;
  int responces = 0;
-   
+ int rate = 0;
  //nbytes = snprintf(buffer, 256, "hello from a client");
  srand (time(NULL));
 
@@ -131,14 +131,22 @@ int main(int argc, char* argv[])
        responces++;
        minergate_do_job_rsp* work = mp_rsp->rsp+i;
        if (work->winner_nonce) {
-         printf("!!!GOT minergate job rsp %08x %08x\n",work->work_id_in_sw,work->winner_nonce);
+         //printf("!!!GOT minergate job rsp %08x %08x\n",work->work_id_in_sw,work->winner_nonce);
+         int job_difficulty = 1<<(leading_zeroes-32); // in 4GH units
+         rate += job_difficulty;
        }
     }
 
-
    
-   printf("REQUESTS: %d RESPONCES: %d, DELTA: %d\n",requests, responces, requests - responces);
-     usleep(jobs_period*1000);
+   //printf("REQUESTS: %d RESPONCES: %d, DELTA: %d\n",requests, responces, requests - responces);
+   usleep(jobs_period*1000);
+   static int counter = 0;
+   counter++;
+   // Show rate each 30 seconds 
+   if ((counter%((10000/jobs_period))) == 0) {
+      printf(MAGENTA "HASH RATE=%dGH\n" RESET,rate*4/10);
+      rate=0;
+   }
  }
  close(socket_fd);
  free(mp_req);

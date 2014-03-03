@@ -27,6 +27,7 @@
 
 extern pthread_mutex_t network_hw_mutex;
 pthread_mutex_t i2c_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t hammer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int total_devices = 0;
 extern int enable_reg_debug;
@@ -443,11 +444,12 @@ int get_print_win(int winner_device) {
   // ADDR_WINNER_NONCE));
   // test that this is the "work_in_hw" win.
   if (work_in_hw->work_state == WORK_STATE_HAS_JOB) {
-    printf("!!!!!!!  WIN !!!!!!!! %x %x\n", winner_nonce,
-           work_in_hw->work_id_in_sw);
+ 
+    printf("!!!!!!!  WIN !!!!!!!! %x %x\n", winner_nonce, work_in_hw->work_id_in_sw);
     work_in_hw->winner_nonce = winner_nonce;
     // Optional printing
     if (work_in_hw->winner_nonce != 0) {
+#if 0      
       if (DBG_WINS) {
         DBG(DBG_WINS, "------ FOUND WIN:----\n");
         DBG(DBG_WINS, "- midstate:\n");
@@ -471,9 +473,7 @@ int get_print_win(int winner_device) {
         int leading_zeroes = get_leading_zeroes(hash);
         DBG(DBG_WINS, "\n- Leading Zeroes: %d\n", leading_zeroes);
         DBG(DBG_WINS, "-------------------\n");
-      } else {
-        printf("Win 0x%x\n", winner_id);
-      }
+#endif  
     }
     return 1;
   } else {
@@ -483,7 +483,6 @@ int get_print_win(int winner_device) {
                       
         winner_id, vm.newest_hw_job_id, vm.oldest_hw_job_id,  winner_nonce);
     psyslog("!!!!!  Warning !!!!: Win orphan job_id 0x%x!!!\n", winner_id);
-    passert(0);
     return 0;
   }
   return 1;
@@ -931,13 +930,6 @@ void once_33_msec_tasks() {
   } else {
     update_vm_with_asic_current_and_temperature();
   }
-  
-  
-  if (read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE)) {
-    vm.idle_probs++;
-  } else {
-    vm.busy_probs++;
-  }
 }
 
 
@@ -984,6 +976,15 @@ void *dc2dc_state_machine(void *p) {
     // sleep 1/40th second
     usleep(1000000/40);
     update_vm_with_dc2dc_current_and_temperature();
+
+     pthread_mutex_lock(&hammer_mutex);
+     if (read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE)) {
+        vm.idle_probs++;
+      } else {
+        vm.busy_probs++;
+      }
+       pthread_mutex_unlock(&hammer_mutex);
+        
   }
 }
 
@@ -1022,12 +1023,14 @@ void *squid_regular_state_machine(void *p) {
     usec += (tv.tv_usec - last_job_pushed.tv_usec);
 
     if (usec >= JOB_PUSH_PERIOD_US) { // new job every 2.5 msecs = 400 per second
+      pthread_mutex_lock(&hammer_mutex);
       once_1500_usec_tasks();
       last_job_pushed = tv;
       int drift = usec - JOB_PUSH_PERIOD_US;
       if (last_job_pushed.tv_usec > drift) {
         last_job_pushed.tv_usec -= drift;
       }
+      pthread_mutex_unlock(&hammer_mutex);
     }
 
     // force queue every 10 msecs

@@ -254,6 +254,7 @@ typedef struct {
 typedef struct {
   uint8_t dc_temp;
   int dc_current_16s; // in 1/16 of amper. 0 = bad reading
+  int dc_power_watts;  
   int last_voltage_change_time;
   int dc_fail_time;  
   // Guessing added current
