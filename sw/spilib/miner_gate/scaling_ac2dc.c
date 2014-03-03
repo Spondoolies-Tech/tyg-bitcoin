@@ -53,9 +53,9 @@ void loop_down(int a, time_t now) {
 //  Any ASIC is worth then NULL
 int choose_loop_to_down(int a, int b) {
 #if 0
-  if (!a || !can_be_downscaled(a))
+  if (!a || !asic_can_down(a))
     return b;
-  if (!b || !can_be_downscaled(b))
+  if (!b || !asic_can_down(b))
     return a;
 
  
@@ -89,11 +89,11 @@ int find_loop_to_down() {
     HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
     if (a->asic_present) {
      printf("%p %p\n",a,best);
-     best = choose_asic_to_throttle(best, a);
+     best = choose_asic_to_down(best, a);
     }
   }
   printf("%p>, %x\n",best, best->address);
-  if(can_be_downscaled(best)) {
+  if(asic_can_down(best)) {
      printf("%p>, %x\n",best, best->address);
      return best;
   }
@@ -140,9 +140,9 @@ void loop_up(HAMMER *a) {
 // returns best loop or -1
 int choose_loop_to_up(int a, int b) {
 #if 0
-  if (!a || !can_be_upscaled(a))
+  if (!a || !asic_can_up(a))
     return b;
-  if (!b || !can_be_upscaled(b))
+  if (!b || !asic_can_up(b))
     return a;
 
   if (a->asic_temp != b->asic_temp) {
@@ -176,11 +176,11 @@ int find_loop_to_up() {
   for (int h = 0; h < HAMMERS_PER_LOOP ; h++) { 
     HAMMER *a = &vm.hammer[l*HAMMERS_PER_LOOP+h];
     if (a->asic_present) {
-      best = choose_asic_to_upscale(best, a);
+      best = choose_asic_to_up(best, a);
     }
   }
 
-  if(best && can_be_upscaled(best))
+  if(best && asic_can_up(best))
     return best;
   return NULL;
 #endif 

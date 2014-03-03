@@ -89,10 +89,10 @@ void enable_voltage_from_nvm() {
 
 // returns worst asic
 //  Any ASIC is worth then NULL
-HAMMER *choose_asic_to_throttle(HAMMER *a, HAMMER *b) {
-  if (!a || !can_be_downscaled(a))
+HAMMER *choose_asic_to_down(HAMMER *a, HAMMER *b) {
+  if (!a || !asic_can_down(a))
     return b;
-  if (!b || !can_be_downscaled(b))
+  if (!b || !asic_can_down(b))
     return a;
 
  
@@ -117,7 +117,7 @@ HAMMER *choose_asic_to_throttle(HAMMER *a, HAMMER *b) {
 }
 
 // return hottest ASIC
-HAMMER *find_asic_to_reduce_dc_current(int l) {
+HAMMER *find_asic_to_down(int l) {
   int h;
   // Find hottest ASIC at highest corner.
   HAMMER *best = NULL;
@@ -125,11 +125,11 @@ HAMMER *find_asic_to_reduce_dc_current(int l) {
     HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
     if (a->asic_present) {
      printf("%p %p\n",a,best);
-     best = choose_asic_to_throttle(best, a);
+     best = choose_asic_to_down(best, a);
     }
   }
   printf("%p>, %x\n",best, best->address);
-  if(can_be_downscaled(best)) {
+  if(asic_can_down(best)) {
      printf("%p>, %x\n",best, best->address);
      return best;
   }
@@ -138,7 +138,7 @@ HAMMER *find_asic_to_reduce_dc_current(int l) {
 
 
 
-int can_be_upscaled(HAMMER *a) {
+int asic_can_up(HAMMER *a) {
   if (!a->asic_present ||
       (a->asic_freq >= MAX_ASIC_FREQ) ||
       (a->asic_temp >= MAX_ASIC_TEMPERATURE) 
@@ -159,7 +159,7 @@ int can_be_upscaled(HAMMER *a) {
 }
 
 
-void asic_upscale(HAMMER *a) {
+void asic_up(HAMMER *a) {
    ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq+1);
    a->asic_freq = wanted_freq;
    set_pll(a->address, wanted_freq);        
@@ -167,12 +167,12 @@ void asic_upscale(HAMMER *a) {
 }
 
 
-int can_be_downscaled(HAMMER *a) {
+int asic_can_down(HAMMER *a) {
   return (a->asic_freq > ASIC_FREQ_225);
 }
 
 
-void asic_downscale(HAMMER *a, time_t now) {
+void asic_down(HAMMER *a, time_t now) {
    passert(vm.engines_disabled == 1);
    printf(RED "xASIC DOWNSCALE %x!\n", a->address);
    ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq-1);
@@ -183,10 +183,10 @@ void asic_downscale(HAMMER *a, time_t now) {
 
 
 // returns best asic
-HAMMER *choose_asic_to_upscale(HAMMER *a, HAMMER *b) {
-  if (!a || !can_be_upscaled(a))
+HAMMER *choose_asic_to_up(HAMMER *a, HAMMER *b) {
+  if (!a || !asic_can_up(a))
     return b;
-  if (!b || !can_be_upscaled(b))
+  if (!b || !asic_can_up(b))
     return a;
 
   if (a->asic_temp != b->asic_temp) {
@@ -214,16 +214,16 @@ HAMMER *choose_asic_to_upscale(HAMMER *a, HAMMER *b) {
 }
 
 
-HAMMER *find_asic_to_increase_speed(int l) {
+HAMMER *find_asic_to_up(int l) {
   HAMMER *best = NULL;
   for (int h = 0; h < HAMMERS_PER_LOOP ; h++) { 
     HAMMER *a = &vm.hammer[l*HAMMERS_PER_LOOP+h];
     if (a->asic_present) {
-      best = choose_asic_to_upscale(best, a);
+      best = choose_asic_to_up(best, a);
     }
   }
 
-  if(best && can_be_upscaled(best))
+  if(best && asic_can_up(best))
     return best;
   return NULL;
 }
@@ -288,10 +288,10 @@ void change_dc2dc_voltage_if_needed() {
         dc2dc_set_vtrim(l,vm.loop_vtrim[l]-1,&err);
       } else {
         printf(RED "LOOP DOWNSCALE %d\n" RESET, l);
-        HAMMER *h = find_asic_to_reduce_dc_current(l);
+        HAMMER *h = find_asic_to_down(l);
         assert(h);
         printf(RED "Starin ASIC DOWNSCALE %d\n" RESET, h->address);
-        asic_downscale(h, time(NULL));
+        asic_down(h, time(NULL));
       }
     }
 
@@ -359,8 +359,8 @@ void asic_frequency_update_with_bist() {
           // int failed_engines_count = count_ones(failed_engines_mask);
           printf(RED "Failed asic %x engines passed %x, temp %d\n" RESET, h->address, passed);
           
-          if (can_be_downscaled(h)) {
-            asic_downscale(h, now);
+          if (asic_can_down(h)) {
+            asic_down(h, now);
           } else {
             vm.working_engines[h->address] = vm.working_engines[h->address]&passed;
             if (vm.working_engines[h->address] == 0) {
@@ -373,14 +373,14 @@ void asic_frequency_update_with_bist() {
       }
 
       // try upscale 1 asic in loop
-      HAMMER *hh = find_asic_to_increase_speed(l);
+      HAMMER *hh = find_asic_to_up(l);
       if (hh) {
         if (hh->asic_freq == MAX_ASIC_FREQ &&
             hh->asic_temp == ASIC_TEMP_77) {
           printf(RED "Something wrong with ASIC %x, kill it\n", hh->address);
           //disable_asic_forever(hh->address);
         }
-        asic_upscale(hh);
+        asic_up(hh);
       }   
     }
 }  

@@ -4,8 +4,8 @@
 
 
 void decrease_asics_freqs();
-int can_be_downscaled(HAMMER *a);
-int can_be_upscaled(HAMMER *a);
+int asic_can_down(HAMMER *a);
+int asic_can_up(HAMMER *a);
 // Called each second.
 void change_dc2dc_voltage_if_needed();
 void asic_frequency_update_with_bist();
