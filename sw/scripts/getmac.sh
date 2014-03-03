@@ -1,3 +1,7 @@
 #!/bin/sh
-ifconfig eth0 |  grep eth0 | sed -r 's/(\s+)/,/g' | cut -d , -f 5
+IFCONFOG=/sbin/ifconfig
+GREP=/bin/grep
+SED=/bin/sed
+CUT=/usr/bin/cut
+${IFCONFOG} eth0 |  ${GREP} eth0 | ${SED} -r 's/(\s+)/,/g' | ${CUT} -d , -f 5
 
