@@ -29,9 +29,30 @@
 
 
 
+int loop_can_down(int a) {
+#if 0  
+  return (a->asic_freq > ASIC_FREQ_225);
+#endif
+  return 0;
+}
+
+
+void loop_down(int a, time_t now) {
+#if 0  
+   passert(vm.engines_disabled == 1);
+   printf(RED "xASIC DOWNSCALE %x!\n", a->address);
+   ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq-1);
+   a->asic_freq = wanted_freq;
+   set_pll(a->address, wanted_freq);        
+   a->last_freq_change_time = now;   
+#endif   
+}
+
+
 // returns worst asic
 //  Any ASIC is worth then NULL
-HAMMER *choose_loop_to_down(int a, int b) {
+int choose_loop_to_down(int a, int b) {
+#if 0
   if (!a || !can_be_downscaled(a))
     return b;
   if (!b || !can_be_downscaled(b))
@@ -55,11 +76,11 @@ HAMMER *choose_loop_to_down(int a, int b) {
   }
 
   return a;
- 
+#endif 
 }
 
 // return worst loop ID
-int find_worst_loop() {
+int find_loop_to_down() {
   int h;
   // Find hottest ASIC at highest corner.
   /*
@@ -116,28 +137,8 @@ void loop_up(HAMMER *a) {
 }
 
 
-int loop_can_down(HAMMER *a) {
-#if 0  
-  return (a->asic_freq > ASIC_FREQ_225);
-#endif
-  return 0;
-}
-
-
-void loop_down(HAMMER *a, time_t now) {
-#if 0  
-   passert(vm.engines_disabled == 1);
-   printf(RED "xASIC DOWNSCALE %x!\n", a->address);
-   ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq-1);
-   a->asic_freq = wanted_freq;
-   set_pll(a->address, wanted_freq);        
-   a->last_freq_change_time = now;   
-#endif   
-}
-
-
 // returns best loop or -1
-int choose_asic_to_upscale(int a, int b) {
+int choose_loop_to_up(int a, int b) {
 #if 0
   if (!a || !can_be_upscaled(a))
     return b;
