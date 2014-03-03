@@ -117,20 +117,6 @@ HAMMER *choose_asic_to_throttle(HAMMER *a, HAMMER *b) {
 }
 
 // return hottest ASIC
-/*
-HAMMER *find_asic_to_reduce_ac_current() {
-  HAMMER *best = NULL;
-  hammer_iter hi;
-  hammer_iter_init(&hi);
-
-  while (hammer_iter_next_present(&hi)) {
-    best = choose_asic_to_throttle(best, hi.a);
-  }
-
-  passert(can_be_downscaled(best));
-  return best;
-}
-*/
 HAMMER *find_asic_to_reduce_dc_current(int l) {
   int h;
   // Find hottest ASIC at highest corner.
@@ -264,6 +250,8 @@ void dc2dc_scaling_once_second() {
   
   struct timeval tv;
   start_stopper(&tv);
+
+  ac2dc_scaling_one_second();
 
   counter++;
   change_dc2dc_voltage_if_needed();
