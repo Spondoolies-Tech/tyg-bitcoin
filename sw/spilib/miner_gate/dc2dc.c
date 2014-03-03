@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "defines.h"
+#include "scaling_manager.h"
 
 extern MINER_BOX vm;
 #if 0
@@ -237,8 +238,9 @@ void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err) {
 */
 
 void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
+  pause_asics_if_needed();
   assert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
-  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%d\n",loop, VTRIM_TO_VOLTAGE(vtrim),vtrim);
+  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%d\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
 #if NO_TOP == 1 
     if (loop != 15) {
       *err = 1;
@@ -314,9 +316,12 @@ int update_dc2dc_current_temp_measurments(int loop) {
         vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_DC2DC_MEASUREMENT) {
         vm.loop[i].dc2dc.dc_current_16s =
                         dc2dc_get_current_16s_of_amper(i, &err);
+        vm.loop[i].dc2dc.dc_power_watts_16s = 
+        vm.loop[i].dc2dc.dc_current_16s*VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[i])/1000;
     } else {
       // This will disable ac2dc scaling
       vm.loop[i].dc2dc.dc_current_16s = 0;
+      vm.loop[i].dc2dc.dc_power_watts_16s = 0;
       printf(GREEN "Loop %d current not saved = %d" RESET, i, vm.loop[i].dc2dc.dc_current_16s *1000/16);
     }
   }

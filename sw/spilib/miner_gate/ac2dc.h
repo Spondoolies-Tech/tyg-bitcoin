@@ -18,4 +18,5 @@ int ac2dc_get_temperature(); // 0,1,2
 void ac2dc_print();
 int update_ac2dc_current_measurments();
 
+
 #endif

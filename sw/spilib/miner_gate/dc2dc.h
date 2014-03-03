@@ -31,7 +31,7 @@ typedef enum {
 #define VTRIM_MEDIUM 0x0ffe3 
 #define VTRIM_MAX 0x10008  // 0.810
 
-#define VTRIM_TO_VOLTAGE(XX)    ((63500 + (XX-VTRIM_MIN)*(266))/100)  
+#define VTRIM_TO_VOLTAGE_MILLI(XX)    ((63500 + (XX-VTRIM_MIN)*(266))/100)  
 
 /*
 #define VOLTAGE_ENUM_TO_MILIVOLTS(ENUM, VALUE)                                 \

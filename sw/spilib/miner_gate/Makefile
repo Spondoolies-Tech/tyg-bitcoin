@@ -4,13 +4,13 @@ CC=arm-none-linux-gnueabi-g++
 CFLAGS= -O0 -fpermissive -rdynamic -lpthread -static-libstdc++ -static-libgcc -DDC2DC_CHECK_ON_ERROR
 OBJECTS= 
 LIBS = -L./ -lpthread
-SRCS=zabbix_log.c pll.c asic_testboard.c asic_thermal.c pwm_manager.cpp  spond_debug.cpp corner_discovery.c i2c.c dc2dc.c ac2dc.c  json.c miner_gate.c mg_proto_parser.c scaling_manager.c hammer_lib.c nvm.c squid.cpp sha256.c real_time_queue.c 
+SRCS=zabbix_log.c pll.c asic_testboard.c asic_thermal.c scaling_dc2dc.c scaling_ac2dc.c pwm_manager.cpp  spond_debug.cpp corner_discovery.c i2c.c dc2dc.c ac2dc.c  json.c miner_gate.c mg_proto_parser.c scaling_manager.c hammer_lib.c nvm.c squid.cpp sha256.c real_time_queue.c 
 INCLUDES = -I./
 
 
 # --- targets
-all:   miner_gate_arm
-miner_gate_arm:   $(SRCS)
+all:   miner_gate_arm 
+miner_gate_arm:   $(SRCS) Makefile
 	$(CC)  -o miner_gate_arm  $(SRCS) $(CFLAGS) $(INCLUDES)
         
 

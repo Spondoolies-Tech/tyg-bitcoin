@@ -721,6 +721,7 @@ pthread_mutex_t i2c_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_lock(&i2c_mutex);
 */
 
+
 void once_second_tasks() {
   static int counter = 0;
    
@@ -786,21 +787,9 @@ void once_second_tasks() {
   // pthread_mutex_unlock(&network_hw_mutex);
 
   // each second
-  change_dc2dc_voltage_if_needed();
-
-  if (!vm.asics_shut_down_powersave) {    
-      //Once every 10 seconds upscale ASICs if can
-      if ( (((counter % BIST_PERIOD_SECS_RAMPUP) == 0) && vm.scaling_up_system) || 
-           ((counter % BIST_PERIOD_SECS) == 0)) {
-        periodic_bist_task();
-      }
-  }
+  dc2dc_scaling_once_second();
 
 
-
-
-  static int loop_for_err;
- 
   if (counter % 10 == 0) {
     ten_second_tasks(); 
   }

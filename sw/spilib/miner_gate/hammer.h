@@ -254,7 +254,7 @@ typedef struct {
 typedef struct {
   uint8_t dc_temp;
   int dc_current_16s; // in 1/16 of amper. 0 = bad reading
-  int dc_power_watts;  
+  int dc_power_watts_16s;  
   int last_voltage_change_time;
   int dc_fail_time;  
   // Guessing added current
@@ -263,6 +263,8 @@ typedef struct {
 typedef struct {
   uint8_t id;
   uint8_t enabled_loop;
+  int     asic_temp_sum;
+
   DC2DC dc2dc;
 } LOOP;
 
