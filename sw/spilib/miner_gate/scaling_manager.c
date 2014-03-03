@@ -321,7 +321,6 @@ int can_be_upscaled(HAMMER *a) {
       (vm.loop[a->loop_address].dc2dc.dc_temp>= DC2DC_TEMP_GREEN_LINE) || 
       (vm.ac2dc_current >= AC2DC_CURRENT_GREEN_LINE) ||
       (vm.ac2dc_temp >= AC2DC_TEMP_GREEN_LINE)*/)
-
   {
     return 0;
   }
@@ -438,9 +437,6 @@ void change_dc2dc_voltage_if_needed() {
       continue;
     }
     
-    printf(MAGENTA "change_dc2dc_voltage_if_needed 1> %d %d\n" RESET,
-      vm.loop[l].dc2dc.dc_current_16s, nvm.top_dc2dc_current_16s[l]
-    );
     if (((vm.loop[l].dc2dc.dc_current_16s))
               >= nvm.top_dc2dc_current_16s[l]) {
       printf(MAGENTA "change_dc2dc_voltage_if_needed 3\n" RESET);
@@ -592,9 +588,11 @@ void print_loop(int l) {
 void print_miner_box() { DBG(DBG_SCALING, "MINER AC:%x\n", vm.ac2dc_current); }
 
 void print_scaling() {
+  int err;
   hammer_iter hi;
   hammer_iter_init(&hi);
   int total_hash_power=0;
+  int loop_hash_power=0;  
   int hl = -1;
   printf(GREEN "\n----------\nAC2DC current=%d, temp=%d\n" RESET,
       vm.ac2dc_current,
@@ -602,9 +600,11 @@ void print_scaling() {
     );
   while (hammer_iter_next_present(&hi)) {
     if (hi.l != hl) {
-      printf(GREEN "\nloop %d:[V=%d|%x][C=%s%d%s/%d][T=%s%d%s][H:%d]:" RESET, 
+      int volt = dc2dc_get_voltage(hi.l, &err);
+      printf(RESET "[H:%dGh]\n",(loop_hash_power*15)/1000);
+      printf(GREEN "\nloop %d:[V=%d|%d|%x|][C=%s%d%s/%d][T=%s%d%s][H:%d]:" RESET, 
         hi.l, 
-        VTIRM_TO_VOLTAGE(vm.loop_vtrim[hi.l]),vm.loop_vtrim[hi.l],
+        VTRIM_TO_VOLTAGE(vm.loop_vtrim[hi.l]),volt,vm.loop_vtrim[hi.l],
         ((vm.loop[hi.l].dc2dc.dc_current_16s>=nvm.top_dc2dc_current_16s[hi.l] - 3*16)?RED:GREEN), vm.loop[hi.l].dc2dc.dc_current_16s/16,GREEN,
         nvm.top_dc2dc_current_16s[hi.l]/16,
       ((vm.loop[hi.l].dc2dc.dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), 
@@ -612,9 +612,11 @@ void print_scaling() {
         vm.loop[hi.l].dc2dc.dc_temp
         );
       hl = hi.l;
-      total_hash_power = hi.a->asic_freq*15+220;
+      total_hash_power += hi.a->asic_freq*15+220;      
+      loop_hash_power = hi.a->asic_freq*15+220;
     } else {
-      total_hash_power += hi.a->asic_freq*15+220;
+      loop_hash_power += hi.a->asic_freq*15+220;
+      total_hash_power += hi.a->asic_freq*15+220;            
     }
     printf(GREEN "%x|%s%dc%s %s%dhz%s %x|" RESET, 
       hi.addr,
@@ -622,7 +624,10 @@ void print_scaling() {
        (hi.a->asic_freq>=MAX_ASIC_FREQ)?RED:GREEN,hi.a->asic_freq*15+210,GREEN,
       vm.working_engines[hi.addr]);
   }
-  printf(RESET "[H:%dGh]\n",(total_hash_power*15)/1000);
+  // print last loop
+  printf(RESET "[H:%dGh]\n",(loop_hash_power*15)/1000);
+  // print total hash power
+  printf(RESET "\n[H:%dGh]\n",(total_hash_power*15)/1000);
 
   
   /*

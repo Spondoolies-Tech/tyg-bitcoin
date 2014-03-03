@@ -315,7 +315,7 @@ typedef struct {
 
   // our loop and dc2dc data
   LOOP loop[LOOP_COUNT];
-  int loop_vtrim[LOOP_COUNT];
+  uint32_t loop_vtrim[LOOP_COUNT];
 } MINER_BOX;
 
 extern MINER_BOX vm;

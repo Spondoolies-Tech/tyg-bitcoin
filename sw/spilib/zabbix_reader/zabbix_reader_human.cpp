@@ -83,10 +83,8 @@ int main(int argc, char *argv[]) {
   }
   printf("\nVOLT |");
   for(int l = 0; l < LOOP_COUNT ; l++) {
-    int j;
-    VOLTAGE_ENUM_TO_MILIVOLTS(zabbix_log.loops[l].voltage, j);
-    
-    printf("%3d ", j);
+    int j;    
+    printf("%3d ", zabbix_log.loops[l].voltage);
   }
   printf("\nCRNT |");
   for(int l = 0; l < LOOP_COUNT ; l++) {

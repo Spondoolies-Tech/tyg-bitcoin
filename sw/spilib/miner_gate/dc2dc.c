@@ -36,10 +36,6 @@ void dc2dc_print() {
 
     if (!err) {
       printf("%2i:", loop);
-      int min_minivolts;
-      VOLTAGE_ENUM_TO_MILIVOLTS(ASIC_VOLTAGE_555, min_minivolts);
-      if (volt < min_minivolts)
-        printf(RED);
       printf("%3d/", volt);
       printf(RESET);
       if (crnt < DC2DC_CURRENT_WARNING_16S)
@@ -240,9 +236,9 @@ void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err) {
 }
 */
 
-void dc2dc_set_vtrim(int loop, int vtrim, int *err) {
+void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
   assert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
-  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%d\n",loop, VTIRM_TO_VOLTAGE(vtrim),vtrim);
+  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%d\n",loop, VTRIM_TO_VOLTAGE(vtrim),vtrim);
 #if NO_TOP == 1 
     if (loop != 15) {
       *err = 1;
@@ -254,7 +250,7 @@ void dc2dc_set_vtrim(int loop, int vtrim, int *err) {
   // int err = 0;
   dc2dc_select_i2c(loop, err);
 //  passert((v < ASIC_VOLTAGE_COUNT) && (v >= 0));
-  i2c_write_word(I2C_DC2DC, 0xd4, vtrim);
+  i2c_write_word(I2C_DC2DC, 0xd4, vtrim&0xFFFF);
   i2c_write_byte(I2C_DC2DC, 0x01, 0);
   vm.loop_vtrim[loop] = vtrim;
   vm.loop[loop].dc2dc.last_voltage_change_time = time(NULL);
