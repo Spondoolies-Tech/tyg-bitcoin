@@ -5,24 +5,36 @@
 
 
 typedef enum {
-  ASIC_VOLTAGE_0 = 0,
-  ASIC_VOLTAGE_555 = 1,
-  ASIC_VOLTAGE_585 = 2,
-  ASIC_VOLTAGE_630 = 3,
-  ASIC_VOLTAGE_675 = 4,
-  ASIC_VOLTAGE_700 = 5,
-  ASIC_VOLTAGE_720 = 6,
-  ASIC_VOLTAGE_765 = 7,
-  ASIC_VOLTAGE_790 = 8,
-  ASIC_VOLTAGE_810 = 9,
-  ASIC_VOLTAGE_COUNT = 10
+  ASIC_VOLTAGE_0 ,
+  ASIC_VOLTAGE_555 ,
+  ASIC_VOLTAGE_585 ,
+  ASIC_VOLTAGE_630 ,
+  ASIC_VOLTAGE_675 ,
+  ASIC_VOLTAGE_681 ,
+  ASIC_VOLTAGE_687 ,
+  ASIC_VOLTAGE_693 ,
+  ASIC_VOLTAGE_700 , 
+  ASIC_VOLTAGE_705 , 
+  ASIC_VOLTAGE_710 , 
+  ASIC_VOLTAGE_715 , 
+  ASIC_VOLTAGE_720 ,
+  ASIC_VOLTAGE_765 ,
+  ASIC_VOLTAGE_790 ,
+  ASIC_VOLTAGE_810 ,
+  ASIC_VOLTAGE_COUNT 
 } DC2DC_VOLTAGE;
 
+
+#define VTRIM_MIN 0xFFd4  // 0.675
+#define VTRIM_MAX 0xfff7  // 0.765
+
+#define VTIRM_TO_VOLTAGE(XX)    (675 + (XX-VTRIM_MIN)*(3))  
 
 
 #define VOLTAGE_ENUM_TO_MILIVOLTS(ENUM, VALUE)                                 \
   {                                                                            \
-    int xxx[ASIC_VOLTAGE_COUNT] = { 0, 555, 585, 630, 675, 700, 720, 765, 790,      \
+    int xxx[ASIC_VOLTAGE_COUNT] = { 0, 555, 585, 630, 675, 681, 687, 693, 700, \
+                                    705, 710, 715, 720, 765, 790,     \
                                     810 };                                     \
     VALUE = xxx[ENUM];                                                         \
   }
@@ -40,7 +52,9 @@ int update_dc2dc_current_temp_measurments(int loop);
 
 // in takes 0.2second for voltage to be stable.
 // Remember to wait after you exit this function
-void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err);
+//void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err);
+void dc2dc_set_vtrim(int loop, int vtrim, int *err);
+
 
 // Returns value like 810, 765 etc`
 int dc2dc_get_voltage(int loop, int *err);

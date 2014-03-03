@@ -53,6 +53,6 @@ int allocate_addresses_to_devices();
 void set_nonce_range_in_engines(unsigned int max_range);
 void enable_all_engines_all_asics();
 void periodic_bist_task();
-void reduce_dc2dc_strain_if_needed();
+void change_dc2dc_voltage_if_needed();
 
 #endif

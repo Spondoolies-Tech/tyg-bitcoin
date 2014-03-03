@@ -48,6 +48,7 @@ void discover_good_loops() {
       if (test_serial(i)) {
         // printf("--00--\n");
         vm.loop[i].enabled_loop = 1;
+        vm.loop_vtrim[i] = VTRIM_START;
         good_loops |= 1 << i;
         ret++;
       } else {
@@ -72,6 +73,11 @@ void discover_good_loops() {
   }
  
   printf("Found %d good loops\n", ret);
+  // Devide current between availible loops
+  
+  
+
+  
   passert(ret);
 }
 
@@ -101,6 +107,6 @@ void find_bad_engines_update_nvm() {
     }
     
   }
-  set_nvm_dc2dc_voltage();
+  enable_voltage_from_nvm();
 }
 

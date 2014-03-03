@@ -166,11 +166,11 @@ int update_ac2dc_current_measurments() {
     !vm.asics_shut_down_powersave &&
     current >= AC2DC_CURRENT_TRUSTWORTHY && 
     vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {
-    vm.ac2dc_current = current;
-  } else {
-    //printf(GREEN "CONSEC = %d\n" RESET, vm.cosecutive_jobs); 
-    vm.ac2dc_current = 0;
-  }
+      vm.ac2dc_current = current;
+    } else {
+      //printf(GREEN "CONSEC = %d\n" RESET, vm.cosecutive_jobs); 
+      vm.ac2dc_current = 0;
+    }
   return 0;
 }
 

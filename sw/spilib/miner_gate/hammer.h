@@ -254,6 +254,7 @@ typedef struct {
 typedef struct {
   uint8_t dc_temp;
   int dc_current_16s; // in 1/16 of amper. 0 = bad reading
+  int last_voltage_change_time;
   int dc_fail_time;  
   // Guessing added current
 } DC2DC;
@@ -268,14 +269,12 @@ typedef struct {
 #define IDLE_TIME_TO_PAUSE_ENGINES 5
 typedef struct {
   // Fans set to high
-  FAN_LEVEL fan_level;
-
+  int fan_level;
   uint8_t newest_hw_job_id;
   uint8_t oldest_hw_job_id;
-
   uint32_t good_loops;
     
-
+  int start_mine_time;
   // pll can be changed
   uint8_t engines_disabled;
 
@@ -315,6 +314,7 @@ typedef struct {
 
   // our loop and dc2dc data
   LOOP loop[LOOP_COUNT];
+  int loop_vtrim[LOOP_COUNT];
 } MINER_BOX;
 
 extern MINER_BOX vm;

@@ -661,7 +661,6 @@ int do_bist_ok() {
   } 
     
   
-  printf(MAGENTA"Now testing %x %x %x:"RESET, hi.addr, hi.l, hi.h);
   uint32_t single_win_test;
   push_hammer_read(hi.addr, ADDR_BR_WIN, &single_win_test);
   //read_reg_device(hi.addr, ADDR_BR_WIN);
@@ -688,9 +687,6 @@ int do_bist_ok() {
 
   if (!single_win_test) { // Not won - kill it!
     disable_asic_forever(hi.addr);
-  } else {
-    printf(MAGENTA"Good!\n"RESET, hi.addr, hi.l, hi.h);
-
   }
 
   /*if (!failed) {
@@ -720,7 +716,6 @@ void one_minute_tasks() {
 
 
 void ten_second_tasks() {  
-  auto_select_fan_level();
 }
 /*
 pthread_mutex_t i2c_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -730,6 +725,19 @@ pthread_mutex_lock(&i2c_mutex);
 void once_second_tasks() {
   static int counter = 0;
    
+  auto_select_fan_level();
+
+
+  if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) {
+      if ((vm.start_mine_time == 0) &&
+          (!vm.scaling_up_system)) {
+        vm.start_mine_time = time(NULL);
+        printf(MAGENTA "Starting mining timer for voltage scaling\n" RESET);
+      }
+  } else {
+    vm.start_mine_time = 0;
+  }
+  
   pthread_mutex_lock(&network_hw_mutex);
   // static int not_mining_counter = 0;
   // See if we can stop engines
@@ -779,7 +787,7 @@ void once_second_tasks() {
   // pthread_mutex_unlock(&network_hw_mutex);
 
   // each second
-  reduce_dc2dc_strain_if_needed();
+  change_dc2dc_voltage_if_needed();
 
   if (!vm.asics_shut_down_powersave) {    
       //Once every 10 seconds upscale ASICs if can

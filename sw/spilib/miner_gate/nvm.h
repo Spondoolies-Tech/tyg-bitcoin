@@ -102,7 +102,9 @@ typedef struct _spondoolies_nvm {
   // Top frequency per ASIC
   ASIC_FREQ top_freq[HAMMERS_COUNT];
   // Each loop voltage
-  DC2DC_VOLTAGE loop_voltage[LOOP_COUNT];
+  // DC2DC_VOLTAGE loop_voltage[LOOP_COUNT];
+  //int loop_vtrim[LOOP_COUNT];
+  
   // Save nvm
   uint8_t dirty;
 

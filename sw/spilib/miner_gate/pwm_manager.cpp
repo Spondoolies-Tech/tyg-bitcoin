@@ -12,7 +12,9 @@
 
 */
 
-int pwm_values[] = { 12000, 22000, 32000 };
+// XX in percent - 0 to 100
+#define PWM_VALUE(XX)  (12000+XX*(320-120))
+//int pwm_values[] = { 12000 , 22000, 32000 };
 void init_pwm() {
   // cd /sys/devices/bone_capemgr.*
 
@@ -33,7 +35,7 @@ void init_pwm() {
   // usleep(2000);
   printf("--------------- %d\n", __LINE__);
 
-  int val = pwm_values[FAN_LEVEL_HIGH];
+  int val = PWM_VALUE(100);
   f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.11/period", "w");
   if (!f) {
     f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/period", "w");
@@ -69,12 +71,12 @@ void init_pwm() {
   // echo bone_pwm_P9_31 > "/sys/devices/bone_capemgr.9/slots"
 }
 
-void set_fan_level(FAN_LEVEL fan_level) {
+void set_fan_level(int fan_level) {
   // echo 40000 > "/sys/devices/ocp.3/pwm_test_P9_31.13/period"
   // echo val > "/sys/devices/ocp.3/pwm_test_P9_31.13/duty"
   FILE *f;
-  passert(fan_level < FAN_LEVEL_COUNT);
-  int val = pwm_values[fan_level];
+  passert(fan_level <= 100 && fan_level >=0);
+  int val = PWM_VALUE(fan_level);
   f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
   if (f <= 0) {
     printf(RED "Fan PWM not found\n" RESET);
@@ -89,36 +91,29 @@ void auto_select_fan_level() {
   int hottest_asic_temp = ASIC_TEMP_77;
   hammer_iter hi;
   hammer_iter_init(&hi);
-  int higher_then_medium = 0;
-  int higher_then_high = 0;  
+  int higher_then_wanted = 0;
     
   while (hammer_iter_next_present(&hi)) {
     HAMMER *a = &vm.hammer[hi.addr];
 	//printf(GREEN "FAN ?? %d\n" RESET,a->asic_temp);
     if (a->asic_temp >= ASIC_TEMPERATURE_TO_SET_FANS_HIGH) {
-      higher_then_high++;
+      higher_then_wanted++;
 	  //printf(GREEN "FAN MED %d\n" RESET, higher_then_high);
-   }
-	
-    if (a->asic_temp >= ASIC_TEMPERATURE_TO_SET_FANS_MEDIUM) {
-      higher_then_medium++;	  
-	  //printf(GREEN "FAN HIGH %d\n" RESET,higher_then_medium);
-   	}
+    }
   }
 
   
-  if (higher_then_high >= ASIC_TO_SET_FANS_HIGH_COUNT) {
-    if (vm.fan_level != FAN_LEVEL_HIGH) {
-      set_fan_level(FAN_LEVEL_HIGH);
-    }
-  } else if (higher_then_medium >= ASIC_TO_SET_FANS_MEDIUM_COUNT)  {
-    if (vm.fan_level != FAN_LEVEL_MEDIUM) {
-      set_fan_level(FAN_LEVEL_MEDIUM);
-    }
-  } else {
-    if (vm.fan_level != FAN_LEVEL_LOW) {
-      	set_fan_level(FAN_LEVEL_LOW);
-   	}	
+  if (higher_then_wanted >= ASIC_TO_SET_FANS_HIGH_COUNT) {
+    vm.fan_level+=higher_then_wanted;
+	if (vm.fan_level > MAX_FAN_LEVEL) {
+		vm.fan_level = MAX_FAN_LEVEL;
+	}
+    set_fan_level(vm.fan_level);
+  } 
+
+  if (!higher_then_wanted && (vm.fan_level > 0)) {
+	  vm.fan_level--;
+	  set_fan_level(vm.fan_level);
   }
 }
 

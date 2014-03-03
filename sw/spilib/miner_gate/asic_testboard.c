@@ -17,6 +17,7 @@
 #include "defines.h"
 
 //#if TEST_BOARD
+#if 0
 extern int loop_to_measure;
 
 // micro ampers
@@ -284,6 +285,6 @@ void fulltest_test_board() {
   
 }
 
-
+#endif
 
 //#endif

@@ -35,9 +35,6 @@
 
 
 
-int AC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-int DC_CURRNT_PER_15_HZ[ASIC_VOLTAGE_COUNT] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-
 void send_keep_alive();
 
 uint32_t crc32(uint32_t crc, const void *buf, size_t size);
@@ -72,7 +69,7 @@ void set_safe_voltage_and_frequency() {
   for (int l = 0; l < LOOP_COUNT; l++) {
     // Set voltage
     int err; 
-    dc2dc_set_voltage(l, ASIC_VOLTAGE_DEFAULT, &err);
+    dc2dc_set_vtrim(l, VTRIM_START, &err);
     if (err) {
       printf(RED "Failed to set voltage DC2DC\n" RESET);
     } else {
@@ -94,10 +91,11 @@ void enable_voltage_from_nvm() {
   // for each enabled loop
   disable_engines_all_asics();
   for (l = 0; l < LOOP_COUNT; l++) {
-    if (!vm.loop[l].enabled_loop) {
+    if (vm.loop[l].enabled_loop) {
       // Set voltage
       int err;
-      dc2dc_set_voltage(l, nvm.loop_voltage[l], &err);
+      // dc2dc_set_voltage(l, vm.loop_vtrim[l], &err);
+      dc2dc_set_vtrim(l, vm.loop_vtrim[l], &err);
       // passert(err);
 
       // for each ASIC
@@ -114,22 +112,16 @@ void enable_voltage_from_nvm() {
 }
 
 
-void set_nvm_dc2dc_voltage() {
-  // for each enabled loop
-  for (int l = 0; l < LOOP_COUNT; l++) {
-    // Set voltage
-    int err;
-    dc2dc_set_voltage(l, nvm.loop_voltage[l], &err);
-    //passert(err);
-  }
-  enable_nvm_engines_all_asics_ok();
-}
 
 
 void pause_all_mining_engines() {
   passert(vm.asics_shut_down_powersave == 0);
   int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
-  passert(some_asics_busy == 0);
+  
+  if(some_asics_busy != 0) {
+    printf(RED "some_asics_busy %x\n" RESET, some_asics_busy);
+    passert(0);
+  }
   // stop all ASICs
   disable_engines_all_asics();
   // disable_engines_all_asics();
@@ -230,7 +222,6 @@ void create_default_nvm() {
   } 
 
   for (i = 0; i < LOOP_COUNT; i++) {
-    nvm.loop_voltage[i] = ASIC_VOLTAGE_DEFAULT;
     nvm.top_dc2dc_current_16s[i] = DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S;
   }
   nvm.dirty = 1;
@@ -424,7 +415,6 @@ void reset_all_asics_full_reset() {
   allocate_addresses_to_devices();
   vm.bist_fatal_err = 0;
   write_reg_broadcast(ADDR_LEADER_ENGINE, 0);
-  //dc2dc_set_voltage(0, ASIC_VOLTAGE_, &err);
 }
 
 
@@ -438,33 +428,69 @@ int count_ones(int failed_engines) {
 }
 
 
-void reduce_dc2dc_strain_if_needed() {
+void change_dc2dc_voltage_if_needed() {
   int any_scaled = 0;
+  int err;
+  printf(MAGENTA "change_dc2dc_voltage_if_needed 0\n" RESET);
+  // DOWNSCALE!!!!
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
-    int scaled = 0;
+    if (!vm.loop[l].enabled_loop) {
+      continue;
+    }
     
-    while ((vm.loop[l].dc2dc.dc_current_16s  - scaled*16)
+    printf(MAGENTA "change_dc2dc_voltage_if_needed 1> %d %d\n" RESET,
+      vm.loop[l].dc2dc.dc_current_16s, nvm.top_dc2dc_current_16s[l]
+    );
+    if (((vm.loop[l].dc2dc.dc_current_16s))
               >= nvm.top_dc2dc_current_16s[l]) {
+      printf(MAGENTA "change_dc2dc_voltage_if_needed 3\n" RESET);
       if (!any_scaled) {
         stop_all_work();
         disable_engines_all_asics();
         any_scaled=1;
       }
-      printf(RED "LOOP DOWNSCALE %d\n" RESET, l);
-      HAMMER *h = find_asic_to_reduce_dc_current(l);
-      assert(h);
-      printf(RED "Starin ASIC DOWNSCALE %d\n" RESET, h->address);
-      asic_downscale(h, time(NULL));
-      scaled++;
+
+      // Prefer to downscale VOLTAGE
+      if (vm.loop_vtrim[l] > VTRIM_MIN) {
+        printf(MAGENTA "LOOP DOWNSCALE VTRIM %d\n" RESET, l);
+        dc2dc_set_vtrim(l,vm.loop_vtrim[l]-1,&err);
+      } else {
+        printf(RED "LOOP DOWNSCALE %d\n" RESET, l);
+        HAMMER *h = find_asic_to_reduce_dc_current(l);
+        assert(h);
+        printf(RED "Starin ASIC DOWNSCALE %d\n" RESET, h->address);
+        asic_downscale(h, time(NULL));
+      }
     }
 
-    if (scaled) {
+    // UPSCALE!!!!
+    if ((vm.loop[l].dc2dc.dc_current_16s != 0) &&
+        (!vm.scaling_up_system) &&
+        (vm.start_mine_time > DC2DC_UPSCALE_TIME_SECS) && // 30 seconds after mining 
+        ((time(NULL) - vm.loop[l].dc2dc.last_voltage_change_time) > DC2DC_UPSCALE_TIME_SECS) && // 30 seconds after last voltage change
+        // TODO - add AD2DC constains
+         (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) &&
+         (vm.loop[l].dc2dc.dc_current_16s < 
+              nvm.top_dc2dc_current_16s[l] - DC2DC_SAFE_TO_INCREASE_CURRENT_16S)) {
+      if (vm.loop_vtrim[l] < VTRIM_MAX) {
+        printf(MAGENTA "RAISING VTRIM DC2DC %d\n" RESET,l);
+        if (!any_scaled) {
+          stop_all_work();
+          disable_engines_all_asics();
+          any_scaled=1;
+        }
+        dc2dc_set_vtrim(l,vm.loop_vtrim[l]+1,&err);
+      }
+    }
+
+    if (any_scaled) {
       // don't scale till next measurement
       vm.loop[l].dc2dc.dc_current_16s = 0;
     }
   }
   
   if (any_scaled) {
+    usleep(1000); // Let voltage settle? TODO
     enable_nvm_engines_all_asics_ok();
   }
 }
@@ -573,10 +599,8 @@ void print_scaling() {
 //  printf(GREEN "\nASIC TMP:" RESET);
   while (hammer_iter_next_present(&hi)) {
     if (hi.l != hl) {
-      int millivolts;
-      VOLTAGE_ENUM_TO_MILIVOLTS(nvm.loop_voltage[hi.l], millivolts) ;
       printf(GREEN "\nloop %d:[V=%d][DC:C=%s%d%s/%d][DC:T=%s%d%s]:" RESET, 
-        hi.l, millivolts ,
+        hi.l, VTIRM_TO_VOLTAGE(vm.loop_vtrim[hi.l]),
         ((vm.loop[hi.l].dc2dc.dc_current_16s>=nvm.top_dc2dc_current_16s[hi.l] - 5*16)?RED:GREEN), 
         vm.loop[hi.l].dc2dc.dc_current_16s/16,GREEN,
         nvm.top_dc2dc_current_16s[hi.l]/16,

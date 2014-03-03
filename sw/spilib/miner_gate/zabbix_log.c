@@ -32,7 +32,6 @@ void update_zabbix_stats() {
   zabbix_log.ac2dc_temp = vm.ac2dc_temp;
 
   for (int l = 0; l < LOOP_COUNT; l++) {
-    zabbix_log.loops[l].voltage = nvm.loop_voltage[l];
     zabbix_log.loops[l].current = vm.loop[l].dc2dc.dc_current_16s;
     zabbix_log.loops[l].temp = vm.loop[l].dc2dc.dc_temp;
     zabbix_log.loops[l].enabled = vm.loop[l].enabled_loop;

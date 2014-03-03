@@ -2,16 +2,29 @@
 #include "i2c.h"
 #include "nvm.h"
 #include "hammer.h"
+#include <time.h>
 
 #include "defines.h"
 
 extern MINER_BOX vm;
+#if 0
+int volt_to_vtrim[ASIC_VOLTAGE_COUNT] = 
+  { 0, 0xFFC4, 0xFFCF, 0xFFE1, 0xFFd4, 0xFFd6, 0xFFd8, 
+//     550      580     630      675    681    687                               
+       0xFFda,  0xFFdc, 0xFFde, 0xFFE1, 0xFFE3,   
+//     693       700     705       710    715  
+  0xFFE5,  0xfff7, 0x0, 0x8,
+//  720      765   790   810 
 
-int volt_to_vtrim[ASIC_VOLTAGE_COUNT] = { 0, 0xFFC4, 0xFFCF, 0xFFE1, 0xFFd4, 0xFFdc,
-                                          0xFFE5, 0xfff7, 0x0, 0x8, };
 
-int volt_to_vmargin[ASIC_VOLTAGE_COUNT] = { 0, 0x14, 0x14, 0x14, 0x0, 0x0, 0x0, 0x0,
+};
+   
+int volt_to_vmargin[ASIC_VOLTAGE_COUNT] = { 0, 0x14, 0x14, 0x14, 0x0, 0x0, 0x0, 
+                                            0x0,0x0, 0x0,  0x0,  0x0, 0x0, 0x0,
                                             0x0, 0x0 };
+#endif
+
+
 
 void dc2dc_print() {
   printf("VOLTAGE/CURRENT/TEMP:\n");
@@ -205,7 +218,7 @@ void dc2dc_select_i2c(int loop, int *err) { // 1 or 0
                       dc2dc_offset, // 0..7
                       err);
 }
-
+/*
 void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err) {
   int millis;
   VOLTAGE_ENUM_TO_MILIVOLTS(v, millis);   
@@ -225,7 +238,28 @@ void dc2dc_set_voltage(int loop, DC2DC_VOLTAGE v, int *err) {
   i2c_write_byte(I2C_DC2DC, 0x01, volt_to_vmargin[v]);
   dc2dc_i2c_close();
 }
+*/
 
+void dc2dc_set_vtrim(int loop, int vtrim, int *err) {
+  assert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
+  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%d\n",loop, VTIRM_TO_VOLTAGE(vtrim),vtrim);
+#if NO_TOP == 1 
+    if (loop != 15) {
+      *err = 1;
+      return;
+      
+    }
+#endif  
+  // printf("%d\n",v);
+  // int err = 0;
+  dc2dc_select_i2c(loop, err);
+//  passert((v < ASIC_VOLTAGE_COUNT) && (v >= 0));
+  i2c_write_word(I2C_DC2DC, 0xd4, vtrim);
+  i2c_write_byte(I2C_DC2DC, 0x01, 0);
+  vm.loop_vtrim[loop] = vtrim;
+  vm.loop[loop].dc2dc.last_voltage_change_time = time(NULL);
+  dc2dc_i2c_close();
+}
 
 
 // Return 1 if needs urgent scaling

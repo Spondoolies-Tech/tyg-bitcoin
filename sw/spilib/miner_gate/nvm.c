@@ -80,9 +80,9 @@ void print_nvm() {
   } 
 
   for (i = 0; i < LOOP_COUNT; i++) {
-    printf("LOOP %d: Voltage:%d Top DC2DC:%d\n" ,
+    printf("LOOP %d: Top DC2DC:%d\n" ,
       i, 
-      nvm.loop_voltage[i],
+      //nvm.loop_voltage[i],
       nvm.top_dc2dc_current_16s[i]);
   }
   

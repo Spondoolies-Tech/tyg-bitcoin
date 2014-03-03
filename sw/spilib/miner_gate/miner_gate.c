@@ -446,7 +446,6 @@ int main(int argc, char *argv[]) {
     printf("--test = Test mode, remove NVM!!!\n");
     printf("--init = Re-init mode!!!\n");
     printf("<num> = Asic to mesure\n");
-    
     return 0;
   }
 
@@ -496,9 +495,8 @@ int main(int argc, char *argv[]) {
   printf("init_pwm\n");
   init_pwm();
   printf("set_fan_level\n");
-  set_fan_level(FAN_LEVEL_LOW);
+  set_fan_level(0);
   //exit(0);
-
   printf("dc2dc_print\n");
 
  // dc2dc_print();
@@ -596,7 +594,7 @@ int main(int argc, char *argv[]) {
   }
 
 
-  set_nvm_dc2dc_voltage();
+  //set_nvm_dc2dc_voltage();
 
 
  // assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
