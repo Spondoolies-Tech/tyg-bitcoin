@@ -53,18 +53,23 @@ start)
 	# bullshit
 	NORMALBOOT=1
 
-	
-		if [ -e "/mmc/autorun" ]; then
+		mount /mnt/sd-boot
+		mount /mnt/mmc-config
+		mount /mnt/mmc-boot
+
+		if [ -e "/sd-boot/autorun" ]; then
 			NORMALBOOT=0
-			#/sd/autorun
+			/sd-boot/autorun
+		fi
+
+
+		if [ -e "/mmc-boot/autorun" ]; then
+			NORMALBOOT=0
+			/mmc-boot/autorun
 		fi
 	
 
 	
-		if [ -e "/sd/autorun" ]; then
-			NORMALBOOT=0
-			#/sd/autorun
-		fi
 	
 
 	echo "NORMALBOOT=${NORMALBOOT}"
