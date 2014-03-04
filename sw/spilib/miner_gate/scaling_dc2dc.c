@@ -26,7 +26,7 @@
 #include "scaling_manager.h"
 #include "corner_discovery.h"
 
-
+static int now;
 
 void set_asic_freq(int addr, ASIC_FREQ new_freq) {
   if (vm.hammer[addr].asic_freq != new_freq) {
@@ -145,13 +145,13 @@ int asic_can_up(HAMMER *a) {
       /*|| ((vm.loop[a->loop_address].dc2dc.dc_current_16s + DC2DC_KEEP_FOR_LEAKAGE_16S)
             >= nvm.top_dc2dc_current_16s[a->loop_address]) ||
       (vm.loop[a->loop_address].dc2dc.dc_temp>= DC2DC_TEMP_GREEN_LINE) || 
-      (vm.ac2dc_current >= AC2DC_CURRENT_GREEN_LINE) ||
-      (vm.ac2dc_temp >= AC2DC_TEMP_GREEN_LINE)*/)
+      */ || 
+      (vm.ac2dc_current >= AC2DC_CURRENT_LIMIT))
   {
     return 0;
   }
 
-   if ((time(NULL) - a->last_freq_change_time < TRY_ASIC_FREQ_INCREASE_PERIOD_SECS) && 
+   if (((now - a->last_freq_change_time) < TRY_ASIC_FREQ_INCREASE_PERIOD_SECS) && 
         !vm.scaling_up_system) {
      return 0;
   }
@@ -163,7 +163,7 @@ void asic_up(HAMMER *a) {
    ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq+1);
    a->asic_freq = wanted_freq;
    set_pll(a->address, wanted_freq);        
-   a->last_freq_change_time = time(NULL);      
+   a->last_freq_change_time = now;      
 }
 
 
@@ -172,7 +172,7 @@ int asic_can_down(HAMMER *a) {
 }
 
 
-void asic_down(HAMMER *a, time_t now) {
+void asic_down(HAMMER *a) {
    passert(vm.engines_disabled == 1);
    printf(RED "xASIC DOWNSCALE %x!\n", a->address);
    ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq-1);
@@ -246,10 +246,29 @@ void resume_asics_if_needed() {
 
 
 void dc2dc_scaling_once_second() {
-  static int counter = 0;
-  
+  static int counter = 0;  
+  now = time(NULL);
   struct timeval tv;
   start_stopper(&tv);
+
+  for (int l = 0 ; l < LOOP_COUNT ; l++) {
+    if (vm.loop[l].enabled_loop) {
+      vm.loop[l].asic_count = 0;      
+      vm.loop[l].asic_temp_sum = 0;
+      vm.loop[l].asic_temp_sum = 0;
+      vm.loop[l].asic_hz_sum = 0;
+      
+      for (int i = 0 ; i < HAMMERS_PER_LOOP ; i++) {
+        HAMMER* h = &vm.hammer[l*HAMMERS_PER_LOOP+i];
+        if (h->asic_present) {
+          vm.loop[l].asic_count++;
+          vm.loop[l].asic_temp_sum += h->asic_temp*6+77;
+          vm.loop[l].asic_hz_sum += h->asic_freq*15+210;
+        }
+      }
+    }
+  }
+
 
   ac2dc_scaling_one_second();
 
@@ -280,7 +299,7 @@ void change_dc2dc_voltage_if_needed() {
     }
     
     if (((vm.loop[l].dc2dc.dc_current_16s))
-              >= nvm.top_dc2dc_current_16s[l]) {
+              >= vm.loop[l].dc2dc.dc_current_limit_16s) {
       printf(MAGENTA "change_dc2dc_voltage_if_needed 3\n" RESET);
       // Prefer to downscale VOLTAGE
       if (vm.loop_vtrim[l] > VTRIM_MIN) {
@@ -291,7 +310,7 @@ void change_dc2dc_voltage_if_needed() {
         HAMMER *h = find_asic_to_down(l);
         assert(h);
         printf(RED "Starin ASIC DOWNSCALE %d\n" RESET, h->address);
-        asic_down(h, time(NULL));
+        asic_down(h);
       }
     }
 
@@ -299,11 +318,11 @@ void change_dc2dc_voltage_if_needed() {
     if ((vm.loop[l].dc2dc.dc_current_16s != 0) &&
         (!vm.scaling_up_system) &&
         (vm.start_mine_time > DC2DC_UPSCALE_TIME_SECS) && // 30 seconds after mining 
-        ((time(NULL) - vm.loop[l].dc2dc.last_voltage_change_time) > DC2DC_UPSCALE_TIME_SECS) && // 30 seconds after last voltage change
+        ((now - vm.loop[l].dc2dc.last_voltage_change_time) > DC2DC_UPSCALE_TIME_SECS) && // 30 seconds after last voltage change
         // TODO - add AD2DC constains
          (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) &&
          (vm.loop[l].dc2dc.dc_current_16s < 
-              nvm.top_dc2dc_current_16s[l] - DC2DC_SAFE_TO_INCREASE_CURRENT_16S)) {
+              vm.loop[l].dc2dc.dc_current_16s - DC2DC_SAFE_TO_INCREASE_CURRENT_16S)) {
       if (vm.loop_vtrim[l] < VTRIM_MAX) {
         printf(MAGENTA "RAISING VTRIM DC2DC %d\n" RESET,l);
         dc2dc_set_vtrim(l,vm.loop_vtrim[l]+1,&err);
@@ -323,7 +342,6 @@ void change_dc2dc_voltage_if_needed() {
 
 
 void asic_frequency_update_with_bist() {    
-    int now = time(NULL);
     pause_asics_if_needed();
     int usec;
     printf(RED "BIST!" RESET);
@@ -352,7 +370,7 @@ void asic_frequency_update_with_bist() {
         int passed = h->passed_last_bist_engines;
         if ((passed != ALL_ENGINES_BITMASK) || 
             (h->asic_temp >= MAX_ASIC_TEMPERATURE && 
-              time(NULL) - h->last_freq_change_time > HOT_ASIC_FREQ_DECREASE_PERIOD_SECS)) {
+              now - h->last_freq_change_time > HOT_ASIC_FREQ_DECREASE_PERIOD_SECS)) {
           vm.scaling_up_system = 0;
 
           int failed_engines_mask = passed ^ ALL_ENGINES_BITMASK;
@@ -360,7 +378,7 @@ void asic_frequency_update_with_bist() {
           printf(RED "Failed asic %x engines passed %x, temp %d\n" RESET, h->address, passed);
           
           if (asic_can_down(h)) {
-            asic_down(h, now);
+            asic_down(h);
           } else {
             vm.working_engines[h->address] = vm.working_engines[h->address]&passed;
             if (vm.working_engines[h->address] == 0) {

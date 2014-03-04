@@ -91,6 +91,7 @@ void disable_asic_forever(int addr) {
   vm.hammer[addr].asic_present = 0;
   psyslog("Disabing ASIC forever %x\n", addr);
   write_reg_device(addr, ADDR_CONTROL_SET1, BIT_CTRL_DISABLE_TX);
+  vm.loop[vm.hammer[addr].loop_address].asic_count--;
 }
 
 

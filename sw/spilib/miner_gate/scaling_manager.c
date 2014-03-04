@@ -241,41 +241,52 @@ void print_scaling() {
   hammer_iter hi;
   hammer_iter_init(&hi);
   int total_hash_power=0;
-  int loop_hash_power=0;  
+ // int loop_hash_power=0;  
   int hl = -1;
   printf(GREEN "\n----------\nAC2DC current=%d, temp=%d\n" RESET,
       vm.ac2dc_current,
       vm.ac2dc_temp
     );
+  
+  printf(GREEN "L |Vtrm|vlt|vlt|Wt|"  "A /Li/Li|Tmp/"  "Tmp|A|gH" RESET); 
   while (hammer_iter_next_present(&hi)) {
     if (hi.l != hl) {
-      int volt = dc2dc_get_voltage(hi.l, &err);
-      printf(RESET "[H:%dGh]\n",(loop_hash_power*15)/1000);
-      printf(GREEN "\nloop %d:[V=%d|%d|%x|][W=%d][C=%s%d%s/%d][T=%s%d%s][H:%d]:" RESET, 
+      DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
+      int volt = 0;//dc2dc_get_voltage(hi.l, &err);
+     
+      printf(GREEN 
+        "\n%2d|%4x|%3d|%3d|%2d|"  
+        "%s%2d%s/%2d/%2d|%s%3d%s|"   
+        "%3d|%d|%2d|" RESET, 
         hi.l, 
-        VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[hi.l]),volt,vm.loop_vtrim[hi.l],
-        ((vm.loop[hi.l].dc2dc.dc_current_16s>=nvm.top_dc2dc_current_16s[hi.l] - 3*16)?RED:GREEN), vm.loop[hi.l].dc2dc.dc_current_16s/16,GREEN,
-        vm.loop[hi.l].dc2dc.dc_power_watts_16s/16,
+        vm.loop_vtrim[hi.l]&0xffff,
+        VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[hi.l]),
+        volt,
+        dc2dc->dc_power_watts_16s/16,
+        
+      ((dc2dc->dc_current_16s>=nvm.top_dc2dc_current_16s[hi.l] - 3*16)?RED:GREEN), dc2dc->dc_current_16s/16,GREEN,
+        dc2dc->dc_current_limit_16s/16,
         nvm.top_dc2dc_current_16s[hi.l]/16,
-      ((vm.loop[hi.l].dc2dc.dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), 
-        vm.loop[hi.l].dc2dc.dc_temp,GREEN,
-        vm.loop[hi.l].dc2dc.dc_temp
+      ((dc2dc->dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), dc2dc->dc_temp,GREEN,
+      
+        vm.loop[hi.l].asic_temp_sum/vm.loop[hi.l].asic_count,
+        vm.loop[hi.l].asic_count,
+        vm.loop[hi.l].asic_hz_sum/1000
         );
       hl = hi.l;
       total_hash_power += hi.a->asic_freq*15+220;      
-      loop_hash_power = hi.a->asic_freq*15+220;
+   
     } else {
-      loop_hash_power += hi.a->asic_freq*15+220;
+    
       total_hash_power += hi.a->asic_freq*15+220;            
     }
-    printf(GREEN "%x|%s%dc%s %s%dhz%s %x|" RESET, 
+    printf(GREEN "|%x:%s%3dc%s %s%3dhz%s %x" RESET, 
       hi.addr,
       (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:GREEN,((hi.a->asic_temp*6)+77),GREEN,
        (hi.a->asic_freq>=MAX_ASIC_FREQ)?RED:GREEN,hi.a->asic_freq*15+210,GREEN,
       vm.working_engines[hi.addr]);
   }
   // print last loop
-  printf(RESET "[H:%dGh]\n",(loop_hash_power*15)/1000);
   // print total hash power
   printf(RESET "\n[H:%dGh]\n",(total_hash_power*15)/1000);
 

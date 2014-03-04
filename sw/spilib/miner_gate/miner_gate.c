@@ -38,6 +38,8 @@
 #include <syslog.h>
 #include "asic_testboard.h"
 #include "pll.h"
+#include "real_time_queue.h"
+
 
 using namespace std;
 pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -498,6 +500,7 @@ int main(int argc, char *argv[]) {
   set_fan_level(0);
   //exit(0);
   printf("dc2dc_print\n");
+  reset_sw_rt_queue();
 
  // dc2dc_print();
  // ac2dc_print();
@@ -547,15 +550,15 @@ int main(int argc, char *argv[]) {
   // Reset all hammers
   init_hammers();
 
-  /*
+  
   int addr;
-     //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
-   
-     while (addr = BROADCAST_READ_ADDR(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
-        printf(RED "CONDUCTOR BUZY IN %x (%X)\n" RESET, addr,read_reg_broadcast(ADDR_VERSION));
-        disable_asic_forever(addr);
-     }
-     */
+   //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
+ 
+   while (addr = BROADCAST_READ_ADDR(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
+      printf(RED "CONDUCTOR BUZY IN %x (%X)\n" RESET, addr,read_reg_broadcast(ADDR_VERSION));
+      disable_asic_forever(addr);
+   }
+    
   // Give addresses to devices. If NVM non-consistent - delete it and exit.
   allocate_addresses_to_devices();
 

@@ -49,6 +49,7 @@ void discover_good_loops() {
         // printf("--00--\n");
         vm.loop[i].enabled_loop = 1;
         vm.loop_vtrim[i] = VTRIM_START;
+        vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
         good_loops |= 1 << i;
         ret++;
       } else {

@@ -26,170 +26,175 @@
 #include "scaling_manager.h"
 #include "corner_discovery.h"
 
+static int now; // cahce time
 
 
-
-int loop_can_down(int a) {
-#if 0  
-  return (a->asic_freq > ASIC_FREQ_225);
-#endif
-  return 0;
+int loop_can_down(int l) {
+    int spare = vm.loop[l].dc2dc.dc_current_limit_16s - vm.loop[l].dc2dc.dc_current_16s;
+  return  
+     (vm.loop[l].enabled_loop && (spare < (2*16)) &&
+     (now - vm.loop[l].last_ac2dc_scaling_on_loop > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS) &&
+     (vm.loop[l].dc2dc.dc_current_limit_16s > AC2DC_CURRENT_MINIMAL_FOR_DOWNSCALE_16S));
 }
 
 
-void loop_down(int a, time_t now) {
-#if 0  
-   passert(vm.engines_disabled == 1);
-   printf(RED "xASIC DOWNSCALE %x!\n", a->address);
-   ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq-1);
-   a->asic_freq = wanted_freq;
-   set_pll(a->address, wanted_freq);        
-   a->last_freq_change_time = now;   
-#endif   
+void loop_down(int l) {
+  vm.loop[l].last_ac2dc_scaling_on_loop  = now;
+  vm.loop[l].dc2dc.dc_current_limit_16s -= AC2DC_CURRENT_JUMP_16S;
 }
 
 
 // returns worst asic
 //  Any ASIC is worth then NULL
 int choose_loop_to_down(int a, int b) {
-#if 0
-  if (!a || !asic_can_down(a))
+  if ((a==-1) || !loop_can_down(a))
     return b;
-  if (!b || !asic_can_down(b))
+  if ((b==-1) || !loop_can_down(b))
     return a;
 
- 
-
-  if (a->asic_temp != b->asic_temp) {
-     // Reduce higher temperature because they have higher leakage
-     return (a->asic_temp > b->asic_temp) ? a : b;
-  }
-  
-  if (a->corner != b->corner) {
-     // Reduce higher corners because they have higher leakage
-     return (a->corner > b->corner) ? a : b;
-  }
-
-  if (a->asic_freq != b->asic_freq) {
-    // Reduce higher frequency
-    return (a->asic_freq > b->asic_freq) ? a : b;
+  // Always return coldest loop
+  if (vm.loop[a].asic_temp_sum != vm.loop[b].asic_temp_sum) {
+    // Increase lower asic_temp because they have lower leakage
+    return (vm.loop[a].asic_temp_sum > vm.loop[b].asic_temp_sum) ? a : b;
   }
 
   return a;
-#endif 
 }
 
 // return worst loop ID
 int find_loop_to_down() {
-  int h;
-  // Find hottest ASIC at highest corner.
-  /*
-  HAMMER *best = NULL;
-  for (h = 0; h < HAMMERS_PER_LOOP; h++) {
-    HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
-    if (a->asic_present) {
-     printf("%p %p\n",a,best);
-     best = choose_asic_to_down(best, a);
-    }
-  }
-  printf("%p>, %x\n",best, best->address);
-  if(asic_can_down(best)) {
-     printf("%p>, %x\n",best, best->address);
-     return best;
-  }
-  return NULL;
-  */
-}
-
-
-
-int loop_can_up(int l) {
-#if 0
-  if (!a->asic_present ||
-      (a->asic_freq >= MAX_ASIC_FREQ) ||
-      (a->asic_temp >= MAX_ASIC_TEMPERATURE) 
-      /*|| ((vm.loop[a->loop_address].dc2dc.dc_current_16s + DC2DC_KEEP_FOR_LEAKAGE_16S)
-            >= nvm.top_dc2dc_current_16s[a->loop_address]) ||
-      (vm.loop[a->loop_address].dc2dc.dc_temp>= DC2DC_TEMP_GREEN_LINE) || 
-      (vm.ac2dc_current >= AC2DC_CURRENT_GREEN_LINE) ||
-      (vm.ac2dc_temp >= AC2DC_TEMP_GREEN_LINE)*/)
-  {
-    return 0;
-  }
-
-   if ((time(NULL) - a->last_freq_change_time < TRY_ASIC_FREQ_INCREASE_PERIOD_SECS) && 
-        !vm.scaling_up_system) {
-     return 0;
-  }
-
-#endif
-  return 1;
-}
-
-
-void loop_up(HAMMER *a) {
-#if 0  
-   ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq+1);
-   a->asic_freq = wanted_freq;
-   set_pll(a->address, wanted_freq);        
-   a->last_freq_change_time = time(NULL);      
-#endif   
-}
-
-
-// returns best loop or -1
-int choose_loop_to_up(int a, int b) {
-#if 0
-  if (!a || !asic_can_up(a))
-    return b;
-  if (!b || !asic_can_up(b))
-    return a;
-
-  if (a->asic_temp != b->asic_temp) {
-    // Increase lower asic_temp because they have lower leakage
-    return (a->asic_temp < b->asic_temp) ? a : b;
-  }
-
-  if (a->last_freq_change_time != b->last_freq_change_time) {
-    // Try someone else for a change
-    return (a->last_freq_change_time < b->last_freq_change_time) ? a : b;
-  }
-
-
-  if (a->corner != b->corner) {
-     // Upscale lower corners because they have lower leakage
-     return (a->corner < b->corner) ? a : b;
-  }
-
-  if (a->asic_freq != b->asic_freq) {
-    // Increase slower ASICs first
-    return (a->asic_freq < b->asic_freq) ? a : b;
-  }  
-#endif  
-  return a;
-}
-
-
-int find_loop_to_up() {
-#if 0  
-  HAMMER *best = NULL;
-  for (int h = 0; h < HAMMERS_PER_LOOP ; h++) { 
-    HAMMER *a = &vm.hammer[l*HAMMERS_PER_LOOP+h];
-    if (a->asic_present) {
-      best = choose_asic_to_up(best, a);
+  int best = -1;
+  for (int l = 0; l < LOOP_COUNT; l++) { 
+    if (vm.loop[l].enabled_loop) {
+      best = choose_loop_to_down(best, l);
     }
   }
 
-  if(best && asic_can_up(best))
+  if((best!=-1) && loop_can_down(best))
     return best;
-  return NULL;
-#endif 
   return 0;
 }
 
 
 
-void ac2dc_scaling_one_second() {
+int loop_can_up(int l) {
+  int spare = vm.loop[l].dc2dc.dc_current_limit_16s - vm.loop[l].dc2dc.dc_current_16s;
+  return  
+    (vm.loop[l].enabled_loop &&  (spare < (2*16)) &&
+    (now - vm.loop[l].last_ac2dc_scaling_on_loop > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS) &&
+    (vm.loop[l].dc2dc.dc_current_limit_16s < nvm.top_dc2dc_current_16s[l]));
+ 
+}
 
+
+void loop_up(int l) {
+   vm.loop[l].dc2dc.dc_current_limit_16s += AC2DC_CURRENT_JUMP_16S;
+   vm.loop[l].last_ac2dc_scaling_on_loop  = now;
+}
+
+
+// returns best loop or -1
+int choose_loop_to_up(int a, int b) {
+
+
+  if ((a==-1) || !loop_can_up(a))
+    return b;
+  if ((b==-1) || !loop_can_up(b))
+    return a;
+
+  // Always return coldest loop
+  int a_spare = vm.loop[a].dc2dc.dc_current_limit_16s - vm.loop[a].dc2dc.dc_current_16s;
+  int b_spare = vm.loop[a].dc2dc.dc_current_limit_16s - vm.loop[a].dc2dc.dc_current_16s;  
+
+ 
+
+  if (vm.loop[a].asic_temp_sum/vm.loop[a].asic_count!= vm.loop[b].asic_temp_sum/vm.loop[b].asic_count) {
+    // Increase lower asic_temp because they have lower leakage
+    return (vm.loop[a].asic_temp_sum/vm.loop[a].asic_count < vm.loop[b].asic_temp_sum/vm.loop[b].asic_count) ? a : b;
+  }
+
+
+  // Always return coldest loop
+  if (vm.loop[a].asic_temp_sum != vm.loop[b].asic_temp_sum) {
+    // Increase lower asic_temp because they have lower leakage
+    return (vm.loop[a].asic_temp_sum < vm.loop[b].asic_temp_sum) ? a : b;
+  }
+
+  return a;
+}
+
+
+int find_loop_to_up() {
+  int best = -1;
+  for (int l = 0; l < LOOP_COUNT; l++) { 
+    if (vm.loop[l].enabled_loop) {
+      best = choose_loop_to_up(best, l);
+    }
+  }
+
+  if((best!=-1) && loop_can_up(best))
+    return best;
+  return -1;
+}
+
+
+void ac2dc_scaling_one_second() {
+  static int counter = 0;
+  int l;
+  int do_upscaling = 0;
+  int loops_on_max_current = 0;
+  now = time(NULL);
+
+
+  // TODO - for now
+  return;
+
+  // See if all loops stable on maximum.
+  for (l = 0; l < LOOP_COUNT ; l++) {
+    if (vm.loop[l].enabled_loop) {
+      if ( vm.loop[l].dc2dc.dc_current_limit_16s - vm.loop[l].dc2dc.dc_current_16s < (3*16)) {
+        loops_on_max_current++;
+      }
+    }
+  }
+
+  do_upscaling = (loops_on_max_current > 20);
+
+  if ((!vm.asics_shut_down_powersave) &&
+       !vm.scaling_up_system && 
+       (vm.start_mine_time > AC2DC_UPSCALE_TIME_SECS) &&
+       (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING)) {
+
+          
+        if ((vm.ac2dc_current < (AC2DC_CURRENT_LIMIT - AC2DC_SPARE_CURRENT_TO_UPSCALE))&&
+            do_upscaling) {
+          l = find_loop_to_up();
+          if (l != -1) {
+            printf(CYAN "LOOP %d UP\n" RESET, l);
+            loop_up(l);
+          }
+        }
+
+        if (vm.ac2dc_current > (AC2DC_CURRENT_LIMIT - AC2DC_LEFT_CURRENT_TO_DOWNSCALE)) {
+          l = find_loop_to_down();
+          if (l != -1) {
+             printf(CYAN "LOOP %d down\n" RESET, l);
+             loop_down(l);
+          }
+        }
+
+        // Regardless switch 2 loops.
+        l = find_loop_to_up();
+        if (l != -1) {
+           printf(CYAN "LOOP2 %d up\n" RESET, l);          
+           loop_up(l);
+        }
+        
+        l = find_loop_to_down();
+        if (l != -1) {
+           printf(CYAN "LOOP2 %d down\n" RESET, l);
+           loop_down(l);
+        }
+    }
 }
 

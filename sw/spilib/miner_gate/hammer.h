@@ -254,6 +254,7 @@ typedef struct {
 typedef struct {
   uint8_t dc_temp;
   int dc_current_16s; // in 1/16 of amper. 0 = bad reading
+  int dc_current_limit_16s;  
   int dc_power_watts_16s;  
   int last_voltage_change_time;
   int dc_fail_time;  
@@ -262,9 +263,13 @@ typedef struct {
 
 typedef struct {
   uint8_t id;
+  // Last time ac2dc scaling changed limit.
+  int last_ac2dc_scaling_on_loop;
   uint8_t enabled_loop;
-  int     asic_temp_sum;
-
+  int     asic_temp_sum; // if asics disabled or missing give them fake temp
+  int     asic_hz_sum; // if asics disabled or missing give them fake temp
+  
+  int asic_count;
   DC2DC dc2dc;
 } LOOP;
 

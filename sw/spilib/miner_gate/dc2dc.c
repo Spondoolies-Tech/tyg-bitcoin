@@ -47,8 +47,6 @@ void dc2dc_print() {
       printf(RESET);
       if (temp < DC2DC_TEMP_GREEN_LINE)
         printf(GREEN);
-      if (temp > DC2DC_TEMP_RED_LINE)
-        printf(RED);
       printf("%3d\n", temp);
       printf(RESET);
     } else {

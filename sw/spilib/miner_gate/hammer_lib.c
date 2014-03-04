@@ -119,6 +119,7 @@ void stop_all_work() {
   write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
   //usleep(100);
   RT_JOB work;
+  printf("DD\n");
 
   // Move real-time q to complete.
   while (one_done_sw_rt_queue(&work)) {
@@ -363,10 +364,10 @@ int allocate_addresses_to_devices() {
         int addr = l * HAMMERS_PER_LOOP + h;
         vm.hammer[addr].address = addr;
         vm.hammer[addr].loop_address = l;
-          
+        vm.loop[l].asic_count++;
         if (read_reg_broadcast(ADDR_BR_NO_ADDR)) {
           write_reg_broadcast(ADDR_CHIP_ADDR, addr);
-         
+          vm.loop[l].asic_count--;
           total_devices++;
           asics_in_loop++;
           vm.working_engines[addr] = ALL_ENGINES_BITMASK;
@@ -643,7 +644,7 @@ int do_bist_ok() {
   //vm.bist_current = tb_get_asic_current(loop_to_measure);
   while ((res = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
     usleep(1);
-    if ((i % 10000) == 0) {
+    if ((i % 30000) == 0) {
       printf(RED "Waiting on bist ADDR_BR_CONDUCTOR_BUSY %x %x\n" RESET, res, i);
       vm.bist_fatal_err = 1;
       break;
@@ -685,7 +686,8 @@ int do_bist_ok() {
   }
 
   if (!single_win_test) { // Not won - kill it!
-    disable_asic_forever(hi.addr);
+    printf(RED "Asic %x failed WIN test :(\n" RESET, hi.addr);
+    //disable_asic_forever(hi.addr);
   }
 
   /*if (!failed) {
@@ -980,7 +982,6 @@ void *dc2dc_state_machine(void *p) {
 
 // never returns - thread
 void *squid_regular_state_machine(void *p) {
-  reset_sw_rt_queue();
     
   int loop = 0;
   printf("Starting squid_regular_state_machine!\n");
