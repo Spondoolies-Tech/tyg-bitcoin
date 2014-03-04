@@ -57,15 +57,15 @@ start)
 		mount /mnt/mmc-config
 		mount /mnt/mmc-boot
 
-		if [ -e "/sd-boot/autorun" ]; then
+		if [ -e "/mnt/sd-boot/autorun" ]; then
 			NORMALBOOT=0
-			/sd-boot/autorun
+			/mnt/sd-boot/autorun
 		fi
 
 
-		if [ -e "/mmc-boot/autorun" ]; then
+		if [ -e "/mnt/mmc-boot/autorun" ]; then
 			NORMALBOOT=0
-			/mmc-boot/autorun
+			/mnt/mmc-boot/autorun
 		fi
 	
 
