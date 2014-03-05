@@ -3,56 +3,79 @@
 #include "dc2dc.h"
 #include "i2c.h"
 #include "hammer.h"
+#include <pthread.h>
 
 extern MINER_BOX vm;
+extern pthread_mutex_t i2c_mutex;
 
-void ac2dc_print() {
-  int ac2dc_current = ac2dc_get_power();
-  int ac2dc_temp = ac2dc_get_temperature();
-  printf("AC2DC current: %d (%d by SW)\n", ac2dc_current, vm.ac2dc_current);
-  printf("AC2DC temp: %d (%d by SW)\n", ac2dc_temp, vm.ac2dc_temp);
-}
 
 int ac2dc_getint(int source) {
   int n = (source & 0xF800) >> 11;
+  int negative = false;
+ // printf("N=%d\n", n);
   // This is shitty 2s compliment on 5 bits.
   if (n & 0x10) {
+    negative = true;
     n = (n ^ 0x1F) + 1;
   }
   int y = (source & 0x07FF);
-  return (y * 1000) / (1 << n);
+   // printf("Y=%d\n", y);
+   // printf("RES:%d\n", (y * 1000) / (1 << n));
+  if (negative)
+    return (y * 1000) / (1 << n);
+  else
+    return (y * 1000) * (1 << n);
 }
 
 // Return Watts
-int ac2dc_get_power() {
+static int ac2dc_get_power() {
   int err = 0;
   static int warned = 0;
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
-  int power = ac2dc_getint(
-      i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD, &err));
-  i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+  
+  //printf("%s:%d\n",__FILE__, __LINE__);
+  //pthread_mutex_lock(&i2c_mutex);
+  //i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
+  int r;
+#if 0
+  r = i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_IOUT_WORD, &err); 
+  r = ac2dc_getint(r);
+  r*=12;
+  r/=1000;
+#else
+  r = i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD, &err);
+  printf("Value000Power:0x%x\n", r);
+  r = ac2dc_getint(r); //TODOZ
+  printf("Value000Power2:%d\n", r);
+#endif
+  //printf(CYAN "Zerem = %d\n" RESET,r);
+  int power = r;//ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD, &err)); TODOZ
+  //i2c_write(PRIMARY_I2C_SWITCH, 0x00);
   if (err) {
     if ((warned++) < 10)
       psyslog(RED "FAILED TO INIT AC2DC\n" RESET);
     if ((warned) == 9)
-      psyslog(RED
-              "FAILED TO INIT AC2DC, giving up :(\n" RESET);
+      psyslog(RED "FAILED TO INIT AC2DC, giving up :(\n" RESET);
+     //pthread_mutex_unlock(&i2c_mutex);
     return 100;
   }
+  //pthread_mutex_unlock(&i2c_mutex);
 
-  return power / 1000;
+  return power;
 }
 
 // Return Watts
-int ac2dc_get_temperature() {
+static int ac2dc_get_temperature() {
   static int warned = 0;
+  //printf("%s:%d\n",__FILE__, __LINE__);
+
 
   int err = 0;
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
+  //i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
   int temp1 = ac2dc_getint(
       i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD, &err));
   if (err) {
     psyslog(RED "ERR reading AC2DC temp\n" RESET);
+    // pthread_mutex_unlock(&i2c_mutex);
     return AC2DC_TEMP_GREEN_LINE - 1;
   }
   int temp2 = ac2dc_getint(
@@ -64,7 +87,7 @@ int ac2dc_get_temperature() {
   if (temp3 > temp1)
     temp1 = temp3;
 
-  i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+  //i2c_write(PRIMARY_I2C_SWITCH, 0x00);
 
   return temp1 / 1000;
 }
@@ -84,12 +107,16 @@ int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd) {
     printf("call ac2dc_get_vpd performed without allocating sturcture first\n");
     return 1;
   }
+  //printf("%s:%d\n",__FILE__, __LINE__);
+  
+  pthread_mutex_lock(&i2c_mutex);
 
   i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN, &err);
 
   if (err) {
     fprintf(stderr, "Failed writing to I2C address 0x%X (err %d)",
             PRIMARY_I2C_SWITCH, err);
+     pthread_mutex_unlock(&i2c_mutex);
     return err;
   }
 
@@ -122,9 +149,11 @@ int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd) {
 ac2dc_get_eeprom_quick_err:
 
   if (err) {
+     pthread_mutex_unlock(&i2c_mutex);
     fprintf(stderr, RED
             "Failed reading AC2DC eeprom (err %d)\n" RESET,
             err);
+    
     return err;
   }
 
@@ -137,8 +166,13 @@ ac2dc_get_eeprom_quick_err:
 // no side effect either
 // use this funtion when performing serial multiple reads
 unsigned char ac2dc_get_eeprom_quick(int offset, int *pError) {
+  //printf("%s:%d\n",__FILE__, __LINE__);
+
+  pthread_mutex_lock(&i2c_mutex);
+
   unsigned char b =
       (unsigned char)i2c_read_byte(AC2DC_I2C_EEPROM_DEVICE, offset, pError);
+   pthread_mutex_unlock(&i2c_mutex);
   return b;
 }
 
@@ -148,29 +182,79 @@ unsigned char ac2dc_get_eeprom_quick(int offset, int *pError) {
 // side effect - it closes the i2c bridge when finishes.
 int ac2dc_get_eeprom(int offset, int *pError) {
   // Stub for remo
+  
+  //printf("%s:%d\n",__FILE__, __LINE__);
+   pthread_mutex_lock(&i2c_mutex);
   int b;
   i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN, pError);
-  if (pError && *pError)
+  if (pError && *pError) {
+     pthread_mutex_unlock(&i2c_mutex);
     return *pError;
+  }
 
   b = i2c_read_byte(AC2DC_I2C_EEPROM_DEVICE, offset, pError);
   i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+   pthread_mutex_unlock(&i2c_mutex);
   return b;
 }
 
+
+void reset_i2c() {
+  /*
+  FILE *f = fopen("/sys/class/gpio/export", "w");
+  if (!f)
+    return;
+  fprintf(f, "111");
+  fclose(f);
+  f = fopen("/sys/class/gpio/gpio111/direction", "w");
+  if (!f)
+    return;
+  fprintf(f, "out");
+  fclose(f);
+  f = fopen("/sys/class/gpio/gpio47/value", "w");
+  if (!f)
+    return;
+  fprintf(f, "0");
+  usleep(1000000);
+  fprintf(f, "1");
+  usleep(1000000);
+  fclose(f);
+  */
+}
+
+
 // Return 1 if needs urgent scaling
-int update_ac2dc_current_measurments() {
+int update_ac2dc_power_measurments() {
   int err;
-  int current = ac2dc_get_power();
+  static int counter = 0;
+  counter++;
+  pthread_mutex_lock(&i2c_mutex);
+ 
+  reset_i2c();
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
+  vm.ac2dc_temp = ac2dc_get_temperature();
+
+  
+  int power = (vm.dc2dc_total_power*1000/790)+80;// ac2dc_get_power()/1000; //TODOZ
+  if (1) {
+   // int power2 = ac2dc_get_power()/1000;
+    int power2 = ac2dc_get_power()/1000;
+    //for (int k = 0; k <20 ; k++) {
+     printf(CYAN"power=%d power2:%d\n" RESET, power, power2);
+     power = power2;
+    //}
+  }
   if (
     !vm.asics_shut_down_powersave &&
-    current >= AC2DC_CURRENT_TRUSTWORTHY && 
+    power >= AC2DC_CURRENT_TRUSTWORTHY && 
     vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {
-      vm.ac2dc_current = current;
+      vm.ac2dc_power = power;
     } else {
       //printf(GREEN "CONSEC = %d\n" RESET, vm.cosecutive_jobs); 
-      vm.ac2dc_current = 0;
+      vm.ac2dc_power = 0;
     }
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);  
+  pthread_mutex_unlock(&i2c_mutex);  
   return 0;
 }
 

@@ -34,11 +34,11 @@ uint32_t read_reg_broadcast_test(uint8_t offset);
 extern int assert_serial_failures;
 int one_done_sw_rt_queue(RT_JOB *work);
 
-void *dc2dc_state_machine(void *p);
+void *i2c_state_machine(void *p);
 void *squid_regular_state_machine(void *p);
 int init_hammers();
 void init_scaling();
-int do_bist_ok();
+int do_bist_ok(int long_bist);
 uint32_t crc32(uint32_t crc, const void *buf, size_t size);
 void enable_nvm_loops();
 void enable_voltage_from_nvm();

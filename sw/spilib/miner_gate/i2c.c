@@ -6,8 +6,10 @@
 //#include <linux/i2c-dev.h>
 
 static int file;
-static pthread_mutex_t i2cm = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t i2cm = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t i2cm_trans = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t i2c_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int ignorable_err;
 
 /*
@@ -35,7 +37,7 @@ static void i2c_set_address(int address, int *pError) {
   int ioctl_err;
   if ((ioctl_err = ioctl(file, I2C_SLAVE, address)) < 0) {
     passert(0, "i2c-ff");
-  }
+  }  
   *pError = ioctl_err;
 }
 
@@ -46,7 +48,8 @@ uint8_t i2c_read(uint8_t addr, int *pError) {
   pthread_mutex_lock(&i2cm);
   i2c_set_address(addr, pError);
   if (*pError != 0) {
-    printf(RED "i2c read 0x%x error\n" RESET, addr);
+    //printf(RED "i2c read 0x%x error1\n" RESET, addr);
+     passert(0);
     res = 0;
   } else // no reason to call read, if we failed to set address.
       {
@@ -64,14 +67,12 @@ void i2c_write(uint8_t addr, uint8_t value, int *pError) {
    passert(pError);
   i2c_set_address(addr, pError);
   if (pError != NULL && *pError != 0) {
-       printf(RED "i2c write 0x%x = 0x%x error\n" RESET, addr, value); 
-       passert(0);
+       //printf(RED "i2c write 0x%x = 0x%x error1\n" RESET, addr, value); 
   } else {
     if (i2c_smbus_write_byte(file, value) == -1) {
-      printf(RED "i2c write 0x%x = 0x%x error\n" RESET, addr, value); 
+      //printf(RED "i2c write 0x%x = 0x%x error2\n" RESET, addr, value); 
       if (pError != NULL)
         *pError = -1;
-      passert(0);
     }
     //usleep(SLEEP_TIME_I2C);
   }
@@ -89,13 +90,15 @@ uint8_t i2c_read_byte(uint8_t addr, uint8_t command, int *pError) {
   i2c_set_address(addr, pError);
   if (*pError != 0) {
     //printf("i2c_read_byte(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);    
-    printf(RED "i2c read byte 0x%x 0x%x error\n" RESET, addr, command);
+    //printf(RED "i2c read byte 0x%x 0x%x error1\n" RESET, addr, command);
+     passert(0);
   //  res = 0xFF;
   } else {
     r = i2c_smbus_read_byte_data(file, command, pError);
     res = r & 0xFF;
     if (*pError) {
-      printf(RED "i2c read byte 0x%x 0x%x error\n" RESET, addr, command);
+      //printf(RED "i2c read byte 0x%x 0x%x error2\n" RESET, addr, command);
+       passert(0);
      // res = 0;
     }
   }
@@ -127,13 +130,12 @@ void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value, int *pError) {
   passert(pError);
   i2c_set_address(addr, pError);
   if (*pError != 0) {
-    printf(RED "i2c write byte 0x%x 0x%x = 0x%x error\n" RESET, 
-      addr, command, value);
+    //printf(RED "i2c write byte 0x%x 0x%x = 0x%x error1\n" RESET, addr, command, value);
 
   } else {
     if (i2c_smbus_write_byte_data(file, command, value) == -1) {
-      printf(RED "i2c write byte 0x%x 0x%x = 0x%x error\n" RESET, 
-              addr, command, value);
+      //printf(RED "i2c write byte 0x%x 0x%x = 0x%x error2\n" RESET, addr, command, value);
+     
         *pError = -1;
     }
     usleep(SLEEP_TIME_I2C);
@@ -148,13 +150,14 @@ uint16_t i2c_read_word(uint8_t addr, uint8_t command, int *pError) {
   passert(pError);
   i2c_set_address(addr, pError);
   if ( *pError != 0) {
-    printf(RED "i2c read word 0x%x 0x%x error\n" RESET, addr, command);
+    //printf(RED "i2c read word 0x%x 0x%x error1\n" RESET, addr, command);
     r = 0xFFFF;
   } else {
     r = i2c_smbus_read_word_data(file, command, pError);
     if ( *pError != 0) {
-      printf(RED "i2c read word 0x%x 0x%x error\n" RESET, addr, command);
+      //printf(RED "i2c read word 0x%x 0x%x error2\n" RESET, addr, command, *pError);
       r = 0x0;
+      pthread_mutex_unlock(&i2cm);
       return r;
     } 
   }
@@ -170,11 +173,11 @@ void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value,
   pthread_mutex_lock(&i2cm);
   i2c_set_address(addr, pError);
   if (pError != NULL && *pError != 0) {
-    printf(RED "i2c write word 0x%x 0x%x = 0x%x error\n" RESET, addr, command, value);        
+    //printf(RED "i2c write word 0x%x 0x%x = 0x%x error1\n" RESET, addr, command, value);        
   } else {
     if ((i2c_smbus_write_word_data(file, command, value) == -1) &&
         (pError != NULL)) {
-      printf(RED "i2c write word 0x%x 0x%x = 0x%x error\n" RESET, addr, command, value);        
+      //printf(RED "i2c write word 0x%x 0x%x = 0x%x error2\n" RESET, addr, command, value);        
       *pError = -1;
     }
 
@@ -187,10 +190,10 @@ void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value,
 void i2c_init(int *pError) {
   pthread_mutex_lock(&i2cm);
   if ((file = open("/dev/i2c-0", O_RDWR)) < 0) {
-    printf("Failed to open the i2c bus.\n");
+    printf("Failed to open the i2c bus1.\n");
     /* ERROR HANDLING; you can check errno to see what went wrong */
     if (pError != NULL) {      
-      printf(RED "i2c init error\n" RESET);
+      //printf(RED "i2c init error\n" RESET);
       *pError = -1;
     }
   }
@@ -207,6 +210,5 @@ uint16_t read_mgmt_temp() {
   uint16_t value = i2c_read_word(0x48, 0x00);
   i2c_write(PRIMARY_I2C_SWITCH, 0);
   pthread_mutex_unlock(&i2cm_trans);
-  printf("------------------ READ %x\n", value);
   return value;
 }

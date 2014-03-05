@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
   zabbix_log.version = MG_ZABBIX_LOG_VERSION;
   zabbix_log.zabbix_logsize = sizeof(zabbix_log);
-  zabbix_log.ac2dc_current = 0xbc;
+  zabbix_log.ac2dc_power = 0xbc;
   zabbix_log.ac2dc_temp = 0xbd;
   zabbix_log.time = time(NULL);
   zabbix_log.dump_id = 1;

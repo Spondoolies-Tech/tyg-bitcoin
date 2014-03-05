@@ -28,7 +28,7 @@ typedef enum {
 
 
 #define VTRIM_MIN 0x0FFc5  // 0.635
-#define VTRIM_MEDIUM 0x0ffe3 
+#define VTRIM_MEDIUM 0x0ffdd //
 #define VTRIM_MAX 0x10008  // 0.810
 
 #define VTRIM_TO_VOLTAGE_MILLI(XX)    ((63500 + (XX-VTRIM_MIN)*(266))/100)  
@@ -42,14 +42,10 @@ typedef enum {
     VALUE = xxx[ENUM];                                                         \
   }
 */
-void dc2dc_i2c_close();
-int get_dc2dc_error(int loop);
-void dc2dc_select_i2c(int loop, int *err);
-void dc2dc_set_channel(int channel_mask, int *err);
+  int get_dc2dc_error(int loop);
 
 void dc2dc_disable_dc2dc(int loop, int *err);
 void dc2dc_enable_dc2dc(int loop, int *err);
-void dc2dc_print();
 void dc2dc_init();
 int update_dc2dc_current_temp_measurments(int loop);
 

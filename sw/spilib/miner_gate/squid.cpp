@@ -332,8 +332,8 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
   if ((address != got_addr) || (offset != got_offset)) {
     // Data returned corrupted :(
     if (assert_serial_failures) {
-      printf("Data corruption: READ:0x%x 0x%x / GOT:0x%x 0x%x \n", address,
-             offset, values[0], values[1]);
+      printf("Data corruption: wanted address(%x)!=address(%x) or wanted offset(%x)!=offset(%x)\n", 
+	  		address, got_addr, offset, got_offset);
       passert(0, "29578");
     } else {
       printf("Data corruption: READ:0x%x 0x%x / GOT:0x%x 0x%x \n", address,

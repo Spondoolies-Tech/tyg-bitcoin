@@ -27,8 +27,8 @@ pll_frequency_settings pfs[ASIC_FREQ_MAX] = {
 
 void enable_all_engines_all_asics() {
   int i;
-  write_reg_broadcast(ADDR_RESETING0, 0xffffffff);
-  write_reg_broadcast(ADDR_RESETING1, 0xffffffff);
+  write_reg_broadcast(ADDR_RESETING0, ALL_ENGINES_BITMASK);
+  write_reg_broadcast(ADDR_RESETING1, ALL_ENGINES_BITMASK | 0x8000);
   write_reg_broadcast(ADDR_ENABLE_ENGINE, ALL_ENGINES_BITMASK);
   flush_spi_write();
 }
@@ -54,6 +54,16 @@ void disable_engines_asic(int addr) {
   write_reg_device(addr,ADDR_CLK_ENABLE, 0);
   flush_spi_write();
 }
+
+
+void enable_all_engines_asic(int addr) {
+  //printf("Disabling engines:\n");
+  write_reg_device(addr,ADDR_ENABLE_ENGINE, ALL_ENGINES_BITMASK);
+  write_reg_device(addr,ADDR_RESETING1, ALL_ENGINES_BITMASK | 0x8000);
+  write_reg_device(addr,ADDR_RESETING0, ALL_ENGINES_BITMASK);
+  flush_spi_write();
+}
+
 
 
 void set_pll(int addr, ASIC_FREQ freq) {
@@ -89,7 +99,7 @@ void set_pll(int addr, ASIC_FREQ freq) {
 void disable_asic_forever(int addr) {
   vm.working_engines[addr] = 0;
   vm.hammer[addr].asic_present = 0;
-  psyslog("Disabing ASIC forever %x\n", addr);
+  psyslog("Disabing ASIC forever %x from loop %d\n", addr, addr/HAMMERS_PER_LOOP);
   write_reg_device(addr, ADDR_CONTROL_SET1, BIT_CTRL_DISABLE_TX);
   vm.loop[vm.hammer[addr].loop_address].asic_count--;
 }
@@ -101,23 +111,49 @@ int enable_nvm_engines_all_asics_ok() {
     int reg;
     int killed_pll=0;
     while ((reg = read_reg_broadcast(ADDR_BR_PLL_NOT_READY)) != 0) {
-      if (i++ > 200) {
+      if (i++ > 500) {
         printf(RED "F*cking PLL %x stuck, killing ASIC\n" RESET, reg);
         //return 0;
         int addr = BROADCAST_READ_ADDR(reg);
         disable_asic_forever(addr);
         killed_pll++;
       }
-      usleep(50);
+      usleep(10);
     }
 #endif
    //printf("Enabling engines from NVM:\n");
    if (killed_pll) {
      passert(test_serial(-1)); 
    }
-   hammer_iter hi;
-   hammer_iter_init(&hi);
+ 
    //passert(vm.engines_disabled == 1);
+
+   write_reg_broadcast(ADDR_CLK_ENABLE, ALL_ENGINES_BITMASK);
+   write_reg_broadcast(ADDR_RESETING0, ALL_ENGINES_BITMASK);
+   write_reg_broadcast(ADDR_RESETING1, ALL_ENGINES_BITMASK | 0x8000);
+   write_reg_broadcast(ADDR_ENABLE_ENGINE, ALL_ENGINES_BITMASK);
+
+   flush_spi_write();
+ 
+   for (int h = 0; h < HAMMERS_COUNT ; h++) {
+    
+     if (vm.loop[h/HAMMERS_PER_LOOP].enabled_loop &&
+         !vm.hammer[h].asic_present) {
+       write_reg_device(h, ADDR_CLK_ENABLE, 0);
+       write_reg_device(h, ADDR_RESETING0, 0);
+       write_reg_device(h, ADDR_RESETING1, 0);
+       write_reg_device(h, ADDR_ENABLE_ENGINE, 0);
+     } 
+
+     if (vm.hammer[h].asic_present && 
+        vm.working_engines[h] != ALL_ENGINES_BITMASK) {
+        write_reg_device(h, ADDR_CLK_ENABLE, vm.working_engines[h]);
+        write_reg_device(h, ADDR_RESETING0, vm.working_engines[h]);
+        write_reg_device(h, ADDR_RESETING1, vm.working_engines[h] | 0x8000);
+        write_reg_device(h, ADDR_ENABLE_ENGINE, vm.working_engines[h]);
+     }
+   }
+   /*
    while (hammer_iter_next_present(&hi)) {
      // for each ASIC
      write_reg_device(hi.addr, ADDR_CLK_ENABLE, vm.working_engines[hi.addr]);
@@ -125,7 +161,8 @@ int enable_nvm_engines_all_asics_ok() {
      write_reg_device(hi.addr, ADDR_RESETING1, vm.working_engines[hi.addr] | 0x8000);
      write_reg_device(hi.addr, ADDR_ENABLE_ENGINE, vm.working_engines[hi.addr]);
    }
-   flush_spi_write();
+   */
+   
    vm.engines_disabled = 0;
    return 1;
 }

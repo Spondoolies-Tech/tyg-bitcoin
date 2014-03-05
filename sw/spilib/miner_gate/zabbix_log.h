@@ -30,7 +30,7 @@ typedef struct mg_zabbix_log {
   uint32_t time;    // seconds from some hippie period
   uint32_t dump_id; // autoincrement
 
-  uint8_t ac2dc_current;
+  uint8_t ac2dc_power;
   uint8_t ac2dc_temp;
 
   MG_LOOP_LOG loops[LOOP_COUNT];

@@ -56,30 +56,50 @@ int test_asic(int addr) {
 
 
 void pause_all_mining_engines() {
+  int err;
   passert(vm.asics_shut_down_powersave == 0);
   int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
-  
-  if(some_asics_busy != 0) {
+  set_fan_level(0);
+  while(some_asics_busy != 0) {
+    int addr = BROADCAST_READ_ADDR(some_asics_busy);
     printf(RED "some_asics_busy %x\n" RESET, some_asics_busy);
-    passert(0);
+    disable_asic_forever(addr);
+    some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
   }
   // stop all ASICs
   disable_engines_all_asics();
   // disable_engines_all_asics();
   vm.asics_shut_down_powersave = 1;
-  printf("PAUSING ALL MINING!!\n");
+  printf("System has no jobs, going to sleep...\n");
 }
 
 void unpause_all_mining_engines() {
-  passert(vm.asics_shut_down_powersave != 0);
+  int err;
+  printf("Got mining request, enable DC2DC!\n");
+  usleep(30000); 
   vm.not_mining_counter = 0;
+//  enable_nvm_engines_all_asics_ok();
   enable_nvm_engines_all_asics_ok();
-  printf("STARTING ALL MINING!!\n");
+/*
+  hammer_iter hi;
+  hammer_iter_init(&hi);
+  printf("Got mining request, set_pll!\n");
+  while (hammer_iter_next_present(&hi)) {
+    set_pll(hi.addr, hi.a->asic_freq);
+  }
+  */
+  usleep(10000);  
+  printf("Got mining request, waking up done!\n");
   vm.asics_shut_down_powersave = 0;
 }
 
 
 int test_serial(int loopid) {
+  /*
+  if (loopid < 20 && loopid!= -1) {
+    return 0;
+  }
+  */
   assert_serial_failures = false;
   // printf("Testing loops: %x\n", (~read_spi(ADDR_SQUID_LOOP_BYPASS))&
   // 0xFFFFFF);
@@ -159,7 +179,7 @@ void create_default_nvm() {
   // See max rate under ASIC_VOLTAGE_810
   for (i = 0; i < HAMMERS_COUNT; i++) {
     nvm.asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
-    nvm.top_freq[i] = ASIC_FREQ_SAFE;
+    nvm.top_freq[i] = MAX_ASIC_FREQ;
   } 
 
   for (i = 0; i < LOOP_COUNT; i++) {
@@ -171,23 +191,7 @@ void create_default_nvm() {
 void init_scaling() {
   hammer_iter hi;
   hammer_iter_init(&hi);
-  vm.scaling_up_system = 1;
 }
-
-
-
-int update_i2c_temperature_measurments() {
-  int err;
-  vm.ac2dc_temp = ac2dc_get_temperature();
-
-  for (int i = 0; i < LOOP_COUNT; i++) {
-    vm.loop[i].dc2dc.dc_temp = dc2dc_get_temp(i, &err);
-  }
-
-  return 0;
-}
-
-
 
 
 
@@ -214,97 +218,73 @@ int count_ones(int failed_engines) {
 
 
 
-
-// Callibration SW
-void print_asic(HAMMER *h) {
-  if (h->asic_present) {
-    DBG(DBG_SCALING,
-        "      HAMMER %04x C:%d ENG:0x%x Hz:%d  WINS:%04d T:%x\n",
-        h->address, h->corner, h->enabled_engines_mask,
-        h->asic_freq, h->solved_jobs, h->asic_temp);
-  } else {
-    DBG(DBG_SCALING, "      HAMMER %04x ----\n", h->address);
-  }
-}
-
-/*
-void print_loop(int l) {
-  LOOP *loop = &vm.loop[l];
-  DBG(DBG_SCALING, "   LOOP %x AMP:%d\n", l, loop->dc2dc.dc_current_16s);
-}
-*/
-
-void print_miner_box() { DBG(DBG_SCALING, "MINER AC:%x\n", vm.ac2dc_current); }
+void print_miner_box() { DBG(DBG_SCALING, "MINER AC:%x\n", vm.ac2dc_power); }
 
 void print_scaling() {
   int err;
   hammer_iter hi;
   hammer_iter_init(&hi);
   int total_hash_power=0;
+  int total_loops=0;
+  int total_asics=0;
+  int expected_rate=0;
  // int loop_hash_power=0;  
   int hl = -1;
-  printf(GREEN "\n----------\nAC2DC current=%d, temp=%d\n" RESET,
-      vm.ac2dc_current,
+  printf(GREEN "\n----------\nAC2DC power=%d[%d], temp=%d\n" RESET,
+      vm.ac2dc_power,
+      AC2DC_POWER_LIMIT,
       vm.ac2dc_temp
     );
-  
-  printf(GREEN "L |Vtrm|vlt|vlt|Wt|"  "A /Li/Li|Tmp/"  "Tmp|A|gH" RESET); 
+  int total_watt=0;
+  printf(GREEN "L |Vtrm|vlt|Wt|"  "A /Li/Li|Tmp/"  "Tmp|A|H|gH" RESET); 
   while (hammer_iter_next_present(&hi)) {
     if (hi.l != hl) {
+      total_loops++;
       DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
       int volt = 0;//dc2dc_get_voltage(hi.l, &err);
      
       printf(GREEN 
-        "\n%2d|%4x|%3d|%3d|%2d|"  
+        "\n%2d|%4x|%3d|%2d|"  
         "%s%2d%s/%2d/%2d|%s%3d%s|"   
         "%3d|%d|%2d|" RESET, 
         hi.l, 
         vm.loop_vtrim[hi.l]&0xffff,
         VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[hi.l]),
-        volt,
         dc2dc->dc_power_watts_16s/16,
         
-      ((dc2dc->dc_current_16s>=nvm.top_dc2dc_current_16s[hi.l] - 3*16)?RED:GREEN), dc2dc->dc_current_16s/16,GREEN,
+      ((dc2dc->dc_current_16s>=nvm.top_dc2dc_current_16s[hi.l] - 1*16)?RED:GREEN), dc2dc->dc_current_16s/16,GREEN,
         dc2dc->dc_current_limit_16s/16,
         nvm.top_dc2dc_current_16s[hi.l]/16,
       ((dc2dc->dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), dc2dc->dc_temp,GREEN,
       
         vm.loop[hi.l].asic_temp_sum/vm.loop[hi.l].asic_count,
         vm.loop[hi.l].asic_count,
-        vm.loop[hi.l].asic_hz_sum/1000
+        vm.loop[hi.l].asic_hz_sum*15/1000
         );
       hl = hi.l;
+      total_watt+=dc2dc->dc_power_watts_16s;
       total_hash_power += hi.a->asic_freq*15+220;      
    
     } else {
-    
       total_hash_power += hi.a->asic_freq*15+220;            
     }
-    printf(GREEN "|%x:%s%3dc%s %s%3dhz%s %x" RESET, 
+    total_asics++;
+    printf(GREEN "|%2x:%s%3dc%s %s%3dhz%s %s%x" RESET, 
       hi.addr,
       (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:GREEN,((hi.a->asic_temp*6)+77),GREEN,
        (hi.a->asic_freq>=MAX_ASIC_FREQ)?RED:GREEN,hi.a->asic_freq*15+210,GREEN,
-      vm.working_engines[hi.addr]);
+       (vm.working_engines[hi.addr]!=0x7FFF)?RED:GREEN, vm.working_engines[hi.addr]);
   }
   // print last loop
   // print total hash power
-  printf(RESET "\n[H:%dGh]\n",(total_hash_power*15)/1000);
+  printf(RESET "\n[H:%dGh,W:%d,L:%d,A:%d,ER:%d,EP:%d]\n",
+  (total_hash_power*15)/1000,
+  total_watt/16,
+  total_loops,
+  total_asics,
+  (total_hash_power*15*192)/1000/total_asics,
+  (vm.ac2dc_power-70)/total_asics*192+70
+  );
 
   
-  /*
-  print_miner_box();
-  int h, l;
-  for (l = 0; l < LOOP_COUNT; l++) {
-    // TODO
-    if (vm.loop[l].enabled_loop) {
-      print_loop(l);
-      for (h = 0; h < HAMMERS_PER_LOOP; h++) {
-        HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
-        print_asic(a);
-      }
-    } else {
-      DBG(DBG_SCALING, "    LOOP %x ----\n", l);
-    }
-  }
-  */
 }

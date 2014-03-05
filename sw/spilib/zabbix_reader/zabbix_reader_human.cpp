@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 #if 0
     zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
     zabbix_log.version = MG_ZABBIX_LOG_VERSION;
-    zabbix_log.ac2dc_current = 0xbc;
+    zabbix_log.ac2dc_power = 0xbc;
     zabbix_log.ac2dc_temp = 0xbd;
 
     for(int l = 0; l < LOOP_COUNT ; l++) {
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 
 
 
-  printf("AC2DC.A %2x\n", zabbix_log.ac2dc_current);
+  printf("AC2DC.A %2x\n", zabbix_log.ac2dc_power);
   printf("AC2DC.C %2x\n", zabbix_log.ac2dc_temp);
   printf("DC2DC\n     |");
   for(int l = 0; l < LOOP_COUNT ; l++) {

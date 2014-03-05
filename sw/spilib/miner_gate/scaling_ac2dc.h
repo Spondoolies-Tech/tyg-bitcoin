@@ -4,7 +4,7 @@
 
 
 
-void ac2dc_scaling_one_second();
+void ac2dc_scaling_one_minute();
 
 
 

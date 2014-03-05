@@ -81,6 +81,7 @@ typedef struct {
 
 void disable_engines_all_asics();
 void disable_engines_asic(int addr);
+void enable_all_engines_asic(int addr);
 void set_pll(int addr, ASIC_FREQ freq);
 int enable_nvm_engines_all_asics_ok();
 void disable_asic_forever(int addr);

@@ -39,10 +39,14 @@
 #include "asic_testboard.h"
 #include "pll.h"
 #include "real_time_queue.h"
+#include "leakage_discovery.h"
+
+#include <signal.h>
 
 
 using namespace std;
 pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
+struct sigaction termhandler, inthandler;
 
 
 // SERVER
@@ -69,6 +73,26 @@ public:
 } minergate_adapter;
 
 minergate_adapter *adapters[0x100] = { 0 };
+
+
+static void sighandler(int sig)
+{
+  int err;
+  /* Restore signal handlers so we can still quit if kill_work fails */
+  sigaction(SIGTERM, &termhandler, NULL);
+  sigaction(SIGINT, &inthandler, NULL);
+ 
+  disable_engines_all_asics();
+  for (int l = 0 ; l < LOOP_COUNT ; l++) {
+    dc2dc_disable_dc2dc(l, &err); 
+  }
+  if (vm.fan_level >6) {
+    set_fan_level(6);
+  }
+  printf("Here comes unexpected death!\n");
+  exit(0);
+}
+
 
 void print_adapter() {
   minergate_adapter *a = adapters[0];
@@ -376,12 +400,23 @@ void test_asic_reset() {
   return;
 }
 
+
+void enable_sinal_handler() {
+  struct sigaction handler;
+  handler.sa_handler = &sighandler;
+  handler.sa_flags = 0;
+  sigemptyset(&handler.sa_mask);
+  sigaction(SIGTERM, &handler, &termhandler);
+  sigaction(SIGINT, &handler, &inthandler);
+
+}
+
 void test_harel() {
 
   printf("Running BISTs... :");
-  printf(do_bist_ok() ? " OK" : " FAIL");
-  printf(do_bist_ok() ? " OK" : " FAIL");
-  printf(do_bist_ok() ? " OK\n" : " FAIL\n");
+  printf(do_bist_ok(0) ? " OK" : " FAIL");
+  printf(do_bist_ok(0) ? " OK" : " FAIL");
+  printf(do_bist_ok(0) ? " OK\n" : " FAIL\n");
   
   for (int l = 0; l < LOOP_COUNT; l++) {
     for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
@@ -424,6 +459,9 @@ void reset_squid() {
 }
 
 
+
+
+
 int loop_to_measure;
 
 int main(int argc, char *argv[]) {
@@ -441,6 +479,9 @@ int main(int argc, char *argv[]) {
   syslog(LOG_NOTICE, "minergate started");
   // syslog (LOG_INFO, "A tree falls in a forest");
   // syslog (LOG_ALERT, "Real issue - A tree falls in a forest");
+
+  enable_sinal_handler();
+
 
   if ((argc > 1) && strcmp(argv[1], "--help") == 0) {
     test_mode = 1;
@@ -490,7 +531,7 @@ int main(int argc, char *argv[]) {
   reset_squid();
   printf("init_spi\n");
   init_spi();
-  printf("i2c_init\n");
+  //printf("i2c_init\n");
   i2c_init();
   printf("dc2dc_init\n");
   dc2dc_init();
@@ -499,11 +540,7 @@ int main(int argc, char *argv[]) {
   printf("set_fan_level\n");
   set_fan_level(0);
   //exit(0);
-  printf("dc2dc_print\n");
   reset_sw_rt_queue();
-
- // dc2dc_print();
- // ac2dc_print();
 
 
 
@@ -637,8 +674,10 @@ int main(int argc, char *argv[]) {
   }
 
   
-   
-
+ // do_leakage_discovery();
+  //printf("-----------------------------------------\n");
+  //while(1);
+  //assert(0);
   //assert((read_reg_broadcast(ADDR_VERSION)&0xFF) == 0x3c);
   //assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
 
@@ -656,7 +695,7 @@ int main(int argc, char *argv[]) {
   s = pthread_create(&main_thread, NULL, squid_regular_state_machine,
                      (void *)NULL);
   passert(s == 0);
-  s = pthread_create(&dc2dc_thread, NULL, dc2dc_state_machine,
+  s = pthread_create(&dc2dc_thread, NULL, i2c_state_machine,
                      (void *)NULL);
   passert(s == 0);
 
