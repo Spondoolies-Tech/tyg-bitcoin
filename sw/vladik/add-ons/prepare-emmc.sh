@@ -5,6 +5,8 @@
 
 set -e
 
+. /etc/common-defs
+
 SDCARD_DEVICE=/dev/mmcblk0
 EMMC_DEVICE=/dev/mmcblk1
 MBR=/usr/local/lib/emmc-mbr
@@ -58,13 +60,22 @@ format_partitions()
 	mkfs.xfs -f -q ${EMMC_DEVICE}p3
 }
 
+create_dirs()
+{
+	mount ${EMMC_DEVICE}p2 ${MP_MMC_CONF}
+	mkdir ${MP_MMC_CONF}/etc
+	umount ${MP_MMC_CONF}
+	
+}
 
 copy_files()
 {
-	mount ${EMMC_DEVICE}p1 /mmc
-	cp /sd/MLO /mmc
-	cp /sd/u-boot.img /mmc
-	umount /mmc
+	mount ${SDCARD_DEVICE}p1 ${MP_SD_BOOT}
+	mount ${EMMC_DEVICE}p1 ${MP_MMC_BOOT}
+	cp ${MP_SD_BOOT}/MLO ${MP_MMC_BOOT}
+	cp ${MP_SD_BOOT}/u-boot.img ${MP_MMC_BOOT}
+	umount ${MP_MMC_BOOT}
+	umount ${MP_SD_BOOT}
 }
 
 start_counting()
@@ -99,6 +110,7 @@ main()
 	place_mbr
 	reread_partition_table
 	format_partitions
+	create_dirs
 	copy_files
 	stop_counting
 }
