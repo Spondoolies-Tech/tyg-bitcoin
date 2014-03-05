@@ -32,711 +32,651 @@
 #include "pwm_manager.h"
 #include "hammer_lib.h"
 #include "miner_gate.h"
+#include "scaling_manager.h"
+#include "corner_discovery.h"
+#include "asic_thermal.h"
 #include <syslog.h>
 #include "asic_testboard.h"
-
-
-
+#include "pll.h"
 
 using namespace std;
 pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
-int drop_job_requests = 0;
-int noasic = 0;
-int enable_scaling = 1;
+
 
 // SERVER
-void compute_hash(const unsigned char * midstate, unsigned int mrkle_root,
-        unsigned int timestamp, unsigned int difficulty,
-        unsigned int winner_nonce, unsigned char * hash);
+void compute_hash(const unsigned char *midstate, unsigned int mrkle_root,
+                  unsigned int timestamp, unsigned int difficulty,
+                  unsigned int winner_nonce, unsigned char *hash);
 int get_leading_zeroes(const unsigned char *hash);
 void memprint(const void *m, size_t n);
 
-
 typedef class {
-  public:  
-    uint8_t  adapter_id;    
-    //uint8_t  adapter_id;
-    int connection_fd;
-    pthread_t conn_pth;
-    minergate_req_packet* last_req;
-    minergate_rsp_packet* next_rsp;
-    
-    //pthread_mutex_t queue_lock;
-    queue<minergate_do_job_req> work_minergate_req;
-    queue<minergate_do_job_rsp> work_minergate_rsp;
+public:
+  uint8_t adapter_id;
+  // uint8_t  adapter_id;
+  int connection_fd;
+  pthread_t conn_pth;
+  minergate_req_packet *last_req;
+  minergate_rsp_packet *next_rsp;
 
-    void minergate_adapter() {
-        
-    }
+  // pthread_mutex_t queue_lock;
+  queue<minergate_do_job_req> work_minergate_req;
+  queue<minergate_do_job_rsp> work_minergate_rsp;
+
+  void minergate_adapter() {}
 } minergate_adapter;
 
-
-minergate_adapter* adapters[0x100] = {0};
-
+minergate_adapter *adapters[0x100] = { 0 };
 
 void print_adapter() {
-    minergate_adapter *a = adapters[0];
-    if (a) {
-        printf("Adapter queues: rsp=%d, req=%d\n",
-            a->work_minergate_rsp.size(),
-            a->work_minergate_req.size());
-    }
+  minergate_adapter *a = adapters[0];
+  if (a) {
+    printf("Adapter queues: rsp=%d, req=%d\n", a->work_minergate_rsp.size(),
+           a->work_minergate_req.size());
+  }
 }
 
-void free_minergate_adapter(minergate_adapter* adapter) {
-    close(adapter->connection_fd);
-    free(adapter->last_req);
-    free(adapter->next_rsp);
-    delete adapter;
+void free_minergate_adapter(minergate_adapter *adapter) {
+  close(adapter->connection_fd);
+  free(adapter->last_req);
+  free(adapter->next_rsp);
+  delete adapter;
 }
-
-
 
 int SWAP32(int x) {
-    return ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8)
-            | (((x) & 0xff0000) >> 8) | (((x) >> 24) & 0xff));
+  return ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8) |
+          (((x) & 0xff0000) >> 8) | (((x) >> 24) & 0xff));
 }
-
 
 //
 // Return the winner (or not winner) job back to the addapter queue.
 //
-void push_work_rsp(RT_JOB* work) {
-    pthread_mutex_lock(&network_hw_mutex);
-    minergate_do_job_rsp r;
-    uint8_t adapter_id = work->adapter_id;
-    minergate_adapter* adapter = adapters[adapter_id];
-    if (!adapter) {
-        DBG(DBG_NET,"Adapter disconected! Packet to garbage\n");
-        pthread_mutex_unlock(&network_hw_mutex);
-        return;
-    }
-    int i;
-    r.mrkle_root = work->mrkle_root;
-    r.winner_nonce = work->winner_nonce;
-    r.work_id_in_sw = work->work_id_in_sw;
-    r.res = 0;
-    adapter->work_minergate_rsp.push(r);
-    passert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE*2);
+void push_work_rsp(RT_JOB *work) {
+  pthread_mutex_lock(&network_hw_mutex);
+  minergate_do_job_rsp r;
+  uint8_t adapter_id = work->adapter_id;
+  minergate_adapter *adapter = adapters[adapter_id];
+  if (!adapter) {
+    DBG(DBG_NET, "Adapter disconected! Packet to garbage\n");
     pthread_mutex_unlock(&network_hw_mutex);
+    return;
+  }
+  int i;
+  r.mrkle_root = work->mrkle_root;
+  r.winner_nonce = work->winner_nonce;
+  r.work_id_in_sw = work->work_id_in_sw;
+  r.res = 0;
+  adapter->work_minergate_rsp.push(r);
+  passert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE * 2);
+  pthread_mutex_unlock(&network_hw_mutex);
 }
 
-
-
-
-
-
-// 
+//
 // returns success, fills W with new job from adapter queue
-// 
-int pull_work_req_adapter(RT_JOB* w, minergate_adapter* adapter) {
-    minergate_do_job_req r;
-    
-    if (!adapter->work_minergate_req.empty()) {
-        r = adapter->work_minergate_req.front();
-        adapter->work_minergate_req.pop();
-        w->difficulty = r.difficulty;
-        memcpy(w->midstate, r.midstate, sizeof(r.midstate));
-        w->adapter_id = adapter->adapter_id;
-        w->mrkle_root = r.mrkle_root;
-        w->timestamp = r.timestamp;
-        w->winner_nonce = 0;
-        w->work_id_in_sw = r.work_id_in_sw;
-        w->work_state = 0;
-        w->leading_zeroes = r.leading_zeroes;
-        return 1;
-    }
-    return 0;
+//
+int pull_work_req_adapter(RT_JOB *w, minergate_adapter *adapter) {
+  minergate_do_job_req r;
+
+  if (!adapter->work_minergate_req.empty()) {
+    r = adapter->work_minergate_req.front();
+    adapter->work_minergate_req.pop();
+    w->difficulty = r.difficulty;
+    memcpy(w->midstate, r.midstate, sizeof(r.midstate));
+    w->adapter_id = adapter->adapter_id;
+    w->mrkle_root = r.mrkle_root;
+    w->timestamp = r.timestamp;
+    w->winner_nonce = 0;
+    w->work_id_in_sw = r.work_id_in_sw;
+    w->work_state = 0;
+    w->leading_zeroes = r.leading_zeroes;
+    return 1;
+  }
+  return 0;
 }
-
-
-
 
 // returns success
-int has_work_req_adapter(minergate_adapter* adapter) {
-   return (adapter->work_minergate_req.size());
+int has_work_req_adapter(minergate_adapter *adapter) {
+  return (adapter->work_minergate_req.size());
 }
-
-
-
 
 // returns success
-int pull_work_req(RT_JOB* w) {
-    // go over adapters...
-    // TODO
-    pthread_mutex_lock(&network_hw_mutex);
-    minergate_adapter * adapter = adapters[0];
-    if(adapter) {
-        pull_work_req_adapter(w,adapter);
-    }
-    pthread_mutex_unlock(&network_hw_mutex);
+int pull_work_req(RT_JOB *w) {
+  // go over adapters...
+  // TODO
+  pthread_mutex_lock(&network_hw_mutex);
+  minergate_adapter *adapter = adapters[0];
+  if (adapter) {
+    pull_work_req_adapter(w, adapter);
+  }
+  pthread_mutex_unlock(&network_hw_mutex);
 }
-
 
 int has_work_req() {
-    pthread_mutex_lock(&network_hw_mutex);
-    minergate_adapter * adapter = adapters[0];
-    if(adapter) {
-        has_work_req_adapter(adapter);
-    }
-    pthread_mutex_unlock(&network_hw_mutex);
-
+  pthread_mutex_lock(&network_hw_mutex);
+  minergate_adapter *adapter = adapters[0];
+  if (adapter) {
+    has_work_req_adapter(adapter);
+  }
+  pthread_mutex_unlock(&network_hw_mutex);
 }
 
+void push_work_req(minergate_do_job_req *req, minergate_adapter *adapter) {
+  pthread_mutex_lock(&network_hw_mutex);
 
-void push_work_req(minergate_do_job_req* req, minergate_adapter* adapter) {
-    pthread_mutex_lock(&network_hw_mutex);
-
-    if (drop_job_requests || adapter->work_minergate_req.size() >= (MINERGATE_TOTAL_QUEUE - 10)) {
-        minergate_do_job_rsp rsp;
-        rsp.mrkle_root = req->mrkle_root;
-        rsp.winner_nonce = 0;
-        rsp.work_id_in_sw = req->work_id_in_sw;
-        rsp.res = 1;
-        //printf("returning %d %d\n",req->work_id_in_sw,rsp.work_id_in_sw);
-        adapter->work_minergate_rsp.push(rsp);
-    } else {
-        adapter->work_minergate_req.push(*req); 
-    }
-    pthread_mutex_unlock(&network_hw_mutex);
+  if (adapter->work_minergate_req.size() >= (MINERGATE_TOTAL_QUEUE - 10)) {
+    minergate_do_job_rsp rsp;
+    rsp.mrkle_root = req->mrkle_root;
+    rsp.winner_nonce = 0;
+    rsp.work_id_in_sw = req->work_id_in_sw;
+    rsp.res = 1;
+    // printf("returning %d %d\n",req->work_id_in_sw,rsp.work_id_in_sw);
+    adapter->work_minergate_rsp.push(rsp);
+  } else {
+    adapter->work_minergate_req.push(*req);
+  }
+  pthread_mutex_unlock(&network_hw_mutex);
 }
 
 // returns success
-int pull_work_rsp(minergate_do_job_rsp* r, minergate_adapter* adapter) {
-    pthread_mutex_lock(&network_hw_mutex);
-    if (!adapter->work_minergate_rsp.empty()) {
-        *r = adapter->work_minergate_rsp.front();
-        adapter->work_minergate_rsp.pop();
-        pthread_mutex_unlock(&network_hw_mutex);
-        return 1;
-    }
+int pull_work_rsp(minergate_do_job_rsp *r, minergate_adapter *adapter) {
+  pthread_mutex_lock(&network_hw_mutex);
+  if (!adapter->work_minergate_rsp.empty()) {
+    *r = adapter->work_minergate_rsp.front();
+    adapter->work_minergate_rsp.pop();
     pthread_mutex_unlock(&network_hw_mutex);
-    return 0;
+    return 1;
+  }
+  pthread_mutex_unlock(&network_hw_mutex);
+  return 0;
 }
-
-
 
 //
 // Support new minergate client
 //
-void* connection_handler_thread(void* adptr)
-{
-	printf("New adapter connected -1!\n");
-	minergate_adapter* adapter = ( minergate_adapter*)adptr;
-	//DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
-	printf("New adapter connected 0!\n");
+void *connection_handler_thread(void *adptr) {
+  printf("New adapter connected!\n");
+  minergate_adapter *adapter = (minergate_adapter *)adptr;
+  // DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
 
-    adapter->adapter_id = 0;
-    adapters[0] = adapter;
-    adapter->last_req = allocate_minergate_packet_req( 0xca, 0xfe);
-    adapter->next_rsp = allocate_minergate_packet_rsp( 0xca, 0xfe);
+  adapter->adapter_id = 0;
+  adapters[0] = adapter;
+  adapter->last_req = allocate_minergate_packet_req(0xca, 0xfe);
+  adapter->next_rsp = allocate_minergate_packet_rsp(0xca, 0xfe);
 
-	vm.idle_probs = 0;
-	vm.busy_probs = 0;
-	vm.solved_jobs = 0;
-	printf("New adapter connected 1!\n");
-
-     if (!noasic) {
-	 	 printf("Adapter connected, pop all jobs.");
-         RT_JOB work;
-		
-         while(one_done_sw_rt_queue(&work)) {
-             push_work_rsp(&work);
-         }
-     }
-	 printf("New adapter connected 2!\n");
-     // (minergate_adapter*)malloc(sizeof(minergate_adapter));
-     int nbytes;
-     
-     //minergate_data* md1 =    get_minergate_data(adapter->next_rsp,  300, 3);
-     //minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
-     //Read packet
-     while((nbytes = read(adapter->connection_fd, (void*)adapter->last_req, sizeof( minergate_req_packet))) > 0) {
-		 printf("New adapter connected 3!\n");
-
-		 if (nbytes) {
-                //DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length + MINERGATE_PACKET_HEADER_SIZE, nbytes);
-                passert(adapter->last_req->magic == 0xcaf4);
-				
-				pthread_mutex_lock(&network_hw_mutex);
-				vm.not_mining_counter = 0;
-				if (vm.pause_miner) {
-					unpause_all_mining_engines();
-				}
-				pthread_mutex_unlock(&network_hw_mutex);
-
-				// Reset packet.				
-				int i;
-				// Return all previous responces
-				int rsp_count = adapter->work_minergate_rsp.size();
-				DBG(DBG_NET,"Sending %d minergate_do_job_rsp\n", rsp_count);
-				if (rsp_count >MAX_RESPONDS) {
-					rsp_count = MAX_RESPONDS;
-				}
-				 //adapter->next_rsp;
-			   //  DBG(DBG_NET,"rsp_count %d\n", rsp_count);
-				 for (i=0;i<rsp_count;i++) {
-					 //printf("rsp ");
-					 minergate_do_job_rsp* rsp = adapter->next_rsp->rsp + i;
-					 int res = pull_work_rsp(rsp, adapter);
-					 passert(res);
-					 
-				 }
-				adapter->next_rsp->rsp_count = rsp_count;
-				//printf("SND %d\n", rsp_count);
+  vm.idle_probs = 0;
+  vm.busy_probs = 0;
+  vm.solved_jobs_total = 0;
 
 
-				  //DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n", sizeof(minergate_do_job_req), md->data_length);
-				 int array_size =adapter->last_req->req_count;
-				 DBG(DBG_NET,"Got %d minergate_do_job_req\n", array_size);
-				 //printf("GPT %d\n", array_size);
-				 for (i = 0; i < array_size; i++) { // walk the jobs
-					  //printf("j");
-					  minergate_do_job_req* work = adapter->last_req->req + i;
-					  push_work_req(work, adapter);
-				 }
+  RT_JOB work;
 
-                 // parse_minergate_packet(adapter->last_req, minergate_data_processor, adapter, adapter);                  
-                  adapter->next_rsp->request_id = adapter->last_req->request_id;
-                  // Send response
-                  write(adapter->connection_fd, 
-                       (void*)adapter->next_rsp, 
-                       sizeof( minergate_rsp_packet));
+  while (one_done_sw_rt_queue(&work)) {
+    push_work_rsp(&work);
+  }
+  // (minergate_adapter*)malloc(sizeof(minergate_adapter));
+  int nbytes;
 
-                  // Clear packet.
-                  adapter->next_rsp->rsp_count = 0;
-             
-         }
-     }
-     adapters[adapter->adapter_id] = NULL;
-     free_minergate_adapter(adapter); 
-     // Clear the real_time_queue from the old packets
-     adapter = NULL;          
-     return 0;
+  // minergate_data* md1 =    get_minergate_data(adapter->next_rsp,  300, 3);
+  // minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
+  // Read packet
+  while ((nbytes = read(adapter->connection_fd, (void *)adapter->last_req,
+                        sizeof(minergate_req_packet))) >
+         0) {
+    if (nbytes) {
+      // DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length +
+      // MINERGATE_PACKET_HEADER_SIZE, nbytes);
+      passert(adapter->last_req->magic == 0xcaf4);
+
+      pthread_mutex_lock(&network_hw_mutex);
+      vm.not_mining_counter = 0;
+      if (vm.asics_shut_down_powersave) {
+        unpause_all_mining_engines();
+      }
+      pthread_mutex_unlock(&network_hw_mutex);
+
+      // Reset packet.
+      int i;
+      // Return all previous responces
+      int rsp_count = adapter->work_minergate_rsp.size();
+      DBG(DBG_NET, "Sending %d minergate_do_job_rsp\n", rsp_count);
+      if (rsp_count > MAX_RESPONDS) {
+        rsp_count = MAX_RESPONDS;
+      }
+      // adapter->next_rsp;
+      //  DBG(DBG_NET,"rsp_count %d\n", rsp_count);
+      for (i = 0; i < rsp_count; i++) {
+        // printf("rsp ");
+        minergate_do_job_rsp *rsp = adapter->next_rsp->rsp + i;
+        int res = pull_work_rsp(rsp, adapter);
+        passert(res);
+      }
+      adapter->next_rsp->rsp_count = rsp_count;
+      // printf("SND %d\n", rsp_count);
+
+      // DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n",
+      // sizeof(minergate_do_job_req), md->data_length);
+      int array_size = adapter->last_req->req_count;
+      DBG(DBG_NET, "Got %d minergate_do_job_req\n", array_size);
+      // printf("GPT %d\n", array_size);
+      for (i = 0; i < array_size; i++) { // walk the jobs
+        // printf("j");
+        minergate_do_job_req *work = adapter->last_req->req + i;
+        push_work_req(work, adapter);
+      }
+
+      // parse_minergate_packet(adapter->last_req, minergate_data_processor,
+      // adapter, adapter);
+      adapter->next_rsp->request_id = adapter->last_req->request_id;
+      // Send response
+      write(adapter->connection_fd, (void *)adapter->next_rsp,
+            sizeof(minergate_rsp_packet));
+
+      // Clear packet.
+      adapter->next_rsp->rsp_count = 0;
+    }
+  }
+  adapters[adapter->adapter_id] = NULL;
+  free_minergate_adapter(adapter);
+  // Clear the real_time_queue from the old packets
+  adapter = NULL;
+  return 0;
 }
-
-
-
-
-
-
 
 int init_socket() {
-    struct sockaddr_un address;
-    int socket_fd, connection_fd;
-    socklen_t address_length;
-    pid_t child;
+  struct sockaddr_un address;
+  int socket_fd, connection_fd;
+  socklen_t address_length;
+  pid_t child;
 
- socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
- if(socket_fd < 0)
- {
-  DBG(DBG_NET,"socket() failed\n");
-  perror("Err:");
-  return 1;
- } 
+  socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+  if (socket_fd < 0) {
+    DBG(DBG_NET, "socket() failed\n");
+    perror("Err:");
+    return 1;
+  }
 
-    unlink(MINERGATE_SOCKET_FILE);
+  unlink(MINERGATE_SOCKET_FILE);
 
-    /* start with a clean address structure */
-    memset(&address, 0, sizeof(struct sockaddr_un));
+  /* start with a clean address structure */
+  memset(&address, 0, sizeof(struct sockaddr_un));
 
-    address.sun_family = AF_UNIX;
-    sprintf(address.sun_path, MINERGATE_SOCKET_FILE);
+  address.sun_family = AF_UNIX;
+  sprintf(address.sun_path, MINERGATE_SOCKET_FILE);
 
+  if (bind(socket_fd, (struct sockaddr *)&address,
+           sizeof(struct sockaddr_un)) !=
+      0) {
+    DBG(DBG_NET, "bind() failed\n");
+    perror("Err:");
+    return 0;
+  }
 
-    if(bind(socket_fd, 
-    (struct sockaddr *) &address, 
-    sizeof(struct sockaddr_un)) != 0)
-    {
-     DBG(DBG_NET,"bind() failed\n");
-      perror("Err:");
-     return 0;
-    }
+  if (listen(socket_fd, 5) != 0) {
+    DBG(DBG_NET, "listen() failed\n");
+    perror("Err:");
+    return 0;
+  }
 
-    if(listen(socket_fd, 5) != 0)
-    {
-     DBG(DBG_NET,"listen() failed\n");
-      perror("Err:");
-     return 0;
-    }
-
-    return socket_fd;
+  return socket_fd;
 }
 
-
-int  parse_squid_status(int v) {
-    if(v & BIT_STATUS_SERIAL_Q_TX_FULL       ) printf("BIT_STATUS_SERIAL_Q_TX_FULL       ");
-    if(v & BIT_STATUS_SERIAL_Q_TX_NOT_EMPTY  ) printf("BIT_STATUS_SERIAL_Q_TX_NOT_EMPTY  ");
-    if(v & BIT_STATUS_SERIAL_Q_TX_EMPTY      ) printf("BIT_STATUS_SERIAL_Q_TX_EMPTY      ");
-    if(v & BIT_STATUS_SERIAL_Q_RX_FULL       ) printf("BIT_STATUS_SERIAL_Q_RX_FULL       ");
-    if(v & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY  ) printf("BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY  ");
-    if(v & BIT_STATUS_SERIAL_Q_RX_EMPTY      ) printf("BIT_STATUS_SERIAL_Q_RX_EMPTY      ");
-    if(v & BIT_STATUS_SERVICE_Q_FULL         ) printf("BIT_STATUS_SERVICE_Q_FULL         ");
-    if(v & BIT_STATUS_SERVICE_Q_NOT_EMPTY    ) printf("BIT_STATUS_SERVICE_Q_NOT_EMPTY    ");
-    if(v & BIT_STATUS_SERVICE_Q_EMPTY        ) printf("BIT_STATUS_SERVICE_Q_EMPTY        ");
-    if(v & BIT_STATUS_FIFO_SERIAL_TX_ERR     ) printf("BIT_STATUS_FIFO_SERIAL_TX_ERR     ");
-    if(v & BIT_STATUS_FIFO_SERIAL_RX_ERR     ) printf("BIT_STATUS_FIFO_SERIAL_RX_ERR     ");
-    if(v & BIT_STATUS_FIFO_SERVICE_ERR       ) printf("BIT_STATUS_FIFO_SERVICE_ERR       ");
-    if(v & BIT_STATUS_CHAIN_EMPTY            ) printf("BIT_STATUS_CHAIN_EMPTY            ");
-    if(v & BIT_STATUS_LOOP_TIMEOUT_ERROR     ) printf("BIT_STATUS_LOOP_TIMEOUT_ERROR     ");
-    if(v & BIT_STATUS_LOOP_CORRUPTION_ERROR  ) printf("BIT_STATUS_LOOP_CORRUPTION_ERROR  ");
-    if(v & BIT_STATUS_ILLEGAL_ACCESS         ) printf("BIT_STATUS_ILLEGAL_ACCESS         ");
-    printf("\n");
+int parse_squid_status(int v) {
+  if (v & BIT_STATUS_SERIAL_Q_TX_FULL)
+    printf("BIT_STATUS_SERIAL_Q_TX_FULL       ");
+  if (v & BIT_STATUS_SERIAL_Q_TX_NOT_EMPTY)
+    printf("BIT_STATUS_SERIAL_Q_TX_NOT_EMPTY  ");
+  if (v & BIT_STATUS_SERIAL_Q_TX_EMPTY)
+    printf("BIT_STATUS_SERIAL_Q_TX_EMPTY      ");
+  if (v & BIT_STATUS_SERIAL_Q_RX_FULL)
+    printf("BIT_STATUS_SERIAL_Q_RX_FULL       ");
+  if (v & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY)
+    printf("BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY  ");
+  if (v & BIT_STATUS_SERIAL_Q_RX_EMPTY)
+    printf("BIT_STATUS_SERIAL_Q_RX_EMPTY      ");
+  if (v & BIT_STATUS_SERVICE_Q_FULL)
+    printf("BIT_STATUS_SERVICE_Q_FULL         ");
+  if (v & BIT_STATUS_SERVICE_Q_NOT_EMPTY)
+    printf("BIT_STATUS_SERVICE_Q_NOT_EMPTY    ");
+  if (v & BIT_STATUS_SERVICE_Q_EMPTY)
+    printf("BIT_STATUS_SERVICE_Q_EMPTY        ");
+  if (v & BIT_STATUS_FIFO_SERIAL_TX_ERR)
+    printf("BIT_STATUS_FIFO_SERIAL_TX_ERR     ");
+  if (v & BIT_STATUS_FIFO_SERIAL_RX_ERR)
+    printf("BIT_STATUS_FIFO_SERIAL_RX_ERR     ");
+  if (v & BIT_STATUS_FIFO_SERVICE_ERR)
+    printf("BIT_STATUS_FIFO_SERVICE_ERR       ");
+  if (v & BIT_STATUS_CHAIN_EMPTY)
+    printf("BIT_STATUS_CHAIN_EMPTY            ");
+  if (v & BIT_STATUS_LOOP_TIMEOUT_ERROR)
+    printf("BIT_STATUS_LOOP_TIMEOUT_ERROR     ");
+  if (v & BIT_STATUS_LOOP_CORRUPTION_ERROR)
+    printf("BIT_STATUS_LOOP_CORRUPTION_ERROR  ");
+  if (v & BIT_STATUS_ILLEGAL_ACCESS)
+    printf("BIT_STATUS_ILLEGAL_ACCESS         ");
+  printf("\n");
 }
 
+void test_asic_reset() {
+  printf("--------------- %d\n", __LINE__);
+  // Reset ASICs
+  write_reg_broadcast(ADDR_GOT_ADDR, 0);
 
+  // If someone not reseted (has address) - we have a problem
+  int reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
+  if (reg == 0) {
+    // Don't remove - used by tests
+    printf("got reply from ASIC 0x%x\n", BROADCAST_READ_ADDR(reg));
+    printf("RESET BAD\n");
+  } else {
+    // Don't remove - used by tests
+    printf("RESET GOOD\n");
+  }
+  return;
+}
 
+void test_harel() {
 
-
-
-
-
+  printf("Running BISTs... :");
+  printf(do_bist_ok() ? " OK" : " FAIL");
+  printf(do_bist_ok() ? " OK" : " FAIL");
+  printf(do_bist_ok() ? " OK\n" : " FAIL\n");
+  
+  for (int l = 0; l < LOOP_COUNT; l++) {
+    for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
+      if (!vm.loop[l].enabled_loop) {
+        // DONT REMOVE THIS PRINT!! USED BY TESTS!!
+        printf("Hammer %02d %02d DISCONNECTED\n", l, h);
+      } else if (!vm.hammer[l * HAMMERS_PER_LOOP + h].asic_present) {
+        // DONT REMOVE THIS PRINT!! USED BY TESTS!!
+        printf("Hammer %02d %02d MISSING\n", l, h);
+      } else if (vm.hammer[l * HAMMERS_PER_LOOP + h].failed_bists) {
+        // DONT REMOVE THIS PRINT!! USED BY TESTS!!
+        printf("Hammer %02d %02d BIST_FAIL\n", l, h);
+      } else {
+        // DONT REMOVE THIS PRINT!! USED BY TESTS!!
+        printf("Hammer %02d %02d OK\n", l, h);
+      }
+    }
+  }
+}
 
 void reset_squid() {
-    FILE *f = fopen("/sys/class/gpio/export", "w"); 
-    if (!f) return;
-    fprintf(f, "47");
-    fclose(f);
-    f = fopen("/sys/class/gpio/gpio47/direction", "w");
-    if (!f) return;    
-    fprintf(f, "out");
-    fclose(f);    
-    f = fopen("/sys/class/gpio/gpio47/value", "w");
-    if (!f) return;    
-    fprintf(f, "0");
-    usleep(10000);
-    fprintf(f, "1");
-    usleep(20000);
-    fclose(f);
+  FILE *f = fopen("/sys/class/gpio/export", "w");
+  if (!f)
+    return;
+  fprintf(f, "47");
+  fclose(f);
+  f = fopen("/sys/class/gpio/gpio47/direction", "w");
+  if (!f)
+    return;
+  fprintf(f, "out");
+  fclose(f);
+  f = fopen("/sys/class/gpio/gpio47/value", "w");
+  if (!f)
+    return;
+  fprintf(f, "0");
+  usleep(10000);
+  fprintf(f, "1");
+  usleep(20000);
+  fclose(f);
 }
 
-int main(int argc, char *argv[])
-{
- int test_mode = 0;
- int testreset_mode = 0;
- int init_mode = 0;
- int s;
- 
- setlogmask (LOG_UPTO (LOG_INFO));
- openlog ("minergate", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
- syslog (LOG_NOTICE, "minergate started");
-// syslog (LOG_INFO, "A tree falls in a forest");
-// syslog (LOG_ALERT, "Real issue - A tree falls in a forest");
- 
-	
- if ((argc > 1) && strcmp(argv[1],"--help") == 0) {
+
+int loop_to_measure;
+
+int main(int argc, char *argv[]) {
+  printf(RESET);
+  int test_mode = 0;
+  int testreset_mode = 0;
+  int init_mode = 0;
+  int s;
+  int new_nvm = 1;
+  srand (time(NULL));
+  enable_reg_debug = 0;
+  printf("ENABLING REG DEBUG\n");
+  setlogmask(LOG_UPTO(LOG_INFO));
+  openlog("minergate", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+  syslog(LOG_NOTICE, "minergate started");
+  // syslog (LOG_INFO, "A tree falls in a forest");
+  // syslog (LOG_ALERT, "Real issue - A tree falls in a forest");
+
+  if ((argc > 1) && strcmp(argv[1], "--help") == 0) {
     test_mode = 1;
-	printf ("--testreset = Test asic reset!!!\n");
-    printf ("--test = Test mode, remove NVM!!!\n");
-	printf ("--noscale = No scaling mode!!!\n");
-	printf ("--noasic = NO HW MODE!!!\n");
-	printf ("--init = Re-init mode!!!\n");
+    printf("--testreset = Test asic reset!!!\n");
+    printf("--test = Test mode, remove NVM!!!\n");
+    printf("--init = Re-init mode!!!\n");
+    printf("<num> = Asic to mesure\n");
     return 0;
- }
+  }
 
-
- if ((argc > 1) && strcmp(argv[1],"--test") == 0) {
+  if ((argc > 1) && strcmp(argv[1], "--test") == 0) {
     test_mode = 1;
-    printf ("Test mode, remove NVM!!!\n");
+    printf("Test mode, remove NVM!!!\n");
     spond_delete_nvm();
- }
+  }
 
- 
- if ((argc > 1) && strcmp(argv[1],"--testreset") == 0) {
+  if ((argc > 1) && strcmp(argv[1], "--testreset") == 0) {
     testreset_mode = 1;
-    printf ("Test reset mode, remove NVM!!!\n");
+    printf("Test reset mode, remove NVM!!!\n");
     spond_delete_nvm();
- }
-
- if ((argc > 1) && strcmp(argv[1],"--noscale") == 0) {
-    enable_scaling = 0;
-    printf ("No scaling mode!!!\n");
- }
+  }
 
 
- if ((argc > 1) && strcmp(argv[1],"--noasic") == 0) {
-    printf ("NO HW MODE!!!!\n");
-    noasic = 1;
- }
 
- if ((argc > 1) && strcmp(argv[1],"--init") == 0) {
-    printf ("Re-init mode!!!\n");
+  if ((argc > 1) && strcmp(argv[1], "--init") == 0) {
+    printf("Re-init mode!!!\n");
     // Delete NVM
     spond_delete_nvm();
- }
+  }
 
-  
- struct sockaddr_un address;
- int socket_fd, connection_fd;
- socklen_t address_length = sizeof(address);
- pthread_t main_thread;
- //pthread_t conn_pth;
- pid_t child;
- printf("reset_squid\n"); 
- reset_squid();
- printf("init_spi\n"); 
- init_spi();
- printf("i2c_init\n");
- i2c_init();
- printf("dc2dc_init\n");
- dc2dc_init();
- printf("init_pwm\n");
- init_pwm();
- printf("set_fan_level\n");
-// set_fan_level(FAN_LEVEL_MEDIUM);
-/*
-int err;
-dc2dc_set_voltage(0, ASIC_VOLTAGE_555, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_585, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_630, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_675, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_720, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_765, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_790, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-dc2dc_set_voltage(0, ASIC_VOLTAGE_810, &err);
-sleep(1);
-tb_get_asic_voltage(0);
-sleep(1);
-return 0;
-*/
+#if TEST_BOARD == 1
+   if ((argc > 2) && (loop_to_measure = atoi(argv[2]))) {
+    printf("||||||||||||||| --->>> loop_to_measure=%d\n", loop_to_measure);
+    // Delete NVM
+    spond_delete_nvm();
+  }
+#endif
 
-/*
- for (int loop = 0 ; loop < LOOP_COUNT ; loop++) {
-	 dc2dc_set_voltage(loop, ASIC_VOLTAGE_555);
-	 printf("%i SET VOLTAGE %d\n",loop);
- }
- */
+  struct sockaddr_un address;
+  int socket_fd, connection_fd;
+  socklen_t address_length = sizeof(address);
+  pthread_t main_thread;
+  pthread_t dc2dc_thread;
+  // pthread_t conn_pth;
+  pid_t child;
+  printf("reset_squid\n");
+  reset_squid();
+  printf("init_spi\n");
+  init_spi();
+  printf("i2c_init\n");
+  i2c_init();
+  printf("dc2dc_init\n");
+  dc2dc_init();
+  printf("init_pwm\n");
+  init_pwm();
+  printf("set_fan_level\n");
+  set_fan_level(0);
+  //exit(0);
+  printf("dc2dc_print\n");
 
- dc2dc_print();
- ac2dc_print();
-
-//sleep(10);
-
- 
- //read_mgmt_temp();
-/*
- while (1) {
- 	printf("Current power::: = %d\n",ac2dc_get_power());
-		printf("Current tmp0::: = %d\n",ac2dc_get_temperature(0));
-			printf("Current tmp1::: = %d\n",ac2dc_get_temperature(1));
-				printf("Current tmp2::: = %d\n",ac2dc_get_temperature(2));
-	sleep(1);
- }
- */
- 
- /*
- int power = ac2dc_get_temperature(0);
- printf("Current temp1 = %d\n",power);
- power = ac2dc_get_temperature(1);
- printf("Current temp1 = %d\n",power);
- power = ac2dc_get_temperature(2);
- printf("Current temp1 = %d\n",power);
-*/			
- // test SPI 
- int q_status = read_spi(ADDR_SQUID_PONG);
- passert((q_status == 0xDEADBEEF), "ERROR: no 0xdeadbeef in squid pong register!\n");
+ // dc2dc_print();
+ // ac2dc_print();
 
 
- // set voltage test
- /*
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_810);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_790);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_765);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_720);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_675);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_630);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_585);
-    sleep(3);
-    dc2dc_set_voltage(0, ASIC_VOLTAGE_555); 
-    sleep(3);
- */
-	 printf("spi tested%d\n", __LINE__);
 
- if (!load_nvm_ok() || !enable_scaling) {
+  // test SPI
+  int q_status = read_spi(ADDR_SQUID_PONG);
+  passert((q_status == 0xDEADBEEF),
+          "ERROR: no 0xdeadbeef in squid pong register!\n");
+
+
+
+  if (!load_nvm_ok()) {
     // Init NVM.
     // Finds good loops using broadcast reads. No addresses given.
-    printf("CREATING NEW NVM!\n");
+    printf(RED "Creating new NVM\n" RESET);
+
+    // Sets all ASICs to ASIC_CORNER_SS
+    // Set working engines to 0xFF
+    // Set top frequency to ASIC_FREQ_225
     create_default_nvm();
-	// Find good loops 
-	if (!noasic) {
-		discover_good_loops_update_nvm();
-	}
-    spond_save_nvm();
- } 
-
- printf("discover good loops done %d\n", __LINE__);
-
-
- if (!noasic) {
-     if (!enable_nvm_loops_ok()) {
-         // reinitialise
-         
-         printf("LOOP TEST FAILED, DELETE NVM AND RESTART:%x\n", nvm.good_loops);
-         spond_delete_nvm();
-         // Exits on error.
-         passert(0);
-     }
- }
-
-
-
+  } else {
+    new_nvm = 0;
+  }
+  
+  // Find good loops
+  // Update vm.good_loops
+  // Set ASICS on all disabled loops to asic_ok=0
+  discover_good_loops();
+  print_nvm();
+  //  Here the NVM assumed to be updated (new or old), we work with it.
 
  
- printf("enable nvm loops done %d\n", __LINE__);
- // Allocates addresses, sets nonce range.
- if (!noasic) {
-     init_hammers(); 
-     allocate_addresses_to_devices();
+
+  // Update vm.loop[i].enabled_loop from NVM, set loops in FPGA
+  if (!enable_good_loops_ok()) {
+    printf("LOOP TEST FAILED, DELETE NVM AND RESTART:%x\n", vm.good_loops);
+    spond_delete_nvm();
+    passert(0);
+  }
+
+
+
+  printf("enable_good_loops_ok done %d\n", __LINE__);
+  // Allocates addresses, sets nonce range.
+  // Reset all hammers
+  init_hammers();
+
+  /*
+  int addr;
+     //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
+   
+     while (addr = BROADCAST_READ_ADDR(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
+        printf(RED "CONDUCTOR BUZY IN %x (%X)\n" RESET, addr,read_reg_broadcast(ADDR_VERSION));
+        disable_asic_forever(addr);
+     }
+     */
+  // Give addresses to devices. If NVM non-consistent - delete it and exit.
+  allocate_addresses_to_devices();
+
+ 
+     //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
+   
      
-     // Loads NVM, sets freq`, enables engines... 
-     //passert(total_devices);
-     set_nonce_range_in_engines(0xFFFFFFFF); 
 
-     // Set default frequencies.
-     enable_voltage_freq_and_engines_default();
-     enable_all_engines_all_asics();
+  // Set nonce ranges
+  set_nonce_range_in_engines(0xFFFFFFFF);
 
 
-     // UPDATE NVM DATA by running some tests.
-     if (!nvm.bad_engines_found) {
-         // Sets bad engines in NVM
-         find_bad_engines_update_nvm();
-     }
-     if (!nvm.corners_computed) {
-         // Sets asic Corner and loop voltages
-         recompute_corners_and_voltage_update_nvm();
-     }
- }
- printf("hammer initialisation done %d\n", __LINE__);
-
- // Save NVM unless running without scaling
- spond_save_nvm();
 
 
- if ((!noasic) && enable_scaling) {
-     // Enables NVM engines in ASICs.
-     printf("enable_voltage_freq_and_engines_from_nvm\n");
-     enable_voltage_freq_and_engines_from_nvm();     
-     printf("init_scaling\n");
-     init_scaling();
- }
+  // Set default frequencies.
+  // Set all voltage to ASIC_VOLTAGE_810
+  // Set all frequency to ASIC_FREQ_225
+  set_safe_voltage_and_frequency();
+  // Set all engines to 0x7FFF
+  enable_nvm_engines_all_asics_ok();
+ 
+ 
+  //assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
+  // UPDATE NVM DATA by running some tests.
+  if (new_nvm) {
+    // Sets bad engines in NVM
+    find_bad_engines_update_nvm();
+    enable_nvm_engines_all_asics_ok();
+    // Sets asic Corner and loop voltages
+    //recompute_corners_and_voltage_update_nvm(); 
+    //
+//      int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
+//    assert(some_asics_busy == 0);
+ //   fulltest_test_board();
+ //   assert(0);
+  }
 
- printf("init_scaling done %d\n", __LINE__);
+
+  //set_nvm_dc2dc_voltage();
 
 
- if (testreset_mode) {
- 	printf("--------------- %d\n", __LINE__);
-	// Reset ASICs
-	write_reg_broadcast(ADDR_GOT_ADDR, 0);
-	
-	// If someone not reseted (has address) - we have a problem
-	int reg = read_reg_broadcast(ADDR_BR_NO_ADDR);
-    if (reg == 0) {
-		// Don't remove - used by tests
-		printf("got reply from ASIC 0x%x\n", BROADCAST_READ_ADDR(reg));
-        printf("RESET BAD\n");
-		return 1;
-    } else {
-  	    // Don't remove - used by tests
-		printf("RESET GOOD\n");
-		return 0;
-    }
+ // assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
 
-	
- }
 
- printf("--------------- %d\n", __LINE__);
- // test HAMMER read
- //passert(read_reg_broadcast(ADDR_VERSION), "No version found in ASICs");
- socket_fd = init_socket();
- passert(socket_fd > 0);
- printf("done\n");
+  
+  printf("setting ASIC engines %d\n", __LINE__);
+  enable_nvm_engines_all_asics_ok();
+  
+  
+   
+  printf("hammer initialisation done %d\n", __LINE__);
+  thermal_init();
+  
+  // Save NVM unless running without scaling
+  spond_save_nvm();
 
- printf("--------------- %d\n", __LINE__);
+  // Enables NVM engines in ASICs.
+  printf("enable_voltage_from_nvm\n");
+  enable_voltage_from_nvm();
+  printf("init_scaling\n");
+  init_scaling();
 
- if (test_mode) {
-    if (!noasic) {
-        printf("Running BISTs... :");
-        printf(do_bist_ok(false)?" OK":" FAIL");        
-        printf(do_bist_ok(false)?" OK":" FAIL");        
-        printf(do_bist_ok(false)?" OK\n":" FAIL\n");            
-    }
-    for (int l = 0; l < LOOP_COUNT; l++) {
-        for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
-            if (!vm.loop[l].enabled_loop) {
-                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-                printf("Hammer %02d %02d DISCONNECTED\n", l, h);
-            } else if (!vm.hammer[l*HAMMERS_PER_LOOP+h].asic_present) {
-                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-                printf("Hammer %02d %02d MISSING\n", l, h);
-            } else if (vm.hammer[l*HAMMERS_PER_LOOP + h].failed_bists) {
-                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-                printf("Hammer %02d %02d BIST_FAIL\n", l, h);
-            } else {
-                // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-                printf("Hammer %02d %02d OK\n", l, h);
-            }
-        }
-    }
+
+
+  printf("init_scaling done, ready to mine, saving NVM\n");
+  spond_save_nvm();
+
+  if (testreset_mode) {
+    test_asic_reset();
     return 0;
- }
+  }
 
- if (!noasic) {
-    s = pthread_create(&main_thread,NULL,squid_regular_state_machine,(void*)NULL);
-    passert (s == 0);
- }
+  if (test_mode) {
+    test_harel();
+    return 0;
+  }
 
- minergate_adapter* adapter = new minergate_adapter;
- passert((int)adapter);
- while((adapter->connection_fd = accept(socket_fd, 
-                              (struct sockaddr *) &address,
-                               &address_length)) > -1) {
-    // Only 1 thread supportd so far...    
-	printf("New adapter connected %d %x!\n", adapter->connection_fd, adapter);
-    s = pthread_create(&adapter->conn_pth,NULL,connection_handler_thread,(void*)adapter);
-    passert (s == 0);
-	
-	adapter = new minergate_adapter;
- 	passert((int)adapter);
- }
- printf("Err %d:", adapter->connection_fd);
- passert(0,"Err");
+  
+   
 
- close(socket_fd);
- unlink(MINERGATE_SOCKET_FILE);
- return 0;
+  //assert((read_reg_broadcast(ADDR_VERSION)&0xFF) == 0x3c);
+  //assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
+
+
+  enable_reg_debug = 0;
+
+  printf("Opening socket for cgminer\n");
+  // test HAMMER read
+  // passert(read_reg_broadcast(ADDR_VERSION), "No version found in ASICs");
+  socket_fd = init_socket();
+  passert(socket_fd > 0);
+
+  printf("Starting HW thread\n");
+
+  s = pthread_create(&main_thread, NULL, squid_regular_state_machine,
+                     (void *)NULL);
+  passert(s == 0);
+  s = pthread_create(&dc2dc_thread, NULL, dc2dc_state_machine,
+                     (void *)NULL);
+  passert(s == 0);
+
+
+  minergate_adapter *adapter = new minergate_adapter;
+  passert((int)adapter);
+  while ((adapter->connection_fd =
+              accept(socket_fd, (struct sockaddr *)&address, &address_length)) >
+         -1) {
+    // Only 1 thread supportd so far...
+    printf("New adapter connected %d %x!\n", adapter->connection_fd, adapter);
+    s = pthread_create(&adapter->conn_pth, NULL, connection_handler_thread,
+                       (void *)adapter);
+    passert(s == 0);
+
+    adapter = new minergate_adapter;
+    passert((int)adapter);
+  }
+  printf("Err %d:", adapter->connection_fd);
+  passert(0, "Err");
+
+  close(socket_fd);
+  unlink(MINERGATE_SOCKET_FILE);
+  return 0;
 }
-
-
-
-#ifdef ASIC_TESTBOARD//ASIC_TEST_BOARD
-#include "asic_testboard.c"
-#endif
 

@@ -51,75 +51,75 @@ int main(int argc, char *argv[])
 {
      int rc = 0;
 
-	bool callUsage = false;
-	bool badParm = false;
-	bool quiet = false;
-	bool print_all = false;
-	bool print_pnr = false;
-	bool print_mod = false;
-	bool print_rev = false;
-	bool print_ser = false;
+  bool callUsage = false;
+  bool badParm = false;
+  bool quiet = false;
+  bool print_all = false;
+  bool print_pnr = false;
+  bool print_mod = false;
+  bool print_rev = false;
+  bool print_ser = false;
 
-	const char * h_all = "AC2DC VPD: ";
-	const char * h_pnr = "AC2DC PNR: ";
-	const char * h_mod = "AC2DC MOD: ";
-	const char * h_rev = "AC2DC REV: ";
-	const char * h_ser = "AC2DC SER: ";
-	
-	for (int i = 1 ; i < argc ; i++){
-		if ( 0 == strcmp(argv[i],"-h"))
-			callUsage = true;
-		else if ( 0 == strcmp(argv[i],"-q"))
-			quiet = true;
-		else if ( 0 == strcmp(argv[i],"-a"))
-			print_all = true;
-		else if ( 0 == strcmp(argv[i],"-p"))
-			print_pnr = true;
-		else if ( 0 == strcmp(argv[i],"-m"))
-			print_mod = true;
-		else if ( 0 == strcmp(argv[i],"-r"))
-			print_rev = true;
-		else if ( 0 == strcmp(argv[i],"-s"))
-			print_ser = true;
-		else
-			badParm = true;
+  const char * h_all = "AC2DC VPD: ";
+  const char * h_pnr = "AC2DC PNR: ";
+  const char * h_mod = "AC2DC MOD: ";
+  const char * h_rev = "AC2DC REV: ";
+  const char * h_ser = "AC2DC SER: ";
+  
+  for (int i = 1 ; i < argc ; i++){
+    if ( 0 == strcmp(argv[i],"-h"))
+      callUsage = true;
+    else if ( 0 == strcmp(argv[i],"-q"))
+      quiet = true;
+    else if ( 0 == strcmp(argv[i],"-a"))
+      print_all = true;
+    else if ( 0 == strcmp(argv[i],"-p"))
+      print_pnr = true;
+    else if ( 0 == strcmp(argv[i],"-m"))
+      print_mod = true;
+    else if ( 0 == strcmp(argv[i],"-r"))
+      print_rev = true;
+    else if ( 0 == strcmp(argv[i],"-s"))
+      print_ser = true;
+    else
+      badParm = true;
 
-	}
+  }
 
-	// if no print spec was given (all are false, then set all sub fields (except for all)
-	if ( false == (print_all || print_pnr || print_mod || print_rev || print_ser) ){
-		print_pnr = true;
-		print_mod = true;
-		print_rev = true;
-		print_ser = true;
-	}
+  // if no print spec was given (all are false, then set all sub fields (except for all)
+  if ( false == (print_all || print_pnr || print_mod || print_rev || print_ser) ){
+    print_pnr = true;
+    print_mod = true;
+    print_rev = true;
+    print_ser = true;
+  }
 
-	if(badParm)
-	{
-		usage(argv[0],1,"Bad arguments");
-	}	
+  if(badParm)
+  {
+    usage(argv[0],1,"Bad arguments");
+  }  
 
-	if (callUsage)
-		return usage(argv[0] , 0);
+  if (callUsage)
+    return usage(argv[0] , 0);
 
-   	i2c_init();
+     i2c_init();
 
-   	ac2dc_vpd_info_t vpd = {}; // allocte, and initializero
-		
-	rc	= ac2dc_get_vpd(&vpd);
+     ac2dc_vpd_info_t vpd = {}; // allocte, and initializero
+    
+  rc  = ac2dc_get_vpd(&vpd);
 
-	if (0 == rc)
-	{
-		if (print_all)
-			printf("%s%s%s%s\n",quiet?"":h_all,vpd.pnr,vpd.model,vpd.serial);
-		if (print_pnr)
-			printf("%s%s\n",quiet?"":h_pnr,vpd.pnr);
-		if (print_mod)
-			printf("%s%s\n",quiet?"":h_mod,vpd.model);
-		if (print_rev)
-			printf("%s%s\n",quiet?"":h_rev,vpd.revision);
-		if (print_ser)
-			printf("%s%s\n",quiet?"":h_ser,vpd.serial);
-	}
-	return rc;
+  if (0 == rc)
+  {
+    if (print_all)
+      printf("%s%s%s%s\n",quiet?"":h_all,vpd.pnr,vpd.model,vpd.serial);
+    if (print_pnr)
+      printf("%s%s\n",quiet?"":h_pnr,vpd.pnr);
+    if (print_mod)
+      printf("%s%s\n",quiet?"":h_mod,vpd.model);
+    if (print_rev)
+      printf("%s%s\n",quiet?"":h_rev,vpd.revision);
+    if (print_ser)
+      printf("%s%s\n",quiet?"":h_ser,vpd.serial);
+  }
+  return rc;
 }

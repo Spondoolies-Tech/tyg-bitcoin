@@ -1,10 +1,8 @@
 
 #ifndef MINER_GATE_H
 #define MINER_GATE_H
-
-
-
-extern int enable_scaling;
+#include "defines.h"
+int pull_work_req(RT_JOB *w);
 
 
 #endif
