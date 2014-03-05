@@ -13,7 +13,7 @@ host_group_id = zapi.hostgroup.get(filter={"name":groupname})[0]
 print "group id: %s" % host_group_id["groupid"]
 
 # get hosts
-hosts = zapi.host.get(filter={"groupid":host_group_id}, output="hostid")
+hosts = [h["hostid"] for h in zapi.host.get(groupids=host_group_id["groupid"], output="hostid")]
 
 """
 not necessary
@@ -23,15 +23,16 @@ for h in hosts:
     zapi.host.update(h)
     #zapi.items.delete(filter=h)
 """
-if hosts:
-    print "deleting %d hosts" % len(hosts) 
-    zapi.host.delete(*hosts)
+while hosts:
+    print "%d hosts to delete" % len(hosts) 
+    zapi.host.delete(*hosts[0:10])
+    hosts=hosts[10:]
 
 
 # disconnect any templates from group
 templates=[]
 for t in zapi.template.get(groupids=host_group_id):
-    hosts = zapi.host.get(t)
+    hosts = zapi.host.get(filter=t)
     if not hosts:
         templates.append(t["templateid"])
 
@@ -40,7 +41,7 @@ if templates:
     zapi.template.delete(*templates)
 
 #if there are anymore connected templates, disconnect them
-templates = zapi.template.get(groupids=host_group_id)
+templates = [t["templateid"] for t in zapi.template.get(groupids=host_group_id)]
 if templates:
     print "disconnecting %d templates" % len(templates)
     zapi.hostgroup.massremove(groups=[host_group_id], templateids=templates)
