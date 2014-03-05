@@ -24,6 +24,8 @@ unmount_emmc()
 			umount ${dev}
 		done
 	}
+
+	umount ${SDCARD_DEVICE}
 }
 
 
