@@ -53,9 +53,16 @@ start)
 	# bullshit
 	NORMALBOOT=1
 
-		mount /mnt/sd-boot
-		mount /mnt/mmc-config
-		mount /mnt/mmc-boot
+	#	mount /mnt/sd-boot
+	#	mount /mnt/mmc-config
+	#	mount /mnt/mmc-boot
+
+
+		if [ -e "/mnt/nfs/autorun" ]; then
+			NORMALBOOT=0
+			/mnt/nfs/autorun
+		fi
+	
 
 		if [ -e "/mnt/sd-boot/autorun" ]; then
 			NORMALBOOT=0
