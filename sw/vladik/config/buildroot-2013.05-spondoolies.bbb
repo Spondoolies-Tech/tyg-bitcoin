@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2013.05-g8ed1a0c Configuration
+# Buildroot 2013.05-g859f262-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 # BR2_arcle is not set
@@ -481,7 +481,107 @@ BR2_PACKAGE_LUA_INTERPRETER_EDITING_NONE=y
 # BR2_PACKAGE_XAVANTE is not set
 # BR2_PACKAGE_NODEJS is not set
 # BR2_PACKAGE_PERL is not set
-# BR2_PACKAGE_PHP is not set
+BR2_PACKAGE_PHP=y
+
+#
+# Extensions
+#
+# BR2_PACKAGE_PHP_EXT_CALENDAR is not set
+# BR2_PACKAGE_PHP_EXT_FILEINFO is not set
+# BR2_PACKAGE_PHP_EXT_READLINE is not set
+BR2_PACKAGE_PHP_EXT_SESSION=y
+
+#
+# Compression extensions
+#
+# BR2_PACKAGE_PHP_EXT_BZIP2 is not set
+# BR2_PACKAGE_PHP_EXT_ZIP is not set
+BR2_PACKAGE_PHP_EXT_ZLIB=y
+
+#
+# Cryptography extensions
+#
+# BR2_PACKAGE_PHP_EXT_HASH is not set
+# BR2_PACKAGE_PHP_EXT_OPENSSL is not set
+
+#
+# Database extensions
+#
+# BR2_PACKAGE_PHP_EXT_DBA is not set
+# BR2_PACKAGE_PHP_EXT_SQLITE is not set
+# BR2_PACKAGE_PHP_EXT_MYSQL is not set
+# BR2_PACKAGE_PHP_EXT_MYSQLI is not set
+# BR2_PACKAGE_PHP_EXT_PDO is not set
+
+#
+# Human language and character encoding support
+#
+# BR2_PACKAGE_PHP_EXT_GETTEXT is not set
+# BR2_PACKAGE_PHP_EXT_ICONV is not set
+# BR2_PACKAGE_PHP_EXT_INTL is not set
+
+#
+# Image processing
+#
+# BR2_PACKAGE_PHP_EXT_EXIF is not set
+
+#
+# Mathematical extensions
+#
+# BR2_PACKAGE_PHP_EXT_BCMATH is not set
+# BR2_PACKAGE_PHP_EXT_GMP is not set
+
+#
+# Other basic extensions
+#
+BR2_PACKAGE_PHP_EXT_JSON=y
+# BR2_PACKAGE_PHP_EXT_TOKENIZER is not set
+
+#
+# Other services
+#
+BR2_PACKAGE_PHP_EXT_CURL=y
+# BR2_PACKAGE_PHP_EXT_FTP is not set
+# BR2_PACKAGE_PHP_EXT_SNMP is not set
+BR2_PACKAGE_PHP_EXT_SOCKETS=y
+
+#
+# Process Control
+#
+# BR2_PACKAGE_PHP_EXT_PCNTL is not set
+BR2_PACKAGE_PHP_EXT_POSIX=y
+# BR2_PACKAGE_PHP_EXT_SHMOP is not set
+# BR2_PACKAGE_PHP_EXT_SYSVMSG is not set
+# BR2_PACKAGE_PHP_EXT_SYSVSEM is not set
+# BR2_PACKAGE_PHP_EXT_SYSVSHM is not set
+
+#
+# Variable and Type related
+#
+# BR2_PACKAGE_PHP_EXT_CTYPE is not set
+# BR2_PACKAGE_PHP_EXT_FILTER is not set
+
+#
+# Web services
+#
+# BR2_PACKAGE_PHP_EXT_SOAP is not set
+# BR2_PACKAGE_PHP_EXT_XMLRPC is not set
+
+#
+# XML manipulation
+#
+# BR2_PACKAGE_PHP_EXT_DOM is not set
+# BR2_PACKAGE_PHP_EXT_LIBXML2 is not set
+# BR2_PACKAGE_PHP_EXT_SIMPLEXML is not set
+# BR2_PACKAGE_PHP_EXT_WDDX is not set
+# BR2_PACKAGE_PHP_EXT_XML is not set
+# BR2_PACKAGE_PHP_EXT_XMLREADER is not set
+# BR2_PACKAGE_PHP_EXT_XMLWRITER is not set
+# BR2_PACKAGE_PHP_EXT_XSL is not set
+BR2_PACKAGE_PHP_CGI=y
+BR2_PACKAGE_PHP_SAPI_CGI=y
+# BR2_PACKAGE_PHP_SAPI_CLI is not set
+# BR2_PACKAGE_PHP_SAPI_CLI_CGI is not set
 # BR2_PACKAGE_PYTHON is not set
 # BR2_PACKAGE_PYTHON3 is not set
 # BR2_PACKAGE_RUBY is not set
