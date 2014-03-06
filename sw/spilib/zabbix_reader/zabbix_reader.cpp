@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   }
 
 
-  printf("miner.ac2dc.current %d\n", zabbix_log.ac2dc_current);
+  printf("miner.ac2dc.current %d\n", zabbix_log.ac2dc_power);
   printf("miner.ac2dc.temp %d\n", zabbix_log.ac2dc_temp);
 
   for(int l = 0; l < LOOP_COUNT ; l++) {

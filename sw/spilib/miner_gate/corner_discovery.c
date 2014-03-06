@@ -45,17 +45,17 @@ void discover_good_loops() {
       //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
       //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
       printf("Testing loop::::::\n");
-      if (test_serial(i)) {
+      if (test_serial(i)) { // TODOZ
         // printf("--00--\n");
         vm.loop[i].enabled_loop = 1;
         vm.loop_vtrim[i] = VTRIM_START;
+        vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
         good_loops |= 1 << i;
         ret++;
       } else {
         // printf("--11--\n");
         vm.loop[i].enabled_loop = 0;
-        for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP;
-             h++) {
+        for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
           // printf("remove ASIC 0x%x\n", h);
           vm.hammer[h].asic_present = 0;
           vm.working_engines[h] = 0;
@@ -89,7 +89,7 @@ void test_asics_in_freq(ASIC_FREQ freq_to_pass, ASIC_CORNER corner_to_set) {
 void find_bad_engines_update_nvm() {
   int i;
    
-  if (!do_bist_ok()) {
+  if (!do_bist_ok(0)) {
     // IF FAILED BIST - reduce top speed of failed ASIC.
     printf("INIT BIST FAILED, reseting working engines bitmask!\n");
     hammer_iter hi;

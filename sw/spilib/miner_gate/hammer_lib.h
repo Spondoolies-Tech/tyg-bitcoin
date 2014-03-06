@@ -34,16 +34,15 @@ uint32_t read_reg_broadcast_test(uint8_t offset);
 extern int assert_serial_failures;
 int one_done_sw_rt_queue(RT_JOB *work);
 
-void *dc2dc_state_machine(void *p);
+void *i2c_state_machine(void *p);
 void *squid_regular_state_machine(void *p);
 int init_hammers();
 void init_scaling();
-int do_bist_ok();
+int do_bist_ok(int long_bist);
 uint32_t crc32(uint32_t crc, const void *buf, size_t size);
 void enable_nvm_loops();
 void enable_voltage_from_nvm();
 void set_safe_voltage_and_frequency();
-void set_nvm_dc2dc_voltage();
 void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t *p_value);
 
 void spond_save_nvm();
@@ -52,7 +51,5 @@ int enable_good_loops_ok();
 int allocate_addresses_to_devices();
 void set_nonce_range_in_engines(unsigned int max_range);
 void enable_all_engines_all_asics();
-void periodic_bist_task();
-void change_dc2dc_voltage_if_needed();
 
 #endif

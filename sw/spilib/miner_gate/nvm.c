@@ -71,13 +71,7 @@ void print_nvm() {
   printf(MAGENTA "NVM\n");
   int i;
   // See max rate under ASIC_VOLTAGE_810
-  for (i = 0; i < HAMMERS_COUNT; i++) {
-    /*
-    vm.working_engines[i] = ALL_ENGINES_BITMASK;
-    nvm.asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
-    nvm.top_freq[i] = ASIC_FREQ_SAFE;
-    */
-  } 
+ 
 
   for (i = 0; i < LOOP_COUNT; i++) {
     printf("LOOP %d: Top DC2DC:%d\n" ,

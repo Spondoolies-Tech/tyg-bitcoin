@@ -44,6 +44,22 @@ void thermal_init() {
   enable_thermal_shutdown();
 }
 
+// Returns bitmask temp_measure_temp0 | temp_measure_temp1<1
+int read_asic_temperature(int addr, ASIC_TEMP temp_measure_temp0, ASIC_TEMP temp_measure_temp1) {
+  int ret = 0; 
+  write_reg_device(addr, ADDR_TS_SET_0, temp_measure_temp0-1);
+  write_reg_device(addr, ADDR_TS_SET_1, temp_measure_temp1-1);
+  write_reg_device(addr, ADDR_COMMAND, BIT_CMD_TS_RESET_1 | BIT_CMD_TS_RESET_0);
+  int res = read_reg_device(addr, ADDR_INTR_RAW);
+  return res;
+  if (res & BIT_INTR_0_OVER) { 
+    ret |= 1;
+  }
+  if (res & BIT_INTR_1_OVER) { 
+    ret |= 2;
+  }
+  return ret;
+}
 
 
  
@@ -81,16 +97,16 @@ void read_some_asic_temperatures(int loop,
       if (val[h] & BIT_INTR_0_OVER) { 
         // This ASIC is at least this temperature high
         if (a->asic_temp < temp_measure_temp0) {
-            printf(GREEN "0+:ASIC %x Temp was %d now %d \n" RESET,a->address,
-              a->asic_temp*6+77, temp_measure_temp0*6+77);
+            //printf(GREEN "0+:ASIC %x Temp was %d now %d \n" RESET,a->address,
+            //  a->asic_temp*6+77, temp_measure_temp0*6+77);
           a->asic_temp = temp_measure_temp0;
          
         }
       } else { 
         // ASIC is colder then this temp!
         if (a->asic_temp >= temp_measure_temp0) {
-            printf(GREEN "0-:ASIC %x Temp was %d now %d \n" RESET,a->address,
-              a->asic_temp*6+77, (temp_measure_temp0-1)*6+77);
+            //printf(GREEN "0-:ASIC %x Temp was %d now %d \n" RESET,a->address,
+            //  a->asic_temp*6+77, (temp_measure_temp0-1)*6+77);
           a->asic_temp = (ASIC_TEMP)(temp_measure_temp0-1);
           
         }
@@ -99,16 +115,16 @@ void read_some_asic_temperatures(int loop,
       if (val[h] & BIT_INTR_1_OVER) { 
          // This ASIC is at least this temperature high
          if (a->asic_temp < temp_measure_temp1) {
-            printf(GREEN "1+:ASIC %x Temp was %d now %d \n" RESET,a->address,
-              a->asic_temp*6+77, temp_measure_temp1*6+77);
+            //printf(GREEN "1+:ASIC %x Temp was %d now %d \n" RESET,a->address,
+            //  a->asic_temp*6+77, temp_measure_temp1*6+77);
            a->asic_temp = temp_measure_temp1;
          
          }
        } else { 
          // ASIC is colder then this temp!
          if (a->asic_temp >= temp_measure_temp1) {
-           printf(GREEN "1-:ASIC %x Temp was %d now %d \n" RESET,a->address,
-              a->asic_temp*6+77, (temp_measure_temp1-1)*6+77);
+           //printf(GREEN "1-:ASIC %x Temp was %d now %d \n" RESET,a->address,
+           //   a->asic_temp*6+77, (temp_measure_temp1-1)*6+77);
             a->asic_temp = (ASIC_TEMP)(temp_measure_temp1-1);
          }
        }

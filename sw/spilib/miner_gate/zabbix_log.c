@@ -28,7 +28,7 @@ void update_zabbix_stats() {
   zabbix_log.magic = MG_ZABBIX_LOG_MAGIC;
   zabbix_log.version = MG_ZABBIX_LOG_VERSION;
   zabbix_log.zabbix_logsize = sizeof(zabbix_log);
-  zabbix_log.ac2dc_current = vm.ac2dc_current;
+  zabbix_log.ac2dc_power = vm.ac2dc_power;
   zabbix_log.ac2dc_temp = vm.ac2dc_temp;
 
   for (int l = 0; l < LOOP_COUNT; l++) {
@@ -169,8 +169,6 @@ void dump_zabbix_stats() {
         json_append_element(asic_freq, json_mknumber(ham->freq));
         json_append_element(asic_max_freq,
                             json_mknumber(ham->max_freq));
-        json_append_element(asic_engines_on,
-                            json_mknumber(ham->enabled_engines_mask));
         json_append_element(asic_temp, json_mknumber(ham->asic_temp));
         json_append_element(asic_wins, json_mknumber(ham->solved_jobs));
 
