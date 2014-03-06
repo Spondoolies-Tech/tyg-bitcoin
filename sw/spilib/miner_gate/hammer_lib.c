@@ -26,7 +26,6 @@
 #include "pll.h"
 
 extern pthread_mutex_t network_hw_mutex;
-pthread_mutex_t i2c_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t hammer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int total_devices = 0;
@@ -56,7 +55,7 @@ int hammer_iter_next_present(hammer_iter *e) {
   int found = 0;
   
   while (!found) {
-   // printf("l=%d,h=%d\n",e->l,e->h);
+    //printf("l=%d,h=%d\n",e->l,e->h);
     passert(e->l < LOOP_COUNT);
     passert(e->h < HAMMERS_PER_LOOP);
     e->h++;
@@ -65,17 +64,18 @@ int hammer_iter_next_present(hammer_iter *e) {
       e->l++;
       e->h = 0;
       while (!vm.loop[e->l].enabled_loop) {
-        e->l++;
         if (e->l == LOOP_COUNT) {
-//printf("return 0\n");
+          //printf("return BEEE\n");
           e->done = 1;
           e->a = NULL;          
           return 0;
         }
+        e->l++;
       }
     }
 
     if (e->l == LOOP_COUNT) {
+      //printf("return Meee\n");
       e->done = 1;
       e->a = NULL;
       return 0;
@@ -363,19 +363,23 @@ int allocate_addresses_to_devices() {
         int addr = l * HAMMERS_PER_LOOP + h;
         vm.hammer[addr].address = addr;
         vm.hammer[addr].loop_address = l;
-          
+        vm.loop[l].asic_count++;
         if (read_reg_broadcast(ADDR_BR_NO_ADDR)) {
           write_reg_broadcast(ADDR_CHIP_ADDR, addr);
-         
+          vm.loop[l].asic_count--;
           total_devices++;
           asics_in_loop++;
           vm.working_engines[addr] = ALL_ENGINES_BITMASK;
           vm.hammer[addr].asic_present = 1;
           vm.hammer[addr].corner = nvm.asic_corner[addr];
           printf(MAGENTA"Address allocated: %x\n"RESET, addr);
-          if (addr == 0x78) {
-            disable_asic_forever(addr);
+          vm.hammer[addr].failed_bists = 0;    
+          vm.hammer[addr].passed_last_bist_engines = ALL_ENGINES_BITMASK;
+               
+          if (0/*addr/HAMMERS_PER_LOOP == 7 || addr/HAMMERS_PER_LOOP > 19*/) {
+            //disable_asic_forever(addr);
           }
+         
         } else {
           vm.hammer[addr].address = addr;
           vm.hammer[addr].loop_address = l;
@@ -400,7 +404,7 @@ int allocate_addresses_to_devices() {
 
   // Validate all got address
   passert(read_reg_broadcast(ADDR_BR_NO_ADDR) == 0);
-//  passert(read_reg_broadcast(ADDR_VERSION) != 0);
+  //  passert(read_reg_broadcast(ADDR_VERSION) != 0);
   DBG(DBG_HW, "Number of ASICs found: %x (LOOPS=%X) %X\n", 
   total_devices,(~(vm.good_loops))&0xFFFFFF,read_reg_broadcast(ADDR_VERSION));
   return total_devices;
@@ -430,51 +434,17 @@ int get_print_win(int winner_device) {
   uint32_t winner_id;    // = read_reg_device(winner_device, ADDR_WINNER_JOBID);
   int engine_id;
   push_hammer_read(winner_device, ADDR_WINNER_NONCE, &winner_nonce);
-  // push_read_reg_device(winner_device, ADDR_WINNER_JOBID, &winner_id);
   push_hammer_read(winner_device, ADDR_WINNER_JOBID_WINNER_ENGINE, &winner_id);
   write_reg_device(winner_device, ADDR_INTR_CLEAR, BIT_INTR_WIN);
-  //  int current = read_reg_broadcast(ADDR_CURRENT_NONCE);
   squid_wait_hammer_reads();
   // Winner ID holds ID and Engine info
   engine_id = winner_id >> 8;
   winner_id = winner_id & 0xFF;
   RT_JOB *work_in_hw = peak_rt_queue(winner_id);
 
-  // printf("----%x %x\n", winner_device ,read_reg_device(winner_device,
-  // ADDR_WINNER_NONCE));
-  // test that this is the "work_in_hw" win.
   if (work_in_hw->work_state == WORK_STATE_HAS_JOB) {
- 
     printf("!!!!!!!  WIN !!!!!!!! %x %x\n", winner_nonce, work_in_hw->work_id_in_sw);
     work_in_hw->winner_nonce = winner_nonce;
-    // Optional printing
-    if (work_in_hw->winner_nonce != 0) {
-#if 0      
-      if (DBG_WINS) {
-        DBG(DBG_WINS, "------ FOUND WIN:----\n");
-        DBG(DBG_WINS, "- midstate:\n");
-        int i;
-        for (i = 0; i < 8; i++) {
-          DBG(DBG_WINS, "-   %08x\n", work_in_hw->midstate[i]);
-        }
-        DBG(DBG_WINS, "- mrkle_root: %08x\n", work_in_hw->mrkle_root);
-        DBG(DBG_WINS, "- timestamp : %08x\n", work_in_hw->timestamp);
-        DBG(DBG_WINS, "- difficulty: %08x\n", work_in_hw->difficulty);
-        DBG(DBG_WINS, "--- NONCE = %08x \n- ", work_in_hw->winner_nonce);
-        static unsigned char hash[32];
-        memset(hash, 0, 32);
-        compute_hash(
-            (const unsigned char *)work_in_hw->midstate,
-            SWAP32(work_in_hw->mrkle_root), SWAP32(work_in_hw->timestamp),
-            SWAP32(work_in_hw->difficulty), SWAP32(work_in_hw->winner_nonce),
-            // 0x7c2bac1d,
-            hash);
-        memprint((void *)hash, 32);
-        int leading_zeroes = get_leading_zeroes(hash);
-        DBG(DBG_WINS, "\n- Leading Zeroes: %d\n", leading_zeroes);
-        DBG(DBG_WINS, "-------------------\n");
-#endif  
-    }
     return 1;
   } else {
     printf(
@@ -511,7 +481,6 @@ void fill_random_work(RT_JOB *work) {
 }*/
 
 void init_scaling();
-int update_i2c_temperature_measurments();
 
 int init_hammers() {
   int i;
@@ -593,9 +562,11 @@ BIST_VECTOR bist_tests[TOTAL_BISTS] =
 
 
 // returns 1 on success
-int do_bist_ok() {
+int do_bist_ok(int long_bist) {
   // Choose random bist.
   static int bist_id = 2;
+  struct timeval tv1;
+  //start_stopper(&tv1);
 
   int next_bist;
   do {
@@ -603,6 +574,9 @@ int do_bist_ok() {
   } while (next_bist == bist_id);
   bist_id = next_bist;
 
+  //end_stopper(&tv1, "random");
+
+  start_stopper(&tv1);
 
   int poll_counter = 0;
      
@@ -612,8 +586,8 @@ int do_bist_ok() {
 
 
   // Give BIST job
-  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 150); // 
-  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 300);
+  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 20); // 
+  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 170+((long_bist)?0:0));
   write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, bist_tests[bist_id].nonce_winner); // 0x1DAC2B7C
   write_reg_broadcast(ADDR_MID_STATE + 0, bist_tests[bist_id].midstate[0]);
   write_reg_broadcast(ADDR_MID_STATE + 1, bist_tests[bist_id].midstate[1]);
@@ -636,38 +610,44 @@ int do_bist_ok() {
   poll_counter = 0;
   //usleep(200000);
   int res;
-  int i = 0;
+  int i = 1;
   vm.bist_current = 0;
   
   int err;
+  int last_res;
   //vm.bist_current = tb_get_asic_current(loop_to_measure);
   while ((res = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
-    usleep(1);
-    if ((i % 10000) == 0) {
-      printf(RED "Waiting on bist ADDR_BR_CONDUCTOR_BUSY %x %x\n" RESET, res, i);
+    if ((i % 1000) == 0) {
       vm.bist_fatal_err = 1;
       break;
-    }
+    } 
+    last_res = res;
+    i++;
   }    
+  //printf(CYAN "last bist ASIC: %x\n" RESET, last_res);
+  //end_stopper(&tv1, "do bist");
 
 
-  
+  start_stopper(&tv1);
   static hammer_iter hi = {-6,-6,-6,-6,NULL};
 
   if (hi.addr == -6 || !hammer_iter_next_present(&hi)) {
     hammer_iter_init(&hi);
     hammer_iter_next_present(&hi);
   } 
-    
-  
+
   uint32_t single_win_test;
-  push_hammer_read(hi.addr, ADDR_BR_WIN, &single_win_test);
-  //read_reg_device(hi.addr, ADDR_BR_WIN);
- 
+#if 0  
+  if (1) {
+    push_hammer_read(hi.addr, ADDR_BR_WIN, &single_win_test);
+    //read_reg_device(hi.addr, ADDR_BR_WIN);
+  }
+#endif  
   // Exit BIST
   int bist_fail;
   int failed = 0;
   //assert(read_reg_broadcast(ADDR_BR_WIN));
+  
   while (bist_fail = read_reg_broadcast(ADDR_BR_BIST_FAIL)) {
     uint16_t failed_addr = BROADCAST_READ_ADDR(bist_fail);
     HAMMER *h = ASIC_GET_BY_ADDR(failed_addr);
@@ -675,7 +655,9 @@ int do_bist_ok() {
     h->passed_last_bist_engines = read_reg_device(failed_addr, ADDR_BIST_PASS);
     // printf("Writing %x to %x because read %d\n", BIT_INTR_BIST_FAIL,
     // failed_addr, bist_fail);
-    printf(RED "Failed Bist %x::%x\n" RESET, failed_addr, h->passed_last_bist_engines);
+    //if (!1) {
+    // printf(RED "Failed Bist %x::%x\n" RESET, failed_addr, h->passed_last_bist_engines);
+    //}
     write_reg_device(failed_addr, ADDR_INTR_CLEAR, BIT_INTR_BIST_FAIL);
     write_reg_device(failed_addr, ADDR_INTR_CLEAR, BIT_INTR_WIN);
     write_reg_device(failed_addr, ADDR_CONTROL_SET0, BIT_CTRL_BIST_MODE);
@@ -684,13 +666,22 @@ int do_bist_ok() {
     //passert(0);
   }
 
-  if (!single_win_test) { // Not won - kill it!
-    disable_asic_forever(hi.addr);
+  //end_stopper(&tv1, "ask bist");
+  start_stopper(&tv1);
+#if 0  
+  {
+    if (!single_win_test && hi.a->passed_last_bist_engines != 0) { // Not won but sais he did - kill it!
+      printf(RED "Asic %x failed WIN test :(\n" RESET, hi.addr);
+      disable_asic_forever(hi.addr);
+    } else {
+      printf(MAGENTA "Asic %x tested :)\n" RESET, hi.addr);
+    }
   }
-
+#endif
   /*if (!failed) {
     printf(GREEN "Passed BIST %d:\n" RESET, bist_id);
   }*/
+  
 
   // write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
   // write_reg_broadcast(ADDR_INTR_CLEAR, BIT_INTR_BIST_FAIL);
@@ -698,6 +689,7 @@ int do_bist_ok() {
   write_reg_broadcast(ADDR_CONTROL_SET0, BIT_CTRL_BIST_MODE);
   write_reg_broadcast(ADDR_WIN_LEADING_0, cur_leading_zeroes);
   flush_spi_write();
+  //end_stopper(&tv1, "finish");
   return !failed;
 }
 
@@ -721,22 +713,22 @@ pthread_mutex_t i2c_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_lock(&i2c_mutex);
 */
 
+
 void once_second_tasks() {
+  struct timeval tv;
   static int counter = 0;
-   
-  auto_select_fan_level();
-
-
+  start_stopper(&tv);
+  
   if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) {
-      if ((vm.start_mine_time == 0) &&
-          (!vm.scaling_up_system)) {
+      if ((vm.start_mine_time == 0)) {
         vm.start_mine_time = time(NULL);
-        printf(MAGENTA "Starting mining timer for voltage scaling\n" RESET);
+        printf(MAGENTA "Restarting mining timer\n" RESET);
       }
   } else {
     vm.start_mine_time = 0;
   }
-  
+
+
   pthread_mutex_lock(&network_hw_mutex);
   // static int not_mining_counter = 0;
   // See if we can stop engines
@@ -750,57 +742,41 @@ void once_second_tasks() {
 
   pthread_mutex_unlock(&network_hw_mutex);
 
-  // update_i2c_temperature_measurments();
-  // write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-  // int current_nonce =  read_reg_device(0, ADDR_CURRENT_NONCE);
-  // int nnce_start =  read_reg_device(0, ADDR_CURRENT_NONCE_START);
-  // int job_id =  read_reg_device(0, ADDR_CURRENT_NONCE_RANGE);
-  int no_addr = read_reg_broadcast(ADDR_BR_NO_ADDR);
-  if (no_addr) {
-    printf("Error: lost address!\n");
-    print_state();
-    passert(0);
-  }
-
-  printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n",
-         last_second_jobs, spi_ioctls_read, spi_ioctls_write, rt_queue_sw_write,
-         rt_queue_hw_done, rt_queue_size);
-  printf("wins:%d, leading-zeroes:%d idle:%d/%d\n", vm.solved_jobs_total,
-         cur_leading_zeroes, vm.idle_probs, vm.busy_probs);
-
-  spi_ioctls_write = spi_ioctls_read = 0;
-  // parse_int_register("ADDR_INTR_SOURCE",
-  // read_reg_broadcast(ADDR_INTR_SOURCE));
-  last_second_jobs = 0;
-  print_adapter();
-  // dc2dc_print();
+  if (!vm.asics_shut_down_powersave) {
+    int no_addr = read_reg_broadcast(ADDR_BR_NO_ADDR);
+    if (no_addr) {
+      printf("Error: lost address!\n");
+      print_state();
+      passert(0);
+    }
 
   // Decrease frequencies if needed
-  //decrease_asics_freqs();
-  
-  if (nvm.dirty) {
-    spond_save_nvm();
-  }
-  // print_state();
-  //dump_zabbix_stats();
-  // pthread_mutex_unlock(&network_hw_mutex);
-
-  // each second
-  change_dc2dc_voltage_if_needed();
-
-  if (!vm.asics_shut_down_powersave) {    
-      //Once every 10 seconds upscale ASICs if can
-      if ( (((counter % BIST_PERIOD_SECS_RAMPUP) == 0) && vm.scaling_up_system) || 
-           ((counter % BIST_PERIOD_SECS) == 0)) {
-        periodic_bist_task();
-      }
-  }
-
-
-
-
-  static int loop_for_err;
  
+    asic_scaling_once_second(0);
+   
+
+    
+    printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n",
+             last_second_jobs, spi_ioctls_read, spi_ioctls_write, rt_queue_sw_write,
+             rt_queue_hw_done, rt_queue_size);
+    printf("wins:%d, leading-zeroes:%d idle:%d/%d\n", vm.solved_jobs_total,
+           cur_leading_zeroes, vm.idle_probs, vm.busy_probs);
+    
+    spi_ioctls_write = spi_ioctls_read = 0;
+    // parse_int_register("ADDR_INTR_SOURCE",
+    // read_reg_broadcast(ADDR_INTR_SOURCE));
+    last_second_jobs = 0;
+    
+    
+    
+    if (nvm.dirty) {
+      spond_save_nvm();
+    }
+
+  } 
+
+
+
   if (counter % 10 == 0) {
     ten_second_tasks(); 
   }
@@ -810,35 +786,37 @@ void once_second_tasks() {
     one_minute_tasks();
   }
   ++counter;
-
-  print_scaling();
+  
+  end_stopper(&tv,"Whole one second task");
 }
 
 
 // 40 times per second
 // RUN FROM DIFFERENT THREAD
-void update_vm_with_dc2dc_current_and_temperature() {
+void update_vm_with_currents_and_temperatures() {
   static int counter = 0;
   counter++;
-  pthread_mutex_lock(&i2c_mutex);
-  if ((counter % 20) == 1)  {
+
+  if ((counter % (80)) == 1)  {
+    //auto_select_fan_level_1_secs();
     // 2 times a second
-    update_ac2dc_current_measurments();
+    //pthread_mutex_lock(&hammer_mutex);
+    update_ac2dc_power_measurments();
+    //pthread_mutex_unlock(&hammer_mutex);
     int err;
-  } 
-
-
-  {
+  } else {
     // 38 times a second, poll 1 dc2dc 2 times a second.
     static int loop = 0;
+    
     if (vm.loop[loop].enabled_loop) {
-      update_dc2dc_current_temp_measurments(loop);
+      update_dc2dc_current_temp_measurments(loop); 
     }
     int e = get_dc2dc_error(loop); 
     if (e) {
-      printf(RED "DC2DC error on loop %d\n" RESET, loop);
       // If top current in last 20 seconds:
       nvm.top_dc2dc_current_16s[loop] = nvm.top_dc2dc_current_16s[loop] - 8;
+      
+      printf(CYAN"DC2DC current44: %d:????\n" RESET,loop);
       if (nvm.top_dc2dc_current_16s[loop] >= DC2DC_MINIMAL_TOP_16S) {
          nvm.top_dc2dc_current_16s[loop] = nvm.top_dc2dc_current_16s[loop] - 8;
       } else {
@@ -869,7 +847,6 @@ void update_vm_with_dc2dc_current_and_temperature() {
       }
     }
     loop = (loop+1)%LOOP_COUNT;
-    pthread_mutex_unlock(&i2c_mutex);
   } 
 }
 
@@ -882,6 +859,7 @@ void check_for_dc2dc_errors() {
 
 
 // 30 times per second
+/*
 void update_vm_with_asic_current_and_temperature() {
   {
     // 40 times a second poll 1 loop ASICs for 2 temperatures
@@ -906,62 +884,116 @@ void update_vm_with_asic_current_and_temperature() {
     }
   }
 }
+*/
 
-// 30 times a second
+// 30 times a second - poll win and 1 temperature
 void once_33_msec_tasks() {
-  // printf("-"); 
   static int counter = 0;
-  uint32_t reg;
-  while ((reg = read_reg_broadcast(ADDR_BR_WIN))) {
-    uint16_t winner_device = BROADCAST_READ_ADDR(reg);
-    vm.hammer[winner_device].solved_jobs++;
-    vm.solved_jobs_total++;
-    // printf("\nSW:%x
-    // HW:%x\n",(actual_work)?actual_work->work_id_in_hw:0,jobid);
-    // printf("reg:%x  \n", reg);
-    int ok = get_print_win(winner_device);
-    // Move on!
-    // write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-  }
-
+  static int measure_temp_addr = 0;
+  static ASIC_TEMP temp_measure_temp = ASIC_TEMP_83;
   
+  if (!vm.asics_shut_down_powersave) {
+    // printf("-"); 
+    uint32_t win;
+    uint32_t intr;
+    measure_temp_addr = (measure_temp_addr+1)%HAMMERS_COUNT;
+    HAMMER *a = &vm.hammer[measure_temp_addr];
+    if(a->asic_present) {
+        // measure "temp_measure_temp"
+        write_reg_device(measure_temp_addr, ADDR_TS_SET_0, temp_measure_temp-1);
+        // Measure next temperature with it
+        write_reg_device(measure_temp_addr, ADDR_TS_SET_1, temp_measure_temp-1+4);
+        write_reg_device(measure_temp_addr, ADDR_COMMAND, BIT_CMD_TS_RESET_1 | BIT_CMD_TS_RESET_0);
+        //flush_spi_write();
+        push_hammer_read(measure_temp_addr, ADDR_INTR_RAW, &intr);
+    }
+    
+    if (measure_temp_addr == 0) {
+      temp_measure_temp = (ASIC_TEMP)(temp_measure_temp+1);
+      if (temp_measure_temp == ASIC_TEMP_107)
+        temp_measure_temp = ASIC_TEMP_83;
+    }
+    
+    push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win);
+    squid_wait_hammer_reads();
+    
+    if (win) {
+      uint16_t winner_device = BROADCAST_READ_ADDR(win);
+      vm.hammer[winner_device].solved_jobs++;
+      vm.solved_jobs_total++;
+      int ok = get_print_win(winner_device);
+    }
+
+    // Update temperature.
+    
+    if (a->asic_present) {
+       //printf("intr=%x\n", intr);
+       if (intr & BIT_INTR_0_OVER && (a->asic_temp < temp_measure_temp)) { 
+            //printf("Asic %x hotter then %d\n", a->address, temp_measure_temp*6+77);
+            a->asic_temp = temp_measure_temp;
+       } 
+
+       if (!(intr & BIT_INTR_0_OVER) && (a->asic_temp >= temp_measure_temp)) { 
+           //printf("Asic %x colder then %d\n", a->address, temp_measure_temp*6+77);
+           a->asic_temp = (ASIC_TEMP)(temp_measure_temp-1);
+       }
+
+       if (intr & BIT_INTR_1_OVER && (a->asic_temp < (temp_measure_temp+4))) { 
+            //printf("Asic %x hotter then %d\n", a->address, (temp_measure_temp+4)*6+77);
+            a->asic_temp = temp_measure_temp;
+       } 
+ 
+       if (!(intr & BIT_INTR_1_OVER) && (a->asic_temp >= (temp_measure_temp+4))) { 
+           //printf("Asic %x colder then %d\n", a->address, (temp_measure_temp+4)*6+77);
+           a->asic_temp = (ASIC_TEMP)(temp_measure_temp-1+4);
+       }
+
+       write_reg_broadcast(ADDR_TS_SET_0, (ASIC_TEMP_125- 1) | 
+                          ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
+       write_reg_broadcast(ADDR_TS_SET_1, (ASIC_TEMP_125- 1) | 
+                          ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
+    }    
+  }
+ 
   if (++counter % 30 == 0) {
     once_second_tasks();
-  } else {
-    update_vm_with_asic_current_and_temperature();
-  }
+  } 
 }
 
 
 // 666 times a second
 void once_1500_usec_tasks() {
   static int counter = 0;
-  RT_JOB work;
-  RT_JOB *actual_work = NULL;
-  int has_request = pull_work_req(&work);
-  if (has_request) {
-    // Update leading zeroes?
-    vm.not_mining_counter = 0;
-    if (work.leading_zeroes != cur_leading_zeroes) {
-      cur_leading_zeroes = work.leading_zeroes;
-      write_reg_broadcast(ADDR_WIN_LEADING_0, cur_leading_zeroes);
-    }
-    actual_work = add_to_sw_rt_queue(&work);
-    // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
-    // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
-    vm.newest_hw_job_id = actual_work->work_id_in_hw;
-    push_to_hw_queue(actual_work);
-    last_second_jobs++;
-    last_alive_jobs++;
-    if (vm.cosecutive_jobs < MAX_CONSECUTIVE_JOBS_TO_COUNT) {    
-      vm.cosecutive_jobs++;
-    }
-  } else {
-    if (vm.cosecutive_jobs > 0) {
-      vm.cosecutive_jobs--;
+
+  if (!vm.asics_shut_down_powersave) {
+    RT_JOB work;
+    RT_JOB *actual_work = NULL;
+    int has_request = pull_work_req(&work);
+    if (has_request) {
+      // Update leading zeroes?
+      vm.not_mining_counter = 0;
+      if (work.leading_zeroes != cur_leading_zeroes) {
+        cur_leading_zeroes = work.leading_zeroes;
+        write_reg_broadcast(ADDR_WIN_LEADING_0, cur_leading_zeroes);
+      }
+      actual_work = add_to_sw_rt_queue(&work);
+      // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
+      // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
+      vm.newest_hw_job_id = actual_work->work_id_in_hw;
+      push_to_hw_queue(actual_work);
+      last_second_jobs++;
+      last_alive_jobs++;
+      if (vm.cosecutive_jobs < MAX_CONSECUTIVE_JOBS_TO_COUNT) {    
+        vm.cosecutive_jobs++;
+      }
+    } else {
+      if (vm.cosecutive_jobs > 0) {
+        vm.cosecutive_jobs--;
+      }
     }
   }
 
+  
   if (++counter % 22 == 0) {
     once_33_msec_tasks();
   }
@@ -971,32 +1003,46 @@ void once_1500_usec_tasks() {
 
 
 // never returns - thread
-void *dc2dc_state_machine(void *p) {
+void *i2c_state_machine(void *p) {
+ 
+ int counter = 0;
   while (1) {
+  
     // sleep 1/40th second
-    usleep(1000000/40);
-    update_vm_with_dc2dc_current_and_temperature();
+    usleep(1000000/(40));
+    counter++;
+    if ((counter%(40)) == 0) {
+      print_scaling();
+    }
 
-     pthread_mutex_lock(&hammer_mutex);
-     if (read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE)) {
+    if ((counter % (40)) == 1)  {
+      auto_select_fan_level_1_secs();
+    }
+    
+    if (!vm.asics_shut_down_powersave) {
+      update_vm_with_currents_and_temperatures();
+
+      pthread_mutex_lock(&hammer_mutex);
+      int idle;
+      if (idle = read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE)) {
+        //printf("IDLE:::::::%x\n", idle);
         vm.idle_probs++;
       } else {
         vm.busy_probs++;
       }
-       pthread_mutex_unlock(&hammer_mutex);
-        
+      pthread_mutex_unlock(&hammer_mutex); 
+    }
   }
 }
 
 
 // never returns - thread
 void *squid_regular_state_machine(void *p) {
-  reset_sw_rt_queue();
     
   int loop = 0;
   printf("Starting squid_regular_state_machine!\n");
   flush_spi_write();
-
+  //return NULL;
   // Do BIST before start
   hammer_iter hi;
   hammer_iter_init(&hi);
@@ -1004,6 +1050,33 @@ void *squid_regular_state_machine(void *p) {
     hi.a->failed_bists = 0;
     hi.a->passed_last_bist_engines = ALL_ENGINES_BITMASK;
   }
+
+ /* while(1) {
+    update_ac2dc_power_measurments();
+  }*/
+  
+  pthread_mutex_lock(&hammer_mutex);
+  set_fan_level(10);
+  for(int x = 0; x < 200; x++) {
+     asic_scaling_once_second(1);
+     //update_ac2dc_power_measurments();
+     //update_ac2dc_power_measurments();
+  }
+  /*
+  hammer_iter_init(&hi);
+  pause_asics_if_needed();
+  while (hammer_iter_next_present(&hi)) {
+    if (hi.a->asic_freq < MAX_ASIC_FREQ) {
+      if (asic_can_up(hi.a, 1)) {
+        asic_up(hi.a);
+      }
+    }
+  }
+  resume_asics_if_needed();*/
+  pthread_mutex_unlock(&hammer_mutex);
+  
+  
+  
 
   struct timeval tv;
   struct timeval last_job_pushed;

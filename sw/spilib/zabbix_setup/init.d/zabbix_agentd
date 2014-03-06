@@ -22,7 +22,8 @@ start(){
  echo "Starting Zabbix agent...."
  pid
  if [ -z "$pid" ]; then
-  zabbix_agentd 
+  # centos (spdt-dmz) wants a full path, even though this is in the PATH, I do not know why
+  /usr/local/sbin/zabbix_agentd 
   pid 
   echo "pid: "$pid
  else

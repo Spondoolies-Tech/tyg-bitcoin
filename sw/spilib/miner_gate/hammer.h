@@ -241,7 +241,6 @@ typedef struct {
   int last_freq_change_time; // time() when we increased ASIC frequency
 
   // Set durring initialisation currently enabled engines
-  uint8_t enabled_engines_mask;
 
   // Jobs solved by ASIC
   uint32_t solved_jobs;
@@ -254,7 +253,8 @@ typedef struct {
 typedef struct {
   uint8_t dc_temp;
   int dc_current_16s; // in 1/16 of amper. 0 = bad reading
-  int dc_power_watts;  
+  int dc_current_limit_16s;   
+  int dc_power_watts_16s;  
   int last_voltage_change_time;
   int dc_fail_time;  
   // Guessing added current
@@ -262,12 +262,19 @@ typedef struct {
 
 typedef struct {
   uint8_t id;
+  // Last time ac2dc scaling changed limit.
+  int last_ac2dc_scaling_on_loop;
   uint8_t enabled_loop;
+  int     asic_temp_sum; // if asics disabled or missing give them fake temp
+  int     asic_hz_sum; // if asics disabled or missing give them fake temp
+
+  int asics_failing_bist;
+  int asic_count;
   DC2DC dc2dc;
 } LOOP;
 
 // Global data
-#define IDLE_TIME_TO_PAUSE_ENGINES 5
+
 typedef struct {
   // Fans set to high
   int fan_level;
@@ -301,11 +308,11 @@ typedef struct {
 
   
   // ac2dc current and temperature
-  int ac2dc_current;  // in ampers. 0 = bad reading.
+  int ac2dc_power;  // in ampers. 0 = bad reading.
+  int dc2dc_total_power; 
   uint32_t ac2dc_temp;
 
   // When system just started, search optimal speed agressively
-  int scaling_up_system; 
 
 
   // our ASIC data
@@ -315,7 +322,7 @@ typedef struct {
 
   // our loop and dc2dc data
   LOOP loop[LOOP_COUNT];
-  int loop_vtrim[LOOP_COUNT];
+  uint32_t loop_vtrim[LOOP_COUNT];
 } MINER_BOX;
 
 extern MINER_BOX vm;

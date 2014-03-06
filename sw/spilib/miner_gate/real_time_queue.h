@@ -9,5 +9,6 @@
 
 int one_done_sw_rt_queue(RT_JOB *work);
 void push_work_rsp(RT_JOB *work);
+void reset_sw_rt_queue();
 
 #endif

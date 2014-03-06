@@ -54,91 +54,52 @@ int test_asic(int addr) {
 }
 
 
-void set_asic_freq(int addr, ASIC_FREQ new_freq) {
-  if (vm.hammer[addr].asic_freq != new_freq) {
-    printf("Changes ASIC %x frequency from %d to %d\n", addr,vm.hammer[addr].asic_freq*15+210,new_freq*15+210);
-    vm.hammer[addr].asic_freq = new_freq;
-  }
-  set_pll(addr, new_freq);
-}
-
-
-
-void set_safe_voltage_and_frequency() {
-  // for each enabled loop
-  for (int l = 0; l < LOOP_COUNT; l++) {
-    // Set voltage
-    int err; 
-    dc2dc_set_vtrim(l, VTRIM_START, &err);
-    if (err) {
-      printf(RED "Failed to set voltage DC2DC\n" RESET);
-    } else {
-      printf("Set voltage %d DC2DC\n", ASIC_VOLTAGE_DEFAULT);
-    }
-  }
-  hammer_iter hi;
-  hammer_iter_init(&hi);
-  disable_engines_all_asics();
-  while (hammer_iter_next_present(&hi)) {
-    set_asic_freq(hi.addr, ASIC_FREQ_SAFE);
-  }
-  enable_nvm_engines_all_asics_ok(); 
-}
-
-
-void enable_voltage_from_nvm() {
-  int l, h, i = 0;
-  // for each enabled loop
-  disable_engines_all_asics();
-  for (l = 0; l < LOOP_COUNT; l++) {
-    if (vm.loop[l].enabled_loop) {
-      // Set voltage
-      int err;
-      // dc2dc_set_voltage(l, vm.loop_vtrim[l], &err);
-      dc2dc_set_vtrim(l, vm.loop_vtrim[l], &err);
-      // passert(err);
-
-      // for each ASIC
-      for (h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
-        HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
-        // Set freq
-        if (a->asic_present) {
-          set_asic_freq(a->address, ASIC_FREQ_SAFE);
-        }
-      }
-    }
-  }
-  enable_nvm_engines_all_asics_ok();
-}
-
-
-
 
 void pause_all_mining_engines() {
+  int err;
   passert(vm.asics_shut_down_powersave == 0);
   int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
-  
-  if(some_asics_busy != 0) {
+  //set_fan_level(0);
+  while(some_asics_busy != 0) {
+    int addr = BROADCAST_READ_ADDR(some_asics_busy);
     printf(RED "some_asics_busy %x\n" RESET, some_asics_busy);
-    passert(0);
+    disable_asic_forever(addr);
+    some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
   }
   // stop all ASICs
   disable_engines_all_asics();
   // disable_engines_all_asics();
   vm.asics_shut_down_powersave = 1;
-  printf("PAUSING ALL MINING!!\n");
+  printf("System has no jobs, going to sleep...\n");
 }
 
 void unpause_all_mining_engines() {
-  passert(vm.asics_shut_down_powersave != 0);
+  int err;
+  printf("Got mining request, enable DC2DC!\n");
+  usleep(30000); 
   vm.not_mining_counter = 0;
+//  enable_nvm_engines_all_asics_ok();
   enable_nvm_engines_all_asics_ok();
-  printf("STARTING ALL MINING!!\n");
+/*
+  hammer_iter hi;
+  hammer_iter_init(&hi);
+  printf("Got mining request, set_pll!\n");
+  while (hammer_iter_next_present(&hi)) {
+    set_pll(hi.addr, hi.a->asic_freq);
+  }
+  */
+  usleep(10000);  
+  printf("Got mining request, waking up done!\n");
   vm.asics_shut_down_powersave = 0;
 }
 
 
 int test_serial(int loopid) {
+  /*
+  if (loopid < 20 && loopid!= -1) {
+    return 0;
+  }
+  */
   assert_serial_failures = false;
   // printf("Testing loops: %x\n", (~read_spi(ADDR_SQUID_LOOP_BYPASS))&
   // 0xFFFFFF);
@@ -218,7 +179,7 @@ void create_default_nvm() {
   // See max rate under ASIC_VOLTAGE_810
   for (i = 0; i < HAMMERS_COUNT; i++) {
     nvm.asic_corner[i] = ASIC_CORNER_SS; // all start ass SS corner
-    nvm.top_freq[i] = ASIC_FREQ_SAFE;
+    nvm.top_freq[i] = MAX_ASIC_FREQ;
   } 
 
   for (i = 0; i < LOOP_COUNT; i++) {
@@ -230,179 +191,7 @@ void create_default_nvm() {
 void init_scaling() {
   hammer_iter hi;
   hammer_iter_init(&hi);
-  vm.scaling_up_system = 1;
 }
-
-
-
-int update_i2c_temperature_measurments() {
-  int err;
-  vm.ac2dc_temp = ac2dc_get_temperature();
-
-  for (int i = 0; i < LOOP_COUNT; i++) {
-    vm.loop[i].dc2dc.dc_temp = dc2dc_get_temp(i, &err);
-  }
-
-  return 0;
-}
-
-
-// returns worst asic
-//  Any ASIC is worth then NULL
-HAMMER *choose_asic_to_throttle(HAMMER *a, HAMMER *b) {
-  if (!a || !can_be_downscaled(a))
-    return b;
-  if (!b || !can_be_downscaled(b))
-    return a;
-
- 
-
-  if (a->asic_temp != b->asic_temp) {
-     // Reduce higher temperature because they have higher leakage
-     return (a->asic_temp > b->asic_temp) ? a : b;
-  }
-  
-  if (a->corner != b->corner) {
-     // Reduce higher corners because they have higher leakage
-     return (a->corner > b->corner) ? a : b;
-  }
-
-  if (a->asic_freq != b->asic_freq) {
-    // Reduce higher frequency
-    return (a->asic_freq > b->asic_freq) ? a : b;
-  }
-
-  return a;
- 
-}
-
-// return hottest ASIC
-/*
-HAMMER *find_asic_to_reduce_ac_current() {
-  HAMMER *best = NULL;
-  hammer_iter hi;
-  hammer_iter_init(&hi);
-
-  while (hammer_iter_next_present(&hi)) {
-    best = choose_asic_to_throttle(best, hi.a);
-  }
-
-  passert(can_be_downscaled(best));
-  return best;
-}
-*/
-HAMMER *find_asic_to_reduce_dc_current(int l) {
-  int h;
-  // Find hottest ASIC at highest corner.
-  HAMMER *best = NULL;
-  for (h = 0; h < HAMMERS_PER_LOOP; h++) {
-    HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
-    if (a->asic_present) {
-     printf("%p %p\n",a,best);
-     best = choose_asic_to_throttle(best, a);
-    }
-  }
-  printf("%p>, %x\n",best, best->address);
-  if(can_be_downscaled(best)) {
-     printf("%p>, %x\n",best, best->address);
-     return best;
-  }
-  return NULL;
-}
-
-
-
-int can_be_upscaled(HAMMER *a) {
-  if (!a->asic_present ||
-      (a->asic_freq >= MAX_ASIC_FREQ) ||
-      (a->asic_temp >= MAX_ASIC_TEMPERATURE) 
-      /*|| ((vm.loop[a->loop_address].dc2dc.dc_current_16s + DC2DC_KEEP_FOR_LEAKAGE_16S)
-            >= nvm.top_dc2dc_current_16s[a->loop_address]) ||
-      (vm.loop[a->loop_address].dc2dc.dc_temp>= DC2DC_TEMP_GREEN_LINE) || 
-      (vm.ac2dc_current >= AC2DC_CURRENT_GREEN_LINE) ||
-      (vm.ac2dc_temp >= AC2DC_TEMP_GREEN_LINE)*/)
-
-  {
-    return 0;
-  }
-
-   if ((time(NULL) - a->last_freq_change_time < TRY_ASIC_FREQ_INCREASE_PERIOD_SECS) && 
-        !vm.scaling_up_system) {
-     return 0;
-  }
-  return 1;
-}
-
-
-void asic_upscale(HAMMER *a) {
-   ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq+1);
-   a->asic_freq = wanted_freq;
-   set_pll(a->address, wanted_freq);        
-   a->last_freq_change_time = time(NULL);      
-}
-
-
-int can_be_downscaled(HAMMER *a) {
-  return (a->asic_freq > ASIC_FREQ_225);
-}
-
-
-void asic_downscale(HAMMER *a, time_t now) {
-   passert(vm.engines_disabled == 1);
-   printf(RED "xASIC DOWNSCALE %x!\n", a->address);
-   ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->asic_freq-1);
-   a->asic_freq = wanted_freq;
-   set_pll(a->address, wanted_freq);        
-   a->last_freq_change_time = now;      
-}
-
-
-// returns best asic
-HAMMER *choose_asic_to_upscale(HAMMER *a, HAMMER *b) {
-  if (!a || !can_be_upscaled(a))
-    return b;
-  if (!b || !can_be_upscaled(b))
-    return a;
-
-  if (a->asic_temp != b->asic_temp) {
-    // Increase lower asic_temp because they have lower leakage
-    return (a->asic_temp < b->asic_temp) ? a : b;
-  }
-
-  if (a->last_freq_change_time != b->last_freq_change_time) {
-    // Try someone else for a change
-    return (a->last_freq_change_time < b->last_freq_change_time) ? a : b;
-  }
-
-
-  if (a->corner != b->corner) {
-     // Upscale lower corners because they have lower leakage
-     return (a->corner < b->corner) ? a : b;
-  }
-
-  if (a->asic_freq != b->asic_freq) {
-    // Increase slower ASICs first
-    return (a->asic_freq < b->asic_freq) ? a : b;
-  }  
-  
-  return a;
-}
-
-
-HAMMER *find_asic_to_increase_speed(int l) {
-  HAMMER *best = NULL;
-  for (int h = 0; h < HAMMERS_PER_LOOP ; h++) { 
-    HAMMER *a = &vm.hammer[l*HAMMERS_PER_LOOP+h];
-    if (a->asic_present) {
-      best = choose_asic_to_upscale(best, a);
-    }
-  }
-
-  if(best && can_be_upscaled(best))
-    return best;
-  return NULL;
-}
-
 
 
 
@@ -428,217 +217,74 @@ int count_ones(int failed_engines) {
 }
 
 
-void change_dc2dc_voltage_if_needed() {
-  int any_scaled = 0;
-  int err;
-  printf(MAGENTA "change_dc2dc_voltage_if_needed 0\n" RESET);
-  // DOWNSCALE!!!!
-  for (int l = 0 ; l < LOOP_COUNT ; l++) {
-    if (!vm.loop[l].enabled_loop) {
-      continue;
-    }
-    
-    printf(MAGENTA "change_dc2dc_voltage_if_needed 1> %d %d\n" RESET,
-      vm.loop[l].dc2dc.dc_current_16s, nvm.top_dc2dc_current_16s[l]
-    );
-    if (((vm.loop[l].dc2dc.dc_current_16s))
-              >= nvm.top_dc2dc_current_16s[l]) {
-      printf(MAGENTA "change_dc2dc_voltage_if_needed 3\n" RESET);
-      if (!any_scaled) {
-        stop_all_work();
-        disable_engines_all_asics();
-        any_scaled=1;
-      }
 
-      // Prefer to downscale VOLTAGE
-      if (vm.loop_vtrim[l] > VTRIM_MIN) {
-        printf(MAGENTA "LOOP DOWNSCALE VTRIM %d\n" RESET, l);
-        dc2dc_set_vtrim(l,vm.loop_vtrim[l]-1,&err);
-      } else {
-        printf(RED "LOOP DOWNSCALE %d\n" RESET, l);
-        HAMMER *h = find_asic_to_reduce_dc_current(l);
-        assert(h);
-        printf(RED "Starin ASIC DOWNSCALE %d\n" RESET, h->address);
-        asic_downscale(h, time(NULL));
-      }
-    }
-
-    // UPSCALE!!!!
-    if ((vm.loop[l].dc2dc.dc_current_16s != 0) &&
-        (!vm.scaling_up_system) &&
-        (vm.start_mine_time > DC2DC_UPSCALE_TIME_SECS) && // 30 seconds after mining 
-        ((time(NULL) - vm.loop[l].dc2dc.last_voltage_change_time) > DC2DC_UPSCALE_TIME_SECS) && // 30 seconds after last voltage change
-        // TODO - add AD2DC constains
-         (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) &&
-         (vm.loop[l].dc2dc.dc_current_16s < 
-              nvm.top_dc2dc_current_16s[l] - DC2DC_SAFE_TO_INCREASE_CURRENT_16S)) {
-      if (vm.loop_vtrim[l] < VTRIM_MAX) {
-        printf(MAGENTA "RAISING VTRIM DC2DC %d\n" RESET,l);
-        if (!any_scaled) {
-          stop_all_work();
-          disable_engines_all_asics();
-          any_scaled=1;
-        }
-        dc2dc_set_vtrim(l,vm.loop_vtrim[l]+1,&err);
-      }
-    }
-
-    if (any_scaled) {
-      // don't scale till next measurement
-      vm.loop[l].dc2dc.dc_current_16s = 0;
-    }
-  }
-  
-  if (any_scaled) {
-    usleep(1000); // Let voltage settle? TODO
-    enable_nvm_engines_all_asics_ok();
-  }
-}
-
-
-void periodic_bist_task() {
-  struct timeval tv;
-  int now = time(NULL);
-  start_stopper(&tv);
-  stop_all_work();
-  int usec;
-  printf(RED "BIST!" RESET);
-
-  {
-    hammer_iter hi;
-    hammer_iter_init(&hi);
-    while (hammer_iter_next_present(&hi)) {
-      hi.a->failed_bists = 0;    
-      hi.a->passed_last_bist_engines = ALL_ENGINES_BITMASK;
-    }
-  }
-  
-  do_bist_ok();
-  disable_engines_all_asics();
- 
-  for (int l = 0 ; l < LOOP_COUNT ; l++) {
-    if (!vm.loop[l].enabled_loop) {
-      continue;
-    }
-   
-    for (int a = 0 ; a < HAMMERS_PER_LOOP; a++) {
-      HAMMER *h = &vm.hammer[l*HAMMERS_PER_LOOP+a];
-      if (!h->asic_present) {
-        continue;
-      }
-      
-      int passed = h->passed_last_bist_engines;
-      if ((passed != ALL_ENGINES_BITMASK) || 
-          (h->asic_temp >= MAX_ASIC_TEMPERATURE && 
-            time(NULL) - h->last_freq_change_time > HOT_ASIC_FREQ_DECREASE_PERIOD_SECS)) {
-        vm.scaling_up_system = 0;
-
-        int failed_engines_mask = passed ^ ALL_ENGINES_BITMASK;
-        // int failed_engines_count = count_ones(failed_engines_mask);
-        printf(RED "Failed asic %x engines passed %x, temp %d\n" RESET, h->address, passed);
-        
-        if (can_be_downscaled(h)) {
-          asic_downscale(h, now);
-        } else {
-          vm.working_engines[h->address] = vm.working_engines[h->address]&passed;
-          if (vm.working_engines[h->address] == 0) {
-            // disable ASIC failing bist on all engines.
-            disable_asic_forever(h->address);
-          }
-        }
-      } 
-      // Increase ASIC speed not durring bring-up
-    }
-
-    // try upscale 1 asic in loop
-    HAMMER *hh = find_asic_to_increase_speed(l);
-    if (hh) {
-      if (hh->asic_freq == MAX_ASIC_FREQ &&
-          hh->asic_temp == ASIC_TEMP_77) {
-        printf(RED "Something wrong with ASIC %x, kill it\n", hh->address);
-        //disable_asic_forever(hh->address);
-      }
-      asic_upscale(hh);
-    }   
-  }
-  enable_nvm_engines_all_asics_ok();
-  // measure how long it took
-  end_stopper(&tv, "BIST");
-  resume_all_work();
-}
-
-
-
-// Callibration SW
-
-void print_asic(HAMMER *h) {
-  if (h->asic_present) {
-    DBG(DBG_SCALING,
-        "      HAMMER %04x C:%d ENG:0x%x Hz:%d  WINS:%04d T:%x\n",
-        h->address, h->corner, h->enabled_engines_mask,
-        h->asic_freq, h->solved_jobs, h->asic_temp);
-  } else {
-    DBG(DBG_SCALING, "      HAMMER %04x ----\n", h->address);
-  }
-}
-
-/*
-void print_loop(int l) {
-  LOOP *loop = &vm.loop[l];
-  DBG(DBG_SCALING, "   LOOP %x AMP:%d\n", l, loop->dc2dc.dc_current_16s);
-}
-*/
-
-void print_miner_box() { DBG(DBG_SCALING, "MINER AC:%x\n", vm.ac2dc_current); }
+void print_miner_box() { DBG(DBG_SCALING, "MINER AC:%x\n", vm.ac2dc_power); }
 
 void print_scaling() {
+  int err;
   hammer_iter hi;
   hammer_iter_init(&hi);
   int total_hash_power=0;
+  int total_loops=0;
+  int total_asics=0;
+  int expected_rate=0;
+ // int loop_hash_power=0;  
   int hl = -1;
-  printf(GREEN "\n----------\nAC2DC current=%d, temp=%d\n" RESET,
-      vm.ac2dc_current,
+  printf(GREEN "\n----------\nAC2DC power=%d[%d], temp=%d\n" RESET,
+      vm.ac2dc_power,
+      AC2DC_POWER_LIMIT,
       vm.ac2dc_temp
     );
+  int total_watt=0;
+  printf(GREEN "L |Vtrm|vlt|Wt|"  "A /Li/Li|Tmp/"  "Tmp|A|H|gH" RESET); 
   while (hammer_iter_next_present(&hi)) {
     if (hi.l != hl) {
-      printf(GREEN "\nloop %d:[V=%d|%x][C=%s%d%s/%d][T=%s%d%s][H:%d]:" RESET, 
+      total_loops++;
+      DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
+      int volt = 0;//dc2dc_get_voltage(hi.l, &err);
+     
+      printf(GREEN 
+        "\n%2d|%4x|%3d|%2d|"  
+        "%s%2d%s/%2d/%2d|%s%3d%s|"   
+        "%3d|%d|%2d|" RESET, 
         hi.l, 
-        VTIRM_TO_VOLTAGE(vm.loop_vtrim[hi.l]),vm.loop_vtrim[hi.l],
-        ((vm.loop[hi.l].dc2dc.dc_current_16s>=nvm.top_dc2dc_current_16s[hi.l] - 3*16)?RED:GREEN), vm.loop[hi.l].dc2dc.dc_current_16s/16,GREEN,
+        vm.loop_vtrim[hi.l]&0xffff,
+        VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[hi.l]),
+        dc2dc->dc_power_watts_16s/16,
+        
+      ((dc2dc->dc_current_16s>=nvm.top_dc2dc_current_16s[hi.l] - 1*16)?RED:GREEN), dc2dc->dc_current_16s/16,GREEN,
+        dc2dc->dc_current_limit_16s/16,
         nvm.top_dc2dc_current_16s[hi.l]/16,
-      ((vm.loop[hi.l].dc2dc.dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), 
-        vm.loop[hi.l].dc2dc.dc_temp,GREEN,
-        vm.loop[hi.l].dc2dc.dc_temp
+      ((dc2dc->dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), dc2dc->dc_temp,GREEN,
+      
+        vm.loop[hi.l].asic_temp_sum/vm.loop[hi.l].asic_count,
+        vm.loop[hi.l].asic_count,
+        vm.loop[hi.l].asic_hz_sum*15/1000
         );
       hl = hi.l;
-      total_hash_power = hi.a->asic_freq*15+220;
+      total_watt+=dc2dc->dc_power_watts_16s;
+      total_hash_power += hi.a->asic_freq*15+220;      
+   
     } else {
-      total_hash_power += hi.a->asic_freq*15+220;
+      total_hash_power += hi.a->asic_freq*15+220;            
     }
-    printf(GREEN "%x|%s%dc%s %s%dhz%s %x|" RESET, 
+    total_asics++;
+    printf(GREEN "|%2x:%s%3dc%s %s%3dhz%s %s%x" RESET, 
       hi.addr,
-      (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:GREEN,((hi.a->asic_temp*6)+77),GREEN,
+      (hi.a->asic_temp>=ASIC_TEMP_107)?((hi.a->asic_temp>=ASIC_TEMP_113)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
        (hi.a->asic_freq>=MAX_ASIC_FREQ)?RED:GREEN,hi.a->asic_freq*15+210,GREEN,
-      vm.working_engines[hi.addr]);
+       (vm.working_engines[hi.addr]!=0x7FFF)?GREEN_BOLD:GREEN, vm.working_engines[hi.addr]);
   }
-  printf(RESET "[H:%dGh]\n",(total_hash_power*15)/1000);
+  // print last loop
+  // print total hash power
+  printf(RESET "\n[H:%dGh,W:%d,L:%d,A:%d,ER:%d,EP:%d]\n",
+  (total_hash_power*15)/1000,
+  total_watt/16,
+  total_loops,
+  total_asics,
+  (total_hash_power*15*192)/1000/total_asics,
+  (vm.ac2dc_power-70)/total_asics*192+70
+  );
 
   
-  /*
-  print_miner_box();
-  int h, l;
-  for (l = 0; l < LOOP_COUNT; l++) {
-    // TODO
-    if (vm.loop[l].enabled_loop) {
-      print_loop(l);
-      for (h = 0; h < HAMMERS_PER_LOOP; h++) {
-        HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
-        print_asic(a);
-      }
-    } else {
-      DBG(DBG_SCALING, "    LOOP %x ----\n", l);
-    }
-  }
-  */
 }

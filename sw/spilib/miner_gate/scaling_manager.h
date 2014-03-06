@@ -1,13 +1,12 @@
 #ifndef _____DC2SCALINGME__45R_H____
 #define _____DC2SCALINGME__45R_H____
 
-#define ASIC_SPEED_RAISE_TIME 10 // seconds between ASIC speed changes UP
+#include "scaling_ac2dc.h"
+#include "scaling_dc2dc.h"
 
-void decrease_asics_freqs();
+void asic_down(HAMMER *a, time_t now);
 int test_serial(int loopid);
 void print_scaling();
-int can_be_downscaled(HAMMER *a);
-int can_be_upscaled(HAMMER *a);
 void reset_all_asics_full_reset();
 
 

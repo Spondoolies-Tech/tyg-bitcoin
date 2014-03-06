@@ -38,6 +38,15 @@ unmount_emmc()
 			umount ${dev}
 		done
 	}
+
+	mount | grep ${${SDCARD_DEVICE}} |
+	{
+		while read dev rest
+		do
+			umount ${dev}
+		done
+	}
+
 }
 
 

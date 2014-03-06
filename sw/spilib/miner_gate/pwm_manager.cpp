@@ -6,6 +6,9 @@
 #include <spond_debug.h>
 #include "hammer.h"
 #include "hammer_lib.h"
+#include "pthread.h"
+
+extern pthread_mutex_t i2cm;
 
 /*
 
@@ -13,7 +16,8 @@
 */
 
 // XX in percent - 0 to 100
-#define PWM_VALUE(XX)  (12000+XX*(320-120))
+// #define PWM_VALUE(XX)  (12000+XX*(320-120)) 
+#define PWM_VALUE(XX)  (12000+XX*(220))  // TODO - can go up to 250
 //int pwm_values[] = { 12000 , 22000, 32000 };
 void init_pwm() {
   // cd /sys/devices/bone_capemgr.*
@@ -71,6 +75,19 @@ void init_pwm() {
   // echo bone_pwm_P9_31 > "/sys/devices/bone_capemgr.9/slots"
 }
 
+void kill_fan() {
+  FILE *f;
+  int val = 0;
+  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
+  if (f <= 0) {
+    printf(RED "Fan PWM not found\n" RESET);
+  } else {
+    fprintf(f, "%d", val);
+    fclose(f);
+  }
+}
+
+
 void set_fan_level(int fan_level) {
   // echo 40000 > "/sys/devices/ocp.3/pwm_test_P9_31.13/period"
   // echo val > "/sys/devices/ocp.3/pwm_test_P9_31.13/duty"
@@ -87,7 +104,7 @@ void set_fan_level(int fan_level) {
   }
 }
 
-void auto_select_fan_level() {
+void auto_select_fan_level_1_secs() {
   int hottest_asic_temp = ASIC_TEMP_77;
   hammer_iter hi;
   hammer_iter_init(&hi);
@@ -98,23 +115,31 @@ void auto_select_fan_level() {
 	//printf(GREEN "FAN ?? %d\n" RESET,a->asic_temp);
     if (a->asic_temp >= ASIC_TEMPERATURE_TO_SET_FANS_HIGH) {
       higher_then_wanted++;
-	  //printf(GREEN "FAN MED %d\n" RESET, higher_then_high);
+    }
+	if (a->asic_temp >= MAX_ASIC_TEMPERATURE+1) {
+      higher_then_wanted+=3;
     }
   }
 
   
-  if (higher_then_wanted >= ASIC_TO_SET_FANS_HIGH_COUNT) {
-    vm.fan_level+=higher_then_wanted;
+  if ((higher_then_wanted >= ASIC_TO_SET_FANS_HIGH_COUNT) && !vm.asics_shut_down_powersave) {
+    vm.fan_level+=3;
+	//printf("--------------------------------\n");
 	if (vm.fan_level > MAX_FAN_LEVEL) {
 		vm.fan_level = MAX_FAN_LEVEL;
 	}
     set_fan_level(vm.fan_level);
   } 
 
-  if (!higher_then_wanted && (vm.fan_level > 0)) {
-	  vm.fan_level--;
-	  set_fan_level(vm.fan_level);
-  }
+  if (((higher_then_wanted < ASIC_TO_SET_FANS_HIGH_COUNT) || 
+  	   (vm.asics_shut_down_powersave))) {
+  	   //printf("++++++++++++++++++++++++++++++++\n");
+	  	vm.fan_level-=3;
+	  	if ((vm.fan_level < 0)) {
+			vm.fan_level = 0;
+	  	}
+		set_fan_level(vm.fan_level);
+  	}
 }
 
 /*
