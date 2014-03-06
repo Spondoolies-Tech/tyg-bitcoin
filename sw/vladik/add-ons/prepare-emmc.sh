@@ -13,6 +13,20 @@ MBR=/usr/local/lib/emmc-mbr
 MBR_SIZE=512
 tmpfile=`mktemp`
 
+
+unmount_unionfs()
+{
+	mount | grep 'unionfs' |
+	{
+		while read rest rest mountpoint rest
+		do
+			umount ${mountpoint}
+		done
+	}
+
+}
+
+
 # In a very unlikely situation where eMMC already mounted unmount
 # its filesystems first.
 unmount_emmc()
@@ -106,6 +120,7 @@ main()
 {
 	check_for_sdcard
 	start_counting &
+	unmount_unionfs
 	unmount_emmc
 	place_mbr
 	reread_partition_table
