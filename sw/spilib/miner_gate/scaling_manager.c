@@ -59,7 +59,7 @@ void pause_all_mining_engines() {
   int err;
   passert(vm.asics_shut_down_powersave == 0);
   int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
-  set_fan_level(0);
+  //set_fan_level(0);
   while(some_asics_busy != 0) {
     int addr = BROADCAST_READ_ADDR(some_asics_busy);
     printf(RED "some_asics_busy %x\n" RESET, some_asics_busy);
@@ -271,9 +271,9 @@ void print_scaling() {
     total_asics++;
     printf(GREEN "|%2x:%s%3dc%s %s%3dhz%s %s%x" RESET, 
       hi.addr,
-      (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:GREEN,((hi.a->asic_temp*6)+77),GREEN,
+      (hi.a->asic_temp>=ASIC_TEMP_107)?((hi.a->asic_temp>=ASIC_TEMP_113)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
        (hi.a->asic_freq>=MAX_ASIC_FREQ)?RED:GREEN,hi.a->asic_freq*15+210,GREEN,
-       (vm.working_engines[hi.addr]!=0x7FFF)?RED:GREEN, vm.working_engines[hi.addr]);
+       (vm.working_engines[hi.addr]!=0x7FFF)?GREEN_BOLD:GREEN, vm.working_engines[hi.addr]);
   }
   // print last loop
   // print total hash power

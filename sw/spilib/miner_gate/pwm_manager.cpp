@@ -104,7 +104,7 @@ void set_fan_level(int fan_level) {
   }
 }
 
-void auto_select_fan_level() {
+void auto_select_fan_level_1_secs() {
   int hottest_asic_temp = ASIC_TEMP_77;
   hammer_iter hi;
   hammer_iter_init(&hi);
@@ -115,23 +115,31 @@ void auto_select_fan_level() {
 	//printf(GREEN "FAN ?? %d\n" RESET,a->asic_temp);
     if (a->asic_temp >= ASIC_TEMPERATURE_TO_SET_FANS_HIGH) {
       higher_then_wanted++;
-	  //printf(GREEN "FAN MED %d\n" RESET, higher_then_high);
+    }
+	if (a->asic_temp >= MAX_ASIC_TEMPERATURE+1) {
+      higher_then_wanted+=3;
     }
   }
 
   
-  if (higher_then_wanted >= ASIC_TO_SET_FANS_HIGH_COUNT) {
-    vm.fan_level+=2;
+  if ((higher_then_wanted >= ASIC_TO_SET_FANS_HIGH_COUNT) && !vm.asics_shut_down_powersave) {
+    vm.fan_level+=3;
+	//printf("--------------------------------\n");
 	if (vm.fan_level > MAX_FAN_LEVEL) {
 		vm.fan_level = MAX_FAN_LEVEL;
 	}
     set_fan_level(vm.fan_level);
   } 
 
-  if ((higher_then_wanted < ASIC_TO_SET_FANS_HIGH_COUNT) && (vm.fan_level > 0)) {
-	  vm.fan_level-=2;
-	  set_fan_level(vm.fan_level);
-  }
+  if (((higher_then_wanted < ASIC_TO_SET_FANS_HIGH_COUNT) || 
+  	   (vm.asics_shut_down_powersave))) {
+  	   //printf("++++++++++++++++++++++++++++++++\n");
+	  	vm.fan_level-=3;
+	  	if ((vm.fan_level < 0)) {
+			vm.fan_level = 0;
+	  	}
+		set_fan_level(vm.fan_level);
+  	}
 }
 
 /*
