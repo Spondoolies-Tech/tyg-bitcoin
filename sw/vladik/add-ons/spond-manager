@@ -1,0 +1,97 @@
+#!/bin/sh
+#
+# Handle SPI.
+#
+
+
+
+CGMINER_CMD="/usr/local/bin/cgminer -o http://mining.eligius.st:8337 -u 1CS7gyvYjMyzAPwLtaVoRTXsdAxhfMSsUy -p x"
+MINERGATE_CMD="/usr/local/bin/miner_gate_arm"
+
+
+export PATH=$PATH:/usr/local/bin:/bin
+miner_gate_arm_watchdog () {
+	$MINERGATE_CMD &
+	echo $! > /var/run/miner_gate_arm.pid
+	sleep 5
+	$CGMINER_CMD &
+	echo $! > /var/run/cgminer_arm.pid
+
+	while true; do
+		pidm=`cat /var/run/miner_gate_arm.pid`
+		if [ ! -e /proc/$pidm -a /proc/$pidm/exe ]; then
+			echo "Minergate died and restarted"
+			$MINERGATE_CM &
+			echo $! > /var/run/miner_gate_arm.pid
+		fi
+
+		pidc=`cat /var/run/cgminer_arm.pid`
+		if [ ! -e /proc/$pidc -a /proc/$pidc/exe ]; then
+			echo "Cgminer died and restarted"
+			$CGMINER_CMD &
+			echo $! > /var/run/cgminer_arm.pid
+		fi
+		sleep 3;
+	done
+
+}
+
+
+
+
+start_mg() {
+	if [ -f "/var/run/miner_gate_arm.pid" ]; then
+		echo "minergate is already running"
+	else
+		miner_gate_arm_watchdog &
+		echo $! > /var/run/miner_gate_arm_watchdog.pid
+	fi
+}
+
+
+stop_mg() {
+	if [ ! -f "/var/run/miner_gate_arm_watchdog.pid" ]; then
+		echo "Mining manager not running"
+	else
+		pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
+		pid2=`cat /var/run/cgminer_arm.pid`
+		pid3=`cat /var/run/miner_gate_arm.pid`
+		kill $pid1
+		kill $pid2
+		kill $pid3
+		rm /var/run/miner_gate_arm_watchdog.pid
+		rm /var/run/miner_gate_arm.pid
+		rm /var/run/cgminer_arm.pid
+	fi
+}
+
+
+
+case "$1" in
+start)
+	# bullshit
+	NORMALBOOT=1
+
+	#	mount /mnt/sd-boot
+	#	mount /mnt/mmc-config
+	#	mount /mnt/mmc-boot
+	start_mg
+	;;
+stop)
+	stop_mg
+	;;
+restart|reload)
+	"$0" stop
+	sleep 1
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+

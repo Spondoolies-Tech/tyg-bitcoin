@@ -66,7 +66,6 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
 	cp ${CUR_DIR}/../add-ons/S87squid etc/init.d	
 	cd ${TARGET_DIR}/usr/local/bin/
-	ln -s -f ../../../etc/init.d/S90spondoolies spond  
 	cd -
 	#FPGA
 	cp ${CUR_DIR}/../jtag/jam/jam usr/local/bin
@@ -75,6 +74,7 @@ copy_all_spond_files() {
 		mkdir spond-data
 	fi
 	cp ${CUR_DIR}/../add-ons/squid_top.jam spond-data
+	cp ${CUR_DIR}/../add-ons/spond-manager usr/local/bin
 	cp ${CUR_DIR}/../arm-binaries/*  usr/local/bin
 	
 	#binaries
@@ -87,8 +87,9 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/readboxvpd.sh usr/local/bin
 	cp ${CUR_DIR}/../../scripts/writemngvpd.sh usr/local/bin
 	cp ${CUR_DIR}/../../scripts/writeboxvpd.sh usr/local/bin
-#	cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
-	cp ${CUR_DIR}/../../spilib/miner_gate_arm usr/local/bin
+	#cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
+	cp ${CUR_DIR}/../../spilib/miner_gate/miner_gate_arm usr/local/bin
+	cp ${CUR_DIR}/../../../../cg-miner-git/cgminer/cgminer usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
 	cp ${CUR_DIR}/../../spilib/zabbix_reader/zabbix_reader_arm  usr/local/bin
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin

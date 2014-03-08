@@ -4,94 +4,39 @@
 #
 
 export PATH=$PATH:/usr/local/bin:/bin
-miner_gate_arm_watchdog () {
-	/usr/local/bin/miner_gate_arm &
-	echo $! > /var/run/miner_gate_arm.pid
-
-
-
-	while true; do
-		pid=`cat /var/run/miner_gate_arm.pid`
-		if [ ! -e /proc/$pid -a /proc/$pid/exe ]; then
-			echo "minergate died and restarted"
-			/usr/local/bin/miner_gate_arm &
-			echo $! > /var/run/miner_gate_arm.pid
-		fi
-		sleep 3;
-	done
-
-}
-
-
-start_mg() {
-	if [ -f "/var/run/miner_gate_arm.pid" ]; then
-		echo "minergate is already running"
-	else
-		miner_gate_arm_watchdog &
-		echo $! > /var/run/miner_gate_arm_watchdog.pid
-	fi
-}
-
-
-stop_mg() {
-	if [ ! -f "/var/run/miner_gate_arm.pid" ]; then
-		echo "minergate not running"
-	else
-		pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
-		pid2=`cat /var/run/miner_gate_arm.pid`
-		kill $pid1
-		kill $pid2
-		rm /var/run/miner_gate_arm_watchdog.pid
-		rm /var/run/miner_gate_arm.pid
-	fi
-}
-
 
 
 case "$1" in
 start)
 	# bullshit
 	NORMALBOOT=1
-
 	#	mount /mnt/sd-boot
 	#	mount /mnt/mmc-config
 	#	mount /mnt/mmc-boot
 
 
-		if [ -e "/mnt/nfs/autorun" ]; then
-			NORMALBOOT=0
-			/mnt/nfs/autorun
-		fi
-	
-
-		if [ -e "/mnt/sd-boot/autorun" ]; then
-			NORMALBOOT=0
-			/mnt/sd-boot/autorun
-		fi
+	if [ -e "/mnt/mmc-config/autorun" ]; then
+		NORMALBOOT=0
+		/mnt/nfs/autorun
+	fi
 
 
-		if [ -e "/mnt/mmc-boot/autorun" ]; then
-			NORMALBOOT=0
-			/mnt/mmc-boot/autorun
-		fi
-	
-
-	
-	
+	if [ -e "/mnt/sd-boot/autorun" ]; then
+		NORMALBOOT=0
+		/mnt/sd-boot/autorun
+	fi
 
 	echo "NORMALBOOT=${NORMALBOOT}"
 	if [ ${NORMALBOOT} -eq 1 ]; then 
-		echo "Loading FPGA..."
-		sleep 1
-		#start_mg
+		/usr/local/bin/spond-manager start
 	fi
 	;;
 stop)
-	stop_mg
+	/usr/local/bin/spond-manager stop
 	;;
 restart|reload)
-	"$0" stop
-	"$0" start
+	/usr/local/bin/spond-manager start
+	/usr/local/bin/spond-manager stop
 	;;
 *)
 	echo "Usage: $0 {start|stop|restart}"

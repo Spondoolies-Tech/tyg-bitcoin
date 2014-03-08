@@ -318,8 +318,8 @@ typedef struct {
   // our ASIC data
   HAMMER hammer[HAMMERS_COUNT];
   uint32_t working_engines[HAMMERS_COUNT];
-    
 
+  
   // our loop and dc2dc data
   LOOP loop[LOOP_COUNT];
   uint32_t loop_vtrim[LOOP_COUNT];
