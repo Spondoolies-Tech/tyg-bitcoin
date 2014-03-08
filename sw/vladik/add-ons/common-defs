@@ -1,8 +1,14 @@
 # Common definitions.
-# Shared between host and target.
+# Partially shared between host and target.
 
 # Where to store DHCP Option 17 (Root Path) if received from DHCP server.
 ROOTPATH_FILE=/tmp/rootpath
+
+# EEPROM device access
+EEPROM_DEVICE=/sys/bus/i2c/devices/0-0050/eeprom
+
+# Spondoolies public key.
+SPON_PUBLIC_KEY=/etc/spondoolies-pub.pem
 
 ###
 ### Mount points
