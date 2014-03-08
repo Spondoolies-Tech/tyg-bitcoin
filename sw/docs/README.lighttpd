@@ -5,7 +5,9 @@ automake
 CC=arm-none-linux-gnueabi-gcc						\
 	./configure --host=arm-linux --disable-ipv6 			\
 	--without-zlib --without-bzip2 --without-pcre			\
-	CFLAGS='-Os -s -fomit-frame-pointer'
+	CFLAGS='-Os -s -fomit-frame-pointer'				\
+	--with-openssl=`pwd`/../buildroot-2013.05/output/build/openssl-1.0.1e \
+	--with-openssl-includes=`pwd`/../buildroot-2013.05/output/build/openssl-1.0.1e/include
 
 Compile
 =======
