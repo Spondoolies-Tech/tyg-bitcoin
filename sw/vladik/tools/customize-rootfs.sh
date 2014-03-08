@@ -88,8 +88,8 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/writemngvpd.sh usr/local/bin
 	cp ${CUR_DIR}/../../scripts/writeboxvpd.sh usr/local/bin
 	#cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
-	cp ${CUR_DIR}/../../spilib/miner_gate/miner_gate_arm usr/local/bin
-	cp ${CUR_DIR}/../../../../cg-miner-git/cgminer/cgminer usr/local/bin
+#	cp ${CUR_DIR}/../../spilib/miner_gate/miner_gate_arm usr/local/bin
+#	cp ${CUR_DIR}/../../../../cg-miner-git/cgminer/cgminer usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
 	cp ${CUR_DIR}/../../spilib/zabbix_reader/zabbix_reader_arm  usr/local/bin
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin
@@ -124,12 +124,11 @@ emmc()
 web_server()
 {
 	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/lighttpd usr/bin
-	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/.libs/mod_indexfile.so usr/local/lib
-	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/.libs/mod_staticfile.so usr/local/lib
-	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/.libs/mod_fastcgi.so usr/local/lib
-	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/.libs/mod_redirect.so usr/local/lib
-	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/.libs/mod_rewrite.so usr/local/lib
-	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/.libs/mod_dirlisting.so usr/local/lib
+	cp -a ${CUR_DIR}/../add-ons/S55lighttpd etc/init.d
+	for m in indexfile staticfile fastcgi redirect rewrite dirlisting auth
+	do
+		cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/.libs/mod_${m}.so usr/local/lib
+	done
 }
 
 generate_fstab()
