@@ -305,11 +305,12 @@ typedef struct {
   int bist_current;  
   int bist_voltage;  
 
-
+  int silent_test_mode;
   
   // ac2dc current and temperature
   int ac2dc_power;  // in ampers. 0 = bad reading.
   int dc2dc_total_power; 
+  int total_mhash; 
   uint32_t ac2dc_temp;
 
   // When system just started, search optimal speed agressively

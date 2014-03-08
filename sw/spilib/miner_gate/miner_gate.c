@@ -243,14 +243,25 @@ void *connection_handler_thread(void *adptr) {
   // minergate_data* md1 =    get_minergate_data(adapter->next_rsp,  300, 3);
   // minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
   // Read packet
+  struct timeval now;      
+  struct timeval last_time; 
+  gettimeofday(&now, NULL);
+  gettimeofday(&last_time, NULL);
   while ((nbytes = read(adapter->connection_fd, (void *)adapter->last_req,
-                        sizeof(minergate_req_packet))) >
-         0) {
+                        sizeof(minergate_req_packet))) > 0) {
+    struct timeval now;      
+    struct timeval last_time; 
+    int usec;
     if (nbytes) {
       // DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length +
       // MINERGATE_PACKET_HEADER_SIZE, nbytes);
       passert(adapter->last_req->magic == 0xcaf4);
+      gettimeofday(&now, NULL);
 
+      usec = (now.tv_sec - last_time.tv_sec) * 1000000;
+      usec += (now.tv_usec - last_time.tv_usec);
+  
+      
       pthread_mutex_lock(&network_hw_mutex);
       vm.not_mining_counter = 0;
       set_fan_level(100);
@@ -276,6 +287,9 @@ void *connection_handler_thread(void *adptr) {
         passert(res);
       }
       adapter->next_rsp->rsp_count = rsp_count;
+      int mhashes_done = (vm.total_mhash/1000)*(usec/1000);
+      printf("Mhsh=%d\n",mhashes_done);
+      adapter->next_rsp->gh_done = mhashes_done/1000;  
       // printf("SND %d\n", rsp_count);
 
       // DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n",
@@ -298,6 +312,7 @@ void *connection_handler_thread(void *adptr) {
 
       // Clear packet.
       adapter->next_rsp->rsp_count = 0;
+      last_time = now;
     }
   }
   adapters[adapter->adapter_id] = NULL;
@@ -484,9 +499,18 @@ int main(int argc, char *argv[]) {
     test_mode = 1;
     printf("--testreset = Test asic reset!!!\n");
     printf("--test = Test mode!!!\n");
+    printf("--silent-test = Test mode!!!\n");
     printf("<num> = Asic to mesure\n");
     return 0;
   }
+
+
+  if ((argc > 1) && strcmp(argv[1], "--silent-test") == 0) {
+    vm.silent_test_mode = 1;
+    printf("Test mode, using few ASICs !!!\n");
+  }
+
+ 
 
   if ((argc > 1) && strcmp(argv[1], "--test") == 0) {
     test_mode = 1;

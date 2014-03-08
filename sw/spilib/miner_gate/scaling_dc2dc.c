@@ -260,6 +260,7 @@ void asic_scaling_once_second(int force) {
   struct timeval tv;
   start_stopper(&tv);
   vm.dc2dc_total_power = 0;
+  vm.total_mhash = 0;
 
   // Remove disabled loops and pdate statistics
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
@@ -276,6 +277,7 @@ void asic_scaling_once_second(int force) {
         }
       }
       vm.dc2dc_total_power += vm.loop[l].dc2dc.dc_power_watts_16s;
+      vm.total_mhash += vm.loop[l].asic_hz_sum*ENGINES_PER_ASIC;
       if (vm.loop[l].asic_count == 0) {
         vm.loop[l].enabled_loop = 0;
       }
@@ -291,14 +293,12 @@ void asic_scaling_once_second(int force) {
   if (!vm.asics_shut_down_powersave) { 
       //Once every 10 seconds upscale ASICs if can
       if (force  || 
-         (vm.ac2dc_power < LOW_AC2DC_POWER) ||
          ((counter % BIST_PERIOD_SECS) == 0)) {
-        // printf("bbb\n");
+         //printf("bbb\n");
          do_bist();
       }
             
       if (force  || 
-        (vm.ac2dc_power < LOW_AC2DC_POWER) ||
         ((counter % BIST_PERIOD_SECS) == 1)) {
          asic_frequency_update();
       } 
@@ -391,9 +391,9 @@ void asic_frequency_update(int verbal) {
         
         int passed = h->passed_last_bist_engines;
         if (h->asic_temp >= MAX_ASIC_TEMPERATURE) {
-          
           if (asic_can_down(h)) {
             h->top_freq = h->asic_freq-1;
+            // let it cool off
             asic_down_completly(h);
           }
         }

@@ -374,7 +374,7 @@ int allocate_addresses_to_devices() {
           vm.hammer[addr].failed_bists = 0;    
           vm.hammer[addr].passed_last_bist_engines = ALL_ENGINES_BITMASK;
           vm.hammer[addr].top_freq = MAX_ASIC_FREQ;
-          if (0) {
+          if (vm.silent_test_mode && (addr%20 != 0)) {
             disable_asic_forever(addr);
           }
          
@@ -764,8 +764,12 @@ void once_second_tasks() {
     if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) {
       asic_scaling_once_second(0);
     }
-   
 
+    syslog (LOG_INFO, "Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n",
+             last_second_jobs, spi_ioctls_read, spi_ioctls_write, rt_queue_sw_write,
+             rt_queue_hw_done, rt_queue_size);
+    syslog (LOG_INFO, "wins:%d, leading-zeroes:%d idle:%d/%d\n", vm.solved_jobs_total,
+           cur_leading_zeroes, vm.idle_probs, vm.busy_probs);    
     
     printf("Pushed %d jobs (%d:%d) (%d-%d), in queue %d jobs!\n",
              last_second_jobs, spi_ioctls_read, spi_ioctls_write, rt_queue_sw_write,

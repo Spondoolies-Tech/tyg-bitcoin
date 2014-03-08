@@ -65,8 +65,8 @@ spi_stuff()
 copy_all_spond_files() {
 	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
 	cp ${CUR_DIR}/../add-ons/S87squid etc/init.d	
-	cd ${TARGET_DIR}/usr/local/bin/
-	cd -
+	cp ${CUR_DIR}/../add-ons/S42checkip etc/init.d/S42checkip	
+	cp ${CUR_DIR}/../add-ons/cgminer.conf etc	
 	#FPGA
 	cp ${CUR_DIR}/../jtag/jam/jam usr/local/bin
 	cp ${CUR_DIR}/../jtag/fpga-load.sh usr/local/bin

@@ -22,7 +22,6 @@
 #define MAX_FAN_LEVEL                   100
 #define HOT_ASICS_IN_LOOP_FOR_DOWNSCALE 6
 #define COLD_ASICS_IN_LOOP_FOR_UPSCALE  4
-#define RUNTIME_TO_START_CHANGING_VOLTAGES 60 
 
 
 #define TIME_FOR_DLL_USECS  1000
@@ -33,9 +32,8 @@
 
 // In seconds
 #define BIST_PERIOD_SECS_RAMPUP            1
-#define BIST_PERIOD_SECS                   5
-#define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 10
-#define HOT_ASIC_FREQ_DECREASE_PERIOD_SECS 5           
+#define BIST_PERIOD_SECS                   15 // unless hot ASICs discovered
+#define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 30
 
 
 
@@ -75,7 +73,7 @@
 #if ECONOMY == 1
 #define VTRIM_START 0x0FFcA
 #else
-#define VTRIM_START 0x0FFd0//0x0FFd0//VTRIM_MIN//(0x0FFd2+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
+#define VTRIM_START 0x0FFd2//0x0FFd0//VTRIM_MIN//(0x0FFd2+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
 #endif
 #define VTRIM_LOW   0x0FFc0
 #define VTRIM_CORNER_DISCOVERY   0x0FFd3

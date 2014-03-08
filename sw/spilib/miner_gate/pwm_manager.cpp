@@ -23,56 +23,22 @@ void init_pwm() {
   // cd /sys/devices/bone_capemgr.*
 
   FILE *f;
-  printf("--------------- %d\n", __LINE__);
   f = fopen("/sys/devices/bone_capemgr.9/slots", "w");
-  // usleep(2000);
   fprintf(f, "am33xx_pwm");
-  // usleep(2000);
   fclose(f);
-  printf("--------------- %d\n", __LINE__);
-  // usleep(2000);
-  // sleep(1);
   f = fopen("/sys/devices/bone_capemgr.9/slots", "w");
   fprintf(f, "bone_pwm_P9_31");
-  // usleep(2000);
   fclose(f);
-  // usleep(2000);
-  printf("--------------- %d\n", __LINE__);
 
-  int val = PWM_VALUE(100);
-  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.11/period", "w");
-  if (!f) {
-    f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/period", "w");
-  }
-  if (!f) {
-    f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.13/period", "w");
-  }
-  if (!f) {
-    f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.14/period", "w");
-  }
+  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/period", "w");
   passert(f != NULL);
-
   fprintf(f, "40000");
   fclose(f);
-
-  printf("--------------- %d\n", __LINE__);
   // pwm_values
-
-  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.11/duty", "w");
-  if (!f) {
-    f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
-  }
-  if (!f) {
-    f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.13/duty", "w");
-  }
-  if (!f) {
-    f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.14/duty", "w");
-  }
-  fprintf(f, "%d", val);
+  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
+  assert(f != NULL);
+  fprintf(f, "%d", PWM_VALUE(0));
   fclose(f);
-  printf("--------------- %d\n", __LINE__);
-  // echo am33xx_pwm > "/sys/devices/bone_capemgr.9/slots"
-  // echo bone_pwm_P9_31 > "/sys/devices/bone_capemgr.9/slots"
 }
 
 void kill_fan() {
@@ -93,6 +59,10 @@ void set_fan_level(int fan_level) {
   if (vm.fan_level != fan_level) {
 	  passert(fan_level <= 100 && fan_level >=0);
 	  int val = PWM_VALUE(fan_level);
+	  
+	  if (vm.silent_test_mode) {
+		  val = 0;
+	  }
 	  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
 	  if (f <= 0) {
 	    printf(RED "Fan PWM not found\n" RESET);
