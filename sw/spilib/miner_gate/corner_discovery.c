@@ -7,6 +7,7 @@
 #include "hammer.h"
 #include "hammer_lib.h"
 #include "squid.h"
+#include "pll.h"
 
 
 
@@ -14,6 +15,91 @@ DC2DC_VOLTAGE CORNER_TO_VOLTAGE_TABLE[ASIC_CORNER_COUNT] = {
   ASIC_VOLTAGE_765, ASIC_VOLTAGE_765, ASIC_VOLTAGE_720, ASIC_VOLTAGE_630,
   ASIC_VOLTAGE_630, ASIC_VOLTAGE_630
 };
+
+
+void enable_voltage_freq(int vtrim, ASIC_FREQ f) {
+  int l, h, i = 0;
+  // for each enabled loop
+  
+  disable_engines_all_asics();
+  for (l = 0; l < LOOP_COUNT; l++) {
+    if (vm.loop[l].enabled_loop) {
+      // Set voltage
+      int err;
+      // dc2dc_set_voltage(l, vm.loop_vtrim[l], &err);
+      dc2dc_set_vtrim(l, vtrim , &err);
+      // passert(err);
+
+      // for each ASIC
+      for (h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
+        HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
+        // Set freq
+        if (a->asic_present) {
+          set_asic_freq(a->address, f);
+        }
+      }
+    }
+  }
+  enable_good_engines_all_asics_ok();
+}
+
+
+
+const char* corner_to_collor(ASIC_CORNER c) {
+  const static char* color[] = {RESET, CYAN_BOLD ,CYAN, GREEN,  RED, RED_BOLD};
+  return color[c];
+}
+
+
+void compute_corners() {
+  enable_voltage_freq(VTRIM_CORNER_DISCOVERY, ASIC_FREQ_810);
+  hammer_iter hi;
+  hammer_iter_init(&hi);
+
+  int bist_ok;
+  do {
+    resume_asics_if_needed();
+    bist_ok = do_bist_ok(0);
+    pause_asics_if_needed();
+    asic_frequency_update();
+ } while (!bist_ok);
+
+   while (hammer_iter_next_present(&hi)) {
+      if (hi.a->asic_freq >= CORNER_DISCOVERY_FREQ_FF)
+        hi.a->corner = ASIC_CORNER_FFG;
+      else if (hi.a->asic_freq >= CORNER_DISCOVERY_FREQ_TF)
+        hi.a->corner = ASIC_CORNER_TTFFG;
+      else if (hi.a->asic_freq >= CORNER_DISCOVERY_FREQ_TT)
+        hi.a->corner = ASIC_CORNER_TT;
+      else if (hi.a->asic_freq >= CORNER_DISCOVERY_FREQ_TS)
+        hi.a->corner = ASIC_CORNER_SSTT;
+      else 
+        hi.a->corner = ASIC_CORNER_SS;
+      
+   }
+   
+   resume_asics_if_needed();
+}
+
+
+
+void set_working_voltage_discover_top_speeds() {
+  enable_voltage_freq(VTRIM_START, ASIC_FREQ_810);
+
+  hammer_iter hi;
+  hammer_iter_init(&hi);
+
+  int bist_ok;
+  do {
+    resume_asics_if_needed();
+    bist_ok = do_bist_ok(0);
+    pause_asics_if_needed();
+    asic_frequency_update(1);
+ } while (!bist_ok);
+ //enable_voltage_freq(VTRIM_START, ASIC_FREQ_405);
+ resume_asics_if_needed();
+}
+
 
 
 
@@ -44,23 +130,22 @@ void discover_good_loops() {
       write_spi(ADDR_SQUID_LOOP_BYPASS, bypass_loops);
       //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
       //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
-      printf("Testing loop::::::\n");
+      //printf("Testing loop::::::\n");
       if (test_serial(i)) { // TODOZ
         // printf("--00--\n");
         vm.loop[i].enabled_loop = 1;
-        vm.loop_vtrim[i] = VTRIM_START;
+        vm.loop_vtrim[i] = VTRIM_CORNER_DISCOVERY;
         vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
         good_loops |= 1 << i;
         ret++;
       } else {
         // printf("--11--\n");
         vm.loop[i].enabled_loop = 0;
+        vm.loop_vtrim[i] = 0;
         for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
           // printf("remove ASIC 0x%x\n", h);
           vm.hammer[h].asic_present = 0;
           vm.working_engines[h] = 0;
-          nvm.top_freq[h] = ASIC_FREQ_0;
-          nvm.asic_corner[h] = ASIC_CORNER_NA;
         }
         int err;
         printf("Disabling DC2DC %d\n", i);
@@ -81,32 +166,5 @@ void discover_good_loops() {
   passert(ret);
 }
 
-void test_asics_in_freq(ASIC_FREQ freq_to_pass, ASIC_CORNER corner_to_set) {
-  printf(MAGENTA "TODO TODO testing freq!\n" RESET);
-}
 
-
-void find_bad_engines_update_nvm() {
-  int i;
-   
-  if (!do_bist_ok(0)) {
-    // IF FAILED BIST - reduce top speed of failed ASIC.
-    printf("INIT BIST FAILED, reseting working engines bitmask!\n");
-    hammer_iter hi;
-    hammer_iter_init(&hi);
-
-    while (hammer_iter_next_present(&hi)) {
-      // Update NVM
-      if (vm.working_engines[hi.addr] != hi.a->passed_last_bist_engines) {
-        vm.working_engines[hi.addr] = hi.a->passed_last_bist_engines;
-        nvm.dirty = 1;
-        printf("After BIST setting %x enabled engines to %x\n", 
-               hi.addr,
-               vm.working_engines[hi.addr]);
-      }
-    }
-    
-  }
-  enable_voltage_from_nvm();
-}
 

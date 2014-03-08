@@ -97,7 +97,7 @@ void read_some_asic_temperatures(int loop,
       if (val[h] & BIT_INTR_0_OVER) { 
         // This ASIC is at least this temperature high
         if (a->asic_temp < temp_measure_temp0) {
-            //printf(GREEN "0+:ASIC %x Temp was %d now %d \n" RESET,a->address,
+           // printf(GREEN "0+:ASIC %x Temp was %d now %d \n" RESET,a->address,
             //  a->asic_temp*6+77, temp_measure_temp0*6+77);
           a->asic_temp = temp_measure_temp0;
          
@@ -115,7 +115,7 @@ void read_some_asic_temperatures(int loop,
       if (val[h] & BIT_INTR_1_OVER) { 
          // This ASIC is at least this temperature high
          if (a->asic_temp < temp_measure_temp1) {
-            //printf(GREEN "1+:ASIC %x Temp was %d now %d \n" RESET,a->address,
+           // printf(GREEN "1+:ASIC %x Temp was %d now %d \n" RESET,a->address,
             //  a->asic_temp*6+77, temp_measure_temp1*6+77);
            a->asic_temp = temp_measure_temp1;
          

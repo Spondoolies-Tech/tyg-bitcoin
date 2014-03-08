@@ -202,7 +202,7 @@ static inline __s32 i2c_smbus_read_byte_data(int file, __u8 command , int * pErr
   __s32 ioctl_err  = i2c_smbus_access(file,I2C_SMBUS_READ,command, I2C_SMBUS_BYTE_DATA,&data);
 
   if (0 != ioctl_err) {
-    //printf("i2c error caught in i2c_smbus_read_byte_data %d\n" , ioctl_err);
+    printf("i2c error caught in i2c_smbus_read_byte_data %d\n" , ioctl_err);
     if (NULL != pError)
       * pError = ioctl_err;
     return ioctl_err;
@@ -249,7 +249,7 @@ static inline __s32 i2c_smbus_process_call(int file, __u8 command, __u16 value)
   data.word = value;
   if (i2c_smbus_access(file,I2C_SMBUS_WRITE,command,
                        I2C_SMBUS_PROC_CALL,&data)) {
-        //printf("i2c error caught in i2c_smbus_process_call\n");
+        printf("i2c error caught in i2c_smbus_process_call\n");
       return -1;
     }
   else
@@ -265,7 +265,7 @@ static inline __s32 i2c_smbus_read_block_data(int file, __u8 command,
   int i;
   if (i2c_smbus_access(file,I2C_SMBUS_READ,command,
                        I2C_SMBUS_BLOCK_DATA,&data)) {
-       //printf("i2c error caught in i2c_smbus_read_block_data\n");
+       printf("i2c error caught in i2c_smbus_read_block_data\n");
     return -1;
     }
   else {
@@ -305,7 +305,7 @@ static inline __s32 i2c_smbus_read_i2c_block_data(int file, __u8 command,
   if (i2c_smbus_access(file,I2C_SMBUS_READ,command,
                        length == 32 ? I2C_SMBUS_I2C_BLOCK_BROKEN :
                         I2C_SMBUS_I2C_BLOCK_DATA,&data)) {
-    //printf("i2c caught in i2c_smbus_read_i2c_block_data error\n");                
+    printf("i2c caught in i2c_smbus_read_i2c_block_data error\n");                
     return -1;
   } else {
     for (i = 1; i <= data.block[0]; i++)
@@ -342,7 +342,7 @@ static inline __s32 i2c_smbus_block_process_call(int file, __u8 command,
   data.block[0] = length;
   if (i2c_smbus_access(file,I2C_SMBUS_WRITE,command,
                        I2C_SMBUS_BLOCK_PROC_CALL,&data)) {
-    //printf("i2c error caught in i2c_smbus_block_process_call\n");                       
+    printf("i2c error caught in i2c_smbus_block_process_call\n");                       
     return -1;
   } else {
     for (i = 1; i <= data.block[0]; i++)

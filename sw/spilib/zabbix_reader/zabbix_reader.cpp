@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
       printf("loop%d.asic%d.failed_bists %x\n", l, a, zabbix_log.asics[a*l].failed_bists);
       printf("loop%d.asic%d.freq_time %d\n", l, a, zabbix_log.asics[a*l].freq_time);
       printf("loop%d.asic%d.temp %d\n", l, a, zabbix_log.asics[a*l].temp);
-                        //printf("loop%d.asic%d.wins %x\n", l, a, zabbix_log.asics[a*l].wins);
+                        printf("loop%d.asic%d.wins %x\n", l, a, zabbix_log.asics[a*l].wins);
       printf("loop%d.asic%d.cycles %d\n", l, a, zabbix_log.asics[a*l].working_engines*zabbix_log.asics[l*a].freq);
       total_temp += zabbix_log.asics[a*l].temp;
       total_freq += zabbix_log.asics[a*l].freq;

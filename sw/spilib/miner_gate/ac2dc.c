@@ -4,9 +4,16 @@
 #include "i2c.h"
 #include "hammer.h"
 #include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h> 
 
 extern MINER_BOX vm;
 extern pthread_mutex_t i2c_mutex;
+
+void do_stupid_i2c_workaround() {
+   //system("i2cdetect -y -r 0 >> /dev/null");
+}
 
 
 int ac2dc_getint(int source) {
@@ -42,10 +49,18 @@ static int ac2dc_get_power() {
   r*=12;
   r/=1000;
 #else
+  do_stupid_i2c_workaround();
   r = i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD, &err);
-  printf("Value000Power:0x%x\n", r);
+  if (err) {
+    printf("RESET I2C BUS?\n");
+    system("echo 111 > /sys/class/gpio/export");
+    system("echo out > /sys/class/gpio/gpio111/direction");
+    system("echo 0 > /sys/class/gpio/gpio111/value");
+    usleep(1000000);
+    system("echo 111 > /sys/class/gpio/export");
+    assert(0);
+  }
   r = ac2dc_getint(r); //TODOZ
-  printf("Value000Power2:%d\n", r);
 #endif
   //printf(CYAN "Zerem = %d\n" RESET,r);
   int power = r;//ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD, &err)); TODOZ
@@ -71,6 +86,7 @@ static int ac2dc_get_temperature() {
 
   int err = 0;
   //i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
+  do_stupid_i2c_workaround();
   int temp1 = ac2dc_getint(
       i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD, &err));
   if (err) {
@@ -78,8 +94,10 @@ static int ac2dc_get_temperature() {
     // pthread_mutex_unlock(&i2c_mutex);
     return AC2DC_TEMP_GREEN_LINE - 1;
   }
+  do_stupid_i2c_workaround();
   int temp2 = ac2dc_getint(
       i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP2_WORD, &err));
+  do_stupid_i2c_workaround(); 
   int temp3 = ac2dc_getint(
       i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP3_WORD, &err));
   if (temp2 > temp1)
@@ -223,7 +241,8 @@ void reset_i2c() {
 }
 
 
-// Return 1 if needs urgent scaling
+
+
 int update_ac2dc_power_measurments() {
   int err;
   static int counter = 0;
@@ -232,18 +251,19 @@ int update_ac2dc_power_measurments() {
  
   reset_i2c();
   i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
+  do_stupid_i2c_workaround();
+#if AC2DC_BUG == 0  
   vm.ac2dc_temp = ac2dc_get_temperature();
+#endif
 
-  
-  int power = (vm.dc2dc_total_power*1000/790)+80;// ac2dc_get_power()/1000; //TODOZ
-  if (1) {
-   // int power2 = ac2dc_get_power()/1000;
-    int power2 = ac2dc_get_power()/1000;
-    //for (int k = 0; k <20 ; k++) {
-     printf(CYAN"power=%d power2:%d\n" RESET, power, power2);
-     power = power2;
-    //}
-  }
+  int power_guessed = (vm.dc2dc_total_power*1000/770)+60;// ac2dc_get_power()/1000; //TODOZ
+
+  int power =power_guessed;
+#if AC2DC_BUG == 0  
+  power = ac2dc_get_power()/1000;
+#endif
+  printf(CYAN"power=%d(%d)\n" RESET, power,power_guessed);
+
   if (
     !vm.asics_shut_down_powersave &&
     power >= AC2DC_CURRENT_TRUSTWORTHY && 

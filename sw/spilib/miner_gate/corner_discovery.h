@@ -9,9 +9,12 @@
 
 // Functions assumes in NVM loops and present ASICs 
 // discovered, but max_freq/corner/engines not detected
-void recompute_corners_and_voltage_update_nvm();
-void find_bad_engines_update_nvm();
 void discover_good_loops();
+void compute_corners();
+const char* corner_to_collor(ASIC_CORNER c);
+void enable_voltage_freq(int vtrim, ASIC_FREQ f);
+void set_working_voltage_discover_top_speeds() ;
+
 
 
 #endif

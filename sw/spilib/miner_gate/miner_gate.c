@@ -36,7 +36,7 @@
 #include "corner_discovery.h"
 #include "asic_thermal.h"
 #include <syslog.h>
-#include "asic_testboard.h"
+
 #include "pll.h"
 #include "real_time_queue.h"
 #include "leakage_discovery.h"
@@ -86,9 +86,7 @@ static void sighandler(int sig)
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
     dc2dc_disable_dc2dc(l, &err); 
   }
-  if (vm.fan_level >6) {
-    set_fan_level(6);
-  }
+  kill_fan();
   printf("Here comes unexpected death!\n");
   exit(0);
 }
@@ -255,6 +253,7 @@ void *connection_handler_thread(void *adptr) {
 
       pthread_mutex_lock(&network_hw_mutex);
       vm.not_mining_counter = 0;
+      set_fan_level(100);
       if (vm.asics_shut_down_powersave) {
         unpause_all_mining_engines();
       }
@@ -470,10 +469,8 @@ int main(int argc, char *argv[]) {
   int testreset_mode = 0;
   int init_mode = 0;
   int s;
-  int new_nvm = 1;
   srand (time(NULL));
   enable_reg_debug = 0;
-  printf("ENABLING REG DEBUG\n");
   setlogmask(LOG_UPTO(LOG_INFO));
   openlog("minergate", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
   syslog(LOG_NOTICE, "minergate started");
@@ -486,39 +483,21 @@ int main(int argc, char *argv[]) {
   if ((argc > 1) && strcmp(argv[1], "--help") == 0) {
     test_mode = 1;
     printf("--testreset = Test asic reset!!!\n");
-    printf("--test = Test mode, remove NVM!!!\n");
-    printf("--init = Re-init mode!!!\n");
+    printf("--test = Test mode!!!\n");
     printf("<num> = Asic to mesure\n");
     return 0;
   }
 
   if ((argc > 1) && strcmp(argv[1], "--test") == 0) {
     test_mode = 1;
-    printf("Test mode, remove NVM!!!\n");
-    spond_delete_nvm();
+    printf("Test mode, !!!\n");
   }
 
   if ((argc > 1) && strcmp(argv[1], "--testreset") == 0) {
     testreset_mode = 1;
-    printf("Test reset mode, remove NVM!!!\n");
-    spond_delete_nvm();
+    printf("Test reset mode!!!\n");
   }
 
-
-
-  if ((argc > 1) && strcmp(argv[1], "--init") == 0) {
-    printf("Re-init mode!!!\n");
-    // Delete NVM
-    spond_delete_nvm();
-  }
-
-#if TEST_BOARD == 1
-   if ((argc > 2) && (loop_to_measure = atoi(argv[2]))) {
-    printf("||||||||||||||| --->>> loop_to_measure=%d\n", loop_to_measure);
-    // Delete NVM
-    spond_delete_nvm();
-  }
-#endif
 
   struct sockaddr_un address;
   int socket_fd, connection_fd;
@@ -531,7 +510,7 @@ int main(int argc, char *argv[]) {
   reset_squid();
   printf("init_spi\n");
   init_spi();
-  //printf("i2c_init\n");
+  printf("i2c_init\n");
   i2c_init();
   printf("dc2dc_init\n");
   dc2dc_init();
@@ -551,32 +530,16 @@ int main(int argc, char *argv[]) {
 
 
 
-  if (!load_nvm_ok()) {
-    // Init NVM.
-    // Finds good loops using broadcast reads. No addresses given.
-    printf(RED "Creating new NVM\n" RESET);
-
-    // Sets all ASICs to ASIC_CORNER_SS
-    // Set working engines to 0xFF
-    // Set top frequency to ASIC_FREQ_225
-    create_default_nvm();
-  } else {
-    new_nvm = 0;
-  }
-  
   // Find good loops
   // Update vm.good_loops
   // Set ASICS on all disabled loops to asic_ok=0
   discover_good_loops();
-  print_nvm();
-  //  Here the NVM assumed to be updated (new or old), we work with it.
 
  
 
-  // Update vm.loop[i].enabled_loop from NVM, set loops in FPGA
+  //set loops in FPGA
   if (!enable_good_loops_ok()) {
-    printf("LOOP TEST FAILED, DELETE NVM AND RESTART:%x\n", vm.good_loops);
-    spond_delete_nvm();
+    printf("LOOP TEST FAILED, RESTARTING:%x\n", vm.good_loops);
     passert(0);
   }
 
@@ -596,72 +559,31 @@ int main(int argc, char *argv[]) {
       disable_asic_forever(addr);
    }
     
-  // Give addresses to devices. If NVM non-consistent - delete it and exit.
-  allocate_addresses_to_devices();
-
- 
-     //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
-   
-     
-
+  // Give addresses to devices.
+  allocate_addresses_to_devices(); 
+  //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
   // Set nonce ranges
   set_nonce_range_in_engines(0xFFFFFFFF);
-
-
-
 
   // Set default frequencies.
   // Set all voltage to ASIC_VOLTAGE_810
   // Set all frequency to ASIC_FREQ_225
   set_safe_voltage_and_frequency();
   // Set all engines to 0x7FFF
-  enable_nvm_engines_all_asics_ok();
- 
- 
-  //assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
-  // UPDATE NVM DATA by running some tests.
-  if (new_nvm) {
-    // Sets bad engines in NVM
-    find_bad_engines_update_nvm();
-    enable_nvm_engines_all_asics_ok();
-    // Sets asic Corner and loop voltages
-    //recompute_corners_and_voltage_update_nvm(); 
-    //
-//      int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
-//    assert(some_asics_busy == 0);
- //   fulltest_test_board();
- //   assert(0);
-  }
-
-
-  //set_nvm_dc2dc_voltage();
-
-
- // assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
-
-
   
-  printf("setting ASIC engines %d\n", __LINE__);
-  enable_nvm_engines_all_asics_ok();
-  
-  
+  printf("setting ASIC engines %d\n", __LINE__);  
+  //enable_good_engines_all_asics_ok();
+  //enable_all_engines_asic(int addr);
    
   printf("hammer initialisation done %d\n", __LINE__);
   thermal_init();
   
-  // Save NVM unless running without scaling
-  spond_save_nvm();
 
   // Enables NVM engines in ASICs.
-  printf("enable_voltage_from_nvm\n");
-  enable_voltage_from_nvm();
-  printf("init_scaling\n");
-  init_scaling();
-
-
-
+//  printf("enable_voltage_from_nvm\n");
+//  enable_voltage_from_nvm();
+  
   printf("init_scaling done, ready to mine, saving NVM\n");
-  spond_save_nvm();
 
   if (testreset_mode) {
     test_asic_reset();
@@ -673,22 +595,18 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+
+  //compute_corners();
+  set_working_voltage_discover_top_speeds();
+
   
- // do_leakage_discovery();
-  //printf("-----------------------------------------\n");
-  //while(1);
-  //assert(0);
-  //assert((read_reg_broadcast(ADDR_VERSION)&0xFF) == 0x3c);
-  //assert(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY) == 0);
-
-
-  enable_reg_debug = 0;
-
   printf("Opening socket for cgminer\n");
   // test HAMMER read
   // passert(read_reg_broadcast(ADDR_VERSION), "No version found in ASICs");
   socket_fd = init_socket();
   passert(socket_fd > 0);
+
+  
 
   printf("Starting HW thread\n");
 

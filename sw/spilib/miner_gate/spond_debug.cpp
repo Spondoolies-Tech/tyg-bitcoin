@@ -45,5 +45,7 @@ void end_stopper(struct timeval *tv, const char *name) {
   gettimeofday(&end, NULL);
   usec = (end.tv_sec - tv->tv_sec) * 1000000;
   usec += (end.tv_usec - tv->tv_usec);
-  printf(YELLOW "STOPPER %s took %d usecs\n" RESET, name, usec);
+  if (usec > 10) {
+	  printf(YELLOW "STOPPER %s took %d usecs\n" RESET, name, usec);
+  } 
 }

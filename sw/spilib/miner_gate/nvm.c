@@ -71,14 +71,6 @@ void print_nvm() {
   printf(MAGENTA "NVM\n");
   int i;
   // See max rate under ASIC_VOLTAGE_810
- 
-
-  for (i = 0; i < LOOP_COUNT; i++) {
-    printf("LOOP %d: Top DC2DC:%d\n" ,
-      i, 
-      //nvm.loop_voltage[i],
-      nvm.top_dc2dc_current_16s[i]);
-  }
   
   printf(RESET);
 
@@ -146,5 +138,5 @@ void spond_save_nvm() {
     fwrite(&nvm, sizeof(SPONDOOLIES_NVM), 1, infile);
     printf("Success, ---->> File %d\n", infile);
     fclose(infile);
-  }
+  }  
 }

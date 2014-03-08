@@ -227,9 +227,9 @@ typedef struct {
   // address - loop*8 + offset
   uint8_t address;
   uint8_t loop_address;
-  uint8_t corner;
-
-  
+  ASIC_CORNER corner;
+   
+  int top_freq;  
   // Failed bists (set by "do_bist_ok()")
   uint8_t failed_bists;
   // Passed engines (set by "do_bist_ok()")
@@ -256,7 +256,6 @@ typedef struct {
   int dc_current_limit_16s;   
   int dc_power_watts_16s;  
   int last_voltage_change_time;
-  int dc_fail_time;  
   // Guessing added current
 } DC2DC;
 
@@ -305,6 +304,7 @@ typedef struct {
   int bist_fatal_err;  
   int bist_current;  
   int bist_voltage;  
+
 
   
   // ac2dc current and temperature

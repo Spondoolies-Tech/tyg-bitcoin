@@ -4,7 +4,7 @@
 #include "scaling_ac2dc.h"
 #include "scaling_dc2dc.h"
 
-void asic_down(HAMMER *a, time_t now);
+void asic_down_one(HAMMER *a, time_t now);
 int test_serial(int loopid);
 void print_scaling();
 void reset_all_asics_full_reset();

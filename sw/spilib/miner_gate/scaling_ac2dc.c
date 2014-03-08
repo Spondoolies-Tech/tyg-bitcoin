@@ -28,7 +28,7 @@
 
 static int now; // cahce time
 
-
+#if 0
 int loop_can_down(int l) {
   if (l == -1)
       return 0;
@@ -98,7 +98,7 @@ int loop_can_up(int l) {
     (vm.loop[l].enabled_loop &&
     (vm.loop_vtrim[l] != VTRIM_HIGH) &&
     ((now - vm.loop[l].last_ac2dc_scaling_on_loop) > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS) &&
-     (vm.loop[l].dc2dc.dc_current_limit_16s > nvm.top_dc2dc_current_16s[l]-16*2) &&
+     (vm.loop[l].dc2dc.dc_current_limit_16s > DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S-1*16) &&
      vm.loop[l].asic_hz_sum &&
      vm.loop[l].dc2dc.dc_power_watts_16s);
  
@@ -234,3 +234,4 @@ void ac2dc_scaling_one_minute() {
   }
 #endif  
 }
+#endif

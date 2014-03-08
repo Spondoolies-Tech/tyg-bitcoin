@@ -126,9 +126,11 @@ void write_spi_mult(uint8_t addr, int count, int values[]) {
     pabort("can't send spi message");
     passert(0);
   }
+  /*
   for (int j = 0 ; j < count ; j++) {
-  	//printf("SPI[%x]<=%x\n", addr, values[j]);
+  	printf("SPI[%x]<=%x\n", addr, values[j]);
   }
+  */
 }
 
 void write_spi(uint8_t addr, uint32_t data) {
@@ -199,7 +201,7 @@ void init_spi() {
     pabort("can't get max speed hz");
 
   /*
-  //printf("SPI mode: %d\n", mode);
+  printf("SPI mode: %d\n", mode);
   printf("bits per word: %d\n", bits);
   printf("max speed: %d Hz (%d KHz)\n", speed, speed/1000);
   */
@@ -318,7 +320,7 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
 #endif
       return 0;
     } else {
-      printf("Rx queue timeout.\n");
+      printf("SPI Rx queue timeout.\n");
       return 0;
     }
   }

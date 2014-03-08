@@ -83,8 +83,9 @@ void disable_engines_all_asics();
 void disable_engines_asic(int addr);
 void enable_all_engines_asic(int addr);
 void set_pll(int addr, ASIC_FREQ freq);
-int enable_nvm_engines_all_asics_ok();
+int enable_good_engines_all_asics_ok();
 void disable_asic_forever(int addr);
 void enable_all_engines_all_asics();
+void set_asic_freq(int addr, ASIC_FREQ new_freq);
 
 #endif

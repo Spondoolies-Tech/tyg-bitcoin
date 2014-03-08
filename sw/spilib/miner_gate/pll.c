@@ -99,13 +99,14 @@ void set_pll(int addr, ASIC_FREQ freq) {
 void disable_asic_forever(int addr) {
   vm.working_engines[addr] = 0;
   vm.hammer[addr].asic_present = 0;
+  disable_engines_asic(addr);
   psyslog("Disabing ASIC forever %x from loop %d\n", addr, addr/HAMMERS_PER_LOOP);
   write_reg_device(addr, ADDR_CONTROL_SET1, BIT_CTRL_DISABLE_TX);
   vm.loop[vm.hammer[addr].loop_address].asic_count--;
 }
 
 
-int enable_nvm_engines_all_asics_ok() {
+int enable_good_engines_all_asics_ok() {
 #if 1
     int i = 0; 
     int reg;
@@ -127,7 +128,6 @@ int enable_nvm_engines_all_asics_ok() {
    }
  
    //passert(vm.engines_disabled == 1);
-
    write_reg_broadcast(ADDR_CLK_ENABLE, ALL_ENGINES_BITMASK);
    write_reg_broadcast(ADDR_RESETING0, ALL_ENGINES_BITMASK);
    write_reg_broadcast(ADDR_RESETING1, ALL_ENGINES_BITMASK | 0x8000);
@@ -162,8 +162,21 @@ int enable_nvm_engines_all_asics_ok() {
      write_reg_device(hi.addr, ADDR_ENABLE_ENGINE, vm.working_engines[hi.addr]);
    }
    */
-   
    vm.engines_disabled = 0;
    return 1;
 }
+
+
+
+
+void set_asic_freq(int addr, ASIC_FREQ new_freq) {
+  if (vm.hammer[addr].asic_freq != new_freq) {
+    //printf("Changes ASIC %x frequency from %d to %d\n", addr,vm.hammer[addr].asic_freq*15+210,new_freq*15+210);
+    vm.hammer[addr].asic_freq = new_freq;
+  }
+  set_pll(addr, new_freq);
+}
+
+
+
 

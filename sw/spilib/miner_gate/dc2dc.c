@@ -80,7 +80,7 @@ void dc2dc_init() {
   }
 
   pthread_mutex_unlock(&i2c_mutex);
-  printf("W\n");
+  //printf("W\n");
 }
 
 static void dc2dc_set_channel(int channel_mask, int *err) {
@@ -107,11 +107,6 @@ void dc2dc_disable_dc2dc(int loop, int *err) {
 
 void dc2dc_enable_dc2dc(int loop, int *err) {
   
-#if NO_CUSTOM == 1 
-       if (loop > 3) {
-          return;
-        }
-#endif
 
   //printf("%s:%d\n",__FILE__, __LINE__);
   if (vm.loop[loop].enabled_loop) {
@@ -236,9 +231,7 @@ int update_dc2dc_current_temp_measurments(int loop) {
   if (vm.loop[i].enabled_loop) {
     vm.loop[i].dc2dc.dc_temp = dc2dc_get_temp(i, &err);
     int current = dc2dc_get_current_16s_of_amper(i, &err);
-    if (!vm.asics_shut_down_powersave &&
-        current >= DC2DC_POWER_TRUSTWORTHY && 
-        vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_DC2DC_MEASUREMENT) {
+    if (!vm.asics_shut_down_powersave) {
         vm.loop[i].dc2dc.dc_current_16s =
                         dc2dc_get_current_16s_of_amper(i, &err);
         vm.loop[i].dc2dc.dc_power_watts_16s = 

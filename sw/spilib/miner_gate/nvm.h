@@ -95,21 +95,10 @@ typedef struct _spondoolies_nvm {
   uint32_t nvm_version;
   // time(NULL) at store time.
   uint32_t store_time;
-  // Values are ASIC_CORNER_XXX
-  uint8_t asic_corner[HAMMERS_COUNT];
-  // Working engines at each ASIC
-  // uint16_t working_engines[HAMMERS_COUNT];
-  // Top frequency per ASIC
-  ASIC_FREQ top_freq[HAMMERS_COUNT];
-  // Each loop voltage
-  // DC2DC_VOLTAGE loop_voltage[LOOP_COUNT];
-  //int loop_vtrim[LOOP_COUNT];
-  
   // Save nvm
   uint8_t dirty;
-
   // Known top working DC2DC current
-  uint32_t top_dc2dc_current_16s[LOOP_COUNT];
+  //uint32_t top_dc2dc_current_16s[LOOP_COUNT];
 
   
   // This field must be last!

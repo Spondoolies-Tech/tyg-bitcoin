@@ -22,7 +22,7 @@
 #include "real_time_queue.h"
 #include "miner_gate.h"
 #include "scaling_manager.h"
-#include "asic_testboard.h"
+
 #include "pll.h"
 
 extern pthread_mutex_t network_hw_mutex;
@@ -371,13 +371,11 @@ int allocate_addresses_to_devices() {
           asics_in_loop++;
           vm.working_engines[addr] = ALL_ENGINES_BITMASK;
           vm.hammer[addr].asic_present = 1;
-          vm.hammer[addr].corner = nvm.asic_corner[addr];
-          printf(MAGENTA"Address allocated: %x\n"RESET, addr);
           vm.hammer[addr].failed_bists = 0;    
           vm.hammer[addr].passed_last_bist_engines = ALL_ENGINES_BITMASK;
-               
-          if (0/*addr/HAMMERS_PER_LOOP == 7 || addr/HAMMERS_PER_LOOP > 19*/) {
-            //disable_asic_forever(addr);
+          vm.hammer[addr].top_freq = MAX_ASIC_FREQ;
+          if (0) {
+            disable_asic_forever(addr);
           }
          
         } else {
@@ -385,8 +383,6 @@ int allocate_addresses_to_devices() {
           vm.hammer[addr].loop_address = l;
           vm.hammer[addr].asic_present = 0;
           vm.working_engines[addr] = 0;
-          nvm.top_freq[addr] = ASIC_FREQ_0;
-          nvm.asic_corner[addr] = ASIC_CORNER_NA;
         }
       }
       // Dont remove this print - used by scripts!!!!
@@ -443,7 +439,6 @@ int get_print_win(int winner_device) {
   RT_JOB *work_in_hw = peak_rt_queue(winner_id);
 
   if (work_in_hw->work_state == WORK_STATE_HAS_JOB) {
-    printf("!!!!!!!  WIN !!!!!!!! %x %x\n", winner_nonce, work_in_hw->work_id_in_sw);
     work_in_hw->winner_nonce = winner_nonce;
     return 1;
   } else {
@@ -586,8 +581,8 @@ int do_bist_ok(int long_bist) {
 
 
   // Give BIST job
-  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 20); // 
-  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 170+((long_bist)?0:0));
+  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 40); 
+  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 200);
   write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, bist_tests[bist_id].nonce_winner); // 0x1DAC2B7C
   write_reg_broadcast(ADDR_MID_STATE + 0, bist_tests[bist_id].midstate[0]);
   write_reg_broadcast(ADDR_MID_STATE + 1, bist_tests[bist_id].midstate[1]);
@@ -617,13 +612,16 @@ int do_bist_ok(int long_bist) {
   int last_res;
   //vm.bist_current = tb_get_asic_current(loop_to_measure);
   while ((res = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
-    if ((i % 1000) == 0) {
-      vm.bist_fatal_err = 1;
+    if ((i % 100) == 0) {
+      //int addr = BROADCAST_READ_ADDR(res);
+      //disable_asic_forever(addr);
+      //assert(0);
       break;
     } 
+    usleep(1);
     last_res = res;
     i++;
-  }    
+  }
   //printf(CYAN "last bist ASIC: %x\n" RESET, last_res);
   //end_stopper(&tv1, "do bist");
 
@@ -702,11 +700,18 @@ int last_alive_jobs;
 
 
 void one_minute_tasks() {
-  
+  // Give them chance to raise over 3 hours if system got colder
+  static int h = 0;
+  if (vm.hammer[h].top_freq < MAX_ASIC_FREQ) {
+    vm.hammer[h].top_freq++;
+  }
+
+  h = (h + 1)%HAMMERS_COUNT;
 }
 
 
-void ten_second_tasks() {  
+void ten_second_tasks() { 
+ 
 }
 /*
 pthread_mutex_t i2c_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -724,7 +729,10 @@ void once_second_tasks() {
         vm.start_mine_time = time(NULL);
         printf(MAGENTA "Restarting mining timer\n" RESET);
       }
-  } else {
+  }
+
+
+  if (vm.cosecutive_jobs == 0) {
     vm.start_mine_time = 0;
   }
 
@@ -732,15 +740,17 @@ void once_second_tasks() {
   pthread_mutex_lock(&network_hw_mutex);
   // static int not_mining_counter = 0;
   // See if we can stop engines
+  printf("not_mining_counter %d\n", vm.not_mining_counter);
   vm.not_mining_counter++;
-
   if (vm.not_mining_counter >= IDLE_TIME_TO_PAUSE_ENGINES) {
     if (!vm.asics_shut_down_powersave) {
       pause_all_mining_engines();
     }
   } 
-
   pthread_mutex_unlock(&network_hw_mutex);
+
+  end_stopper(&tv,"Whole one second task part 1");
+  start_stopper(&tv);
 
   if (!vm.asics_shut_down_powersave) {
     int no_addr = read_reg_broadcast(ADDR_BR_NO_ADDR);
@@ -750,9 +760,10 @@ void once_second_tasks() {
       passert(0);
     }
 
-  // Decrease frequencies if needed
- 
-    asic_scaling_once_second(0);
+    // Change frequencies if needed
+    if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) {
+      asic_scaling_once_second(0);
+    }
    
 
     
@@ -767,13 +778,9 @@ void once_second_tasks() {
     // read_reg_broadcast(ADDR_INTR_SOURCE));
     last_second_jobs = 0;
     
-    
-    
-    if (nvm.dirty) {
-      spond_save_nvm();
-    }
 
   } 
+  end_stopper(&tv,"Whole one second task part 2");
 
 
 
@@ -787,7 +794,6 @@ void once_second_tasks() {
   }
   ++counter;
   
-  end_stopper(&tv,"Whole one second task");
 }
 
 
@@ -796,58 +802,24 @@ void once_second_tasks() {
 void update_vm_with_currents_and_temperatures() {
   static int counter = 0;
   counter++;
+  int err;
 
-  if ((counter % (80)) == 1)  {
-    //auto_select_fan_level_1_secs();
-    // 2 times a second
-    //pthread_mutex_lock(&hammer_mutex);
-    update_ac2dc_power_measurments();
-    //pthread_mutex_unlock(&hammer_mutex);
-    int err;
-  } else {
-    // 38 times a second, poll 1 dc2dc 2 times a second.
-    static int loop = 0;
-    
-    if (vm.loop[loop].enabled_loop) {
-      update_dc2dc_current_temp_measurments(loop); 
-    }
-    int e = get_dc2dc_error(loop); 
-    if (e) {
-      // If top current in last 20 seconds:
-      nvm.top_dc2dc_current_16s[loop] = nvm.top_dc2dc_current_16s[loop] - 8;
+  if ((counter % (40)) ==  0)  {
+      update_ac2dc_power_measurments();
       
-      printf(CYAN"DC2DC current44: %d:????\n" RESET,loop);
-      if (nvm.top_dc2dc_current_16s[loop] >= DC2DC_MINIMAL_TOP_16S) {
-         nvm.top_dc2dc_current_16s[loop] = nvm.top_dc2dc_current_16s[loop] - 8;
-      } else {
-        nvm.top_dc2dc_current_16s[loop] = DC2DC_MINIMAL_TOP_16S;
-      }
-      nvm.dirty = 1;
-      printf(RED "Saving NVM max DC2DC current: %d=%d\n" RESET,  loop, nvm.top_dc2dc_current_16s[loop]);
-      vm.loop[loop].dc2dc.dc_fail_time = time(NULL);
-      print_nvm();
-      spond_save_nvm();
-    }
-   
-
-    
-    // once 20 seconds - if DC failed, save NVM, restart
-    if (counter%(40) == 0) {
-      //printf(YELLOW "Testing dcdcdc\n" RESET);
-      int l;
-      for(l = 0; l < LOOP_COUNT ; l++) {
-        if (vm.loop[loop].dc2dc.dc_fail_time) {
-          if (time(NULL) - vm.loop[loop].dc2dc.dc_fail_time > TIME_TO_RUN_AFTER_DC_PROBLEM) {
-            spond_save_nvm();
-            print_nvm();
-            usleep(1000000);
-            assert(0);
-          }
-        }
-      }
-    }
-    loop = (loop+1)%LOOP_COUNT;
   } 
+
+  // 38 times a second, poll 1 dc2dc ~2 times a second.
+  static int loop = 0;
+  
+  if (vm.loop[loop].enabled_loop) {
+    update_dc2dc_current_temp_measurments(loop); 
+  }
+  int e = get_dc2dc_error(loop); 
+  if (e) {
+    passert(0);
+  }
+  loop = (loop+1)%LOOP_COUNT;
 }
 
 
@@ -917,11 +889,13 @@ void once_33_msec_tasks() {
     push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win);
     squid_wait_hammer_reads();
     
-    if (win) {
+    while (win) {
       uint16_t winner_device = BROADCAST_READ_ADDR(win);
       vm.hammer[winner_device].solved_jobs++;
       vm.solved_jobs_total++;
       int ok = get_print_win(winner_device);
+      push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win);      
+      squid_wait_hammer_reads();    
     }
 
     // Update temperature.
@@ -940,7 +914,7 @@ void once_33_msec_tasks() {
 
        if (intr & BIT_INTR_1_OVER && (a->asic_temp < (temp_measure_temp+4))) { 
             //printf("Asic %x hotter then %d\n", a->address, (temp_measure_temp+4)*6+77);
-            a->asic_temp = temp_measure_temp;
+            a->asic_temp = (ASIC_TEMP)(temp_measure_temp + 4);
        } 
  
        if (!(intr & BIT_INTR_1_OVER) && (a->asic_temp >= (temp_measure_temp+4))) { 
@@ -1005,7 +979,7 @@ void once_1500_usec_tasks() {
 // never returns - thread
 void *i2c_state_machine(void *p) {
  
- int counter = 0;
+  int counter = 0;
   while (1) {
   
     // sleep 1/40th second
@@ -1015,9 +989,6 @@ void *i2c_state_machine(void *p) {
       print_scaling();
     }
 
-    if ((counter % (40)) == 1)  {
-      auto_select_fan_level_1_secs();
-    }
     
     if (!vm.asics_shut_down_powersave) {
       update_vm_with_currents_and_temperatures();
@@ -1038,7 +1009,6 @@ void *i2c_state_machine(void *p) {
 
 // never returns - thread
 void *squid_regular_state_machine(void *p) {
-    
   int loop = 0;
   printf("Starting squid_regular_state_machine!\n");
   flush_spi_write();
@@ -1046,81 +1016,48 @@ void *squid_regular_state_machine(void *p) {
   // Do BIST before start
   hammer_iter hi;
   hammer_iter_init(&hi);
-  while (hammer_iter_next_present(&hi)) {
-    hi.a->failed_bists = 0;
-    hi.a->passed_last_bist_engines = ALL_ENGINES_BITMASK;
-  }
+  vm.not_mining_counter = 0;
+  unpause_all_mining_engines();
+  pause_all_mining_engines();
+  
 
- /* while(1) {
+/*
+  while(1) {
     update_ac2dc_power_measurments();
-  }*/
-  
-  pthread_mutex_lock(&hammer_mutex);
-  set_fan_level(10);
-  for(int x = 0; x < 200; x++) {
-     asic_scaling_once_second(1);
-     //update_ac2dc_power_measurments();
-     //update_ac2dc_power_measurments();
   }
-  /*
-  hammer_iter_init(&hi);
-  pause_asics_if_needed();
-  while (hammer_iter_next_present(&hi)) {
-    if (hi.a->asic_freq < MAX_ASIC_FREQ) {
-      if (asic_can_up(hi.a, 1)) {
-        asic_up(hi.a);
-      }
-    }
-  }
-  resume_asics_if_needed();*/
-  pthread_mutex_unlock(&hammer_mutex);
-  
-  
+  */
   
 
   struct timeval tv;
   struct timeval last_job_pushed;
-  // struct timeval last_print;
-  // struct timeval last_test_win;
   struct timeval last_force_queue;
   gettimeofday(&last_job_pushed, NULL);
-  // gettimeofday(&last_test_win, NULL);
-  // gettimeofday(&last_print, NULL);
   gettimeofday(&last_force_queue, NULL);
   gettimeofday(&tv, NULL);
   int usec;
-  //    
+
   for (;;) {
     gettimeofday(&tv, NULL);
     usec = (tv.tv_sec - last_job_pushed.tv_sec) * 1000000;
     usec += (tv.tv_usec - last_job_pushed.tv_usec);
+    struct timeval * tv2;
 
-    if (usec >= JOB_PUSH_PERIOD_US) { // new job every 2.5 msecs = 400 per second
+    if (usec >= JOB_PUSH_PERIOD_US) { 
+      // new job every 1.5 msecs = 660 per second
       pthread_mutex_lock(&hammer_mutex);
+      //start_stopper(&tv);
       once_1500_usec_tasks();
+      //end_stopper(&tv,"WHOOOOOOOOOOOOLE 1500 TIMER");
+      pthread_mutex_unlock(&hammer_mutex);
+
       last_job_pushed = tv;
       int drift = usec - JOB_PUSH_PERIOD_US;
       if (last_job_pushed.tv_usec > drift) {
         last_job_pushed.tv_usec -= drift;
       }
-      pthread_mutex_unlock(&hammer_mutex);
+      
+    } else {
+      usleep(50);
     }
-
-    // force queue every 10 msecs
-    // NEEDED ONLY ON FPGA!! TODO REMOVE!!
-    /*
-    usec = (tv.tv_sec - last_force_queue.tv_sec) * 1000000;
-    usec += (tv.tv_usec - last_force_queue.tv_usec);
-    if (usec >= JOB_PUSH_PERIOD_US*4) {
-      // printf("-");
-      // move job forward every 10 milli
-      // TODO - remove!!
-      write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
-      last_force_queue = tv;
-    }
-    */
-
-    // print_state();
-    usleep(JOB_PUSH_PERIOD_US/10);
   }
 }
