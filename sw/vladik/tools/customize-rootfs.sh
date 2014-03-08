@@ -95,6 +95,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
+	cp ${CUR_DIR}/../add-ons/spondoolies-pub.pem etc
 	date > build_date.txt
 	
 }
