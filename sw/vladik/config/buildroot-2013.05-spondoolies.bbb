@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2013.05-g490a64b Configuration
+# Buildroot 2013.05-g83b2623-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 # BR2_arcle is not set
@@ -581,10 +581,11 @@ BR2_PACKAGE_PHP_EXT_POSIX=y
 # BR2_PACKAGE_PHP_EXT_XMLREADER is not set
 # BR2_PACKAGE_PHP_EXT_XMLWRITER is not set
 # BR2_PACKAGE_PHP_EXT_XSL is not set
+BR2_PACKAGE_PHP_CLI=y
 BR2_PACKAGE_PHP_CGI=y
-BR2_PACKAGE_PHP_SAPI_CGI=y
+# BR2_PACKAGE_PHP_SAPI_CGI is not set
 # BR2_PACKAGE_PHP_SAPI_CLI is not set
-# BR2_PACKAGE_PHP_SAPI_CLI_CGI is not set
+BR2_PACKAGE_PHP_SAPI_CLI_CGI=y
 # BR2_PACKAGE_PYTHON is not set
 # BR2_PACKAGE_PYTHON3 is not set
 # BR2_PACKAGE_RUBY is not set
