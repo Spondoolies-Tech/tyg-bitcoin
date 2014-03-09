@@ -88,8 +88,8 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/writemngvpd.sh usr/local/bin
 	cp ${CUR_DIR}/../../scripts/writeboxvpd.sh usr/local/bin
 	#cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
-#	cp ${CUR_DIR}/../../spilib/miner_gate/miner_gate_arm usr/local/bin
-#	cp ${CUR_DIR}/../../../../cg-miner-git/cgminer/cgminer usr/local/bin
+	cp ${CUR_DIR}/../../spilib/miner_gate/miner_gate_arm usr/local/bin
+	cp ${CUR_DIR}/../../../../cg-miner-git/cgminer/cgminer usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate_test_arm usr/local/bin
 	cp ${CUR_DIR}/../../spilib/zabbix_reader/zabbix_reader_arm  usr/local/bin
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin
