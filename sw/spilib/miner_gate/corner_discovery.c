@@ -11,13 +11,16 @@
 
 
 
-DC2DC_VOLTAGE CORNER_TO_VOLTAGE_TABLE[ASIC_CORNER_COUNT] = {
-  ASIC_VOLTAGE_765, ASIC_VOLTAGE_765, ASIC_VOLTAGE_720, ASIC_VOLTAGE_630,
-  ASIC_VOLTAGE_630, ASIC_VOLTAGE_630
-};
+uint32_t vtrim_per_loop[] = { VTRIM_START+1, VTRIM_START+1, VTRIM_START+1, VTRIM_START+1, 
+                               VTRIM_START,  VTRIM_START, VTRIM_START, VTRIM_START, 
+                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
+                               
+                               VTRIM_START+1, VTRIM_START+1, VTRIM_START+1, VTRIM_START+1, 
+                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
+                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
+                               };
 
-
-void enable_voltage_freq(int vtrim, ASIC_FREQ f) {
+void enable_voltage_freq(ASIC_FREQ f) {
   int l, h, i = 0;
   // for each enabled loop
   
@@ -27,7 +30,7 @@ void enable_voltage_freq(int vtrim, ASIC_FREQ f) {
       // Set voltage
       int err;
       // dc2dc_set_voltage(l, vm.loop_vtrim[l], &err);
-      dc2dc_set_vtrim(l, vtrim , &err);
+      dc2dc_set_vtrim(l, vtrim_per_loop[l] , &err);
       // passert(err);
 
       // for each ASIC
@@ -50,9 +53,9 @@ const char* corner_to_collor(ASIC_CORNER c) {
   return color[c];
 }
 
-
+/*
 void compute_corners() {
-  enable_voltage_freq(VTRIM_CORNER_DISCOVERY, ASIC_FREQ_810);
+  enable_voltage_freq(ASIC_FREQ_810);
   hammer_iter hi;
   hammer_iter_init(&hi);
 
@@ -80,11 +83,11 @@ void compute_corners() {
    
    resume_asics_if_needed();
 }
-
+*/
 
 
 void set_working_voltage_discover_top_speeds() {
-  enable_voltage_freq(VTRIM_START, ASIC_FREQ_810);
+  enable_voltage_freq(ASIC_FREQ_810);
 
   hammer_iter hi;
   hammer_iter_init(&hi);
@@ -96,7 +99,6 @@ void set_working_voltage_discover_top_speeds() {
     pause_asics_if_needed();
     asic_frequency_update(1);
  } while (!bist_ok);
- //enable_voltage_freq(VTRIM_START, ASIC_FREQ_405);
  resume_asics_if_needed();
 }
 
@@ -134,7 +136,7 @@ void discover_good_loops() {
       if (test_serial(i)) { // TODOZ
         // printf("--00--\n");
         vm.loop[i].enabled_loop = 1;
-        vm.loop_vtrim[i] = VTRIM_CORNER_DISCOVERY;
+        vm.loop_vtrim[i] = vtrim_per_loop[i];
         vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
         good_loops |= 1 << i;
         ret++;
@@ -145,7 +147,7 @@ void discover_good_loops() {
         for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
           // printf("remove ASIC 0x%x\n", h);
           vm.hammer[h].asic_present = 0;
-          vm.working_engines[h] = 0;
+          vm.hammer[h].working_engines = 0;
         }
         int err;
         printf("Disabling DC2DC %d\n", i);

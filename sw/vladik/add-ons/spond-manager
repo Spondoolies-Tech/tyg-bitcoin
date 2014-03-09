@@ -24,7 +24,7 @@ miner_gate_arm_watchdog () {
 		pidm=`cat /var/run/miner_gate_arm.pid`
 		if [ ! -e /proc/$pidm -a /proc/$pidm/exe ]; then
 			echo "Minergate died and restarted"
-			$MINERGATE_CM &
+			$MINERGATE_CMD &
 			echo $! > /var/run/miner_gate_arm.pid
 		fi
 

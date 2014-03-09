@@ -288,7 +288,6 @@ void *connection_handler_thread(void *adptr) {
       }
       adapter->next_rsp->rsp_count = rsp_count;
       int mhashes_done = (vm.total_mhash/1000)*(usec/1000);
-      printf("Mhsh=%d\n",mhashes_done);
       adapter->next_rsp->gh_done = mhashes_done/1000;  
       // printf("SND %d\n", rsp_count);
 
@@ -538,6 +537,8 @@ int main(int argc, char *argv[]) {
   i2c_init();
   printf("dc2dc_init\n");
   dc2dc_init();
+  printf("ac2dc_init\n");
+  ac2dc_init();
   printf("init_pwm\n");
   init_pwm();
   printf("set_fan_level\n");
@@ -594,11 +595,6 @@ int main(int argc, char *argv[]) {
   // Set all frequency to ASIC_FREQ_225
   set_safe_voltage_and_frequency();
   // Set all engines to 0x7FFF
-  
-  printf("setting ASIC engines %d\n", __LINE__);  
-  //enable_good_engines_all_asics_ok();
-  //enable_all_engines_asic(int addr);
-   
   printf("hammer initialisation done %d\n", __LINE__);
   thermal_init();
   

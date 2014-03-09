@@ -32,7 +32,7 @@
 
 // In seconds
 #define BIST_PERIOD_SECS_RAMPUP            1
-#define BIST_PERIOD_SECS                   15 // unless hot ASICs discovered
+#define BIST_PERIOD_SECS                   30 // unless hot ASICs discovered
 #define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 30
 
 
@@ -67,16 +67,19 @@
 #define ASIC_VOLTAGE_DEFAULT ASIC_VOLTAGE_720
 
 #define VTRIM_550   0xFFC4
+#define VTRIM_664   0xFFD0
+#define VTRIM_666   0xFFD1
+#define VTRIM_669   0xFFD2
+#define VTRIM_672   0xFFD4
 #define VTRIM_810   0x10008
 
 #define VTRIM_HIGH  0x0FFef
 #if ECONOMY == 1
 #define VTRIM_START 0x0FFcA
 #else
-#define VTRIM_START 0x0FFd2//0x0FFd0//VTRIM_MIN//(0x0FFd2+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
+#define VTRIM_START VTRIM_664 //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
 #endif
-#define VTRIM_LOW   0x0FFc0
-#define VTRIM_CORNER_DISCOVERY   0x0FFd3
+
 
 #define CORNER_DISCOVERY_FREQ_FF       ASIC_FREQ_540
 #define CORNER_DISCOVERY_FREQ_TF       ASIC_FREQ_525
@@ -93,8 +96,7 @@
 #define MINIMAL_ASIC_FREQ ASIC_FREQ_225
 #define ASIC_FREQ_SAFE ASIC_FREQ_300
 
-#define AC2DC_BUG    1
-#define MURATA_AC2DC 0
-#define IDLE_TIME_TO_PAUSE_ENGINES 20
+#define AC2DC_BUG    0
+#define IDLE_TIME_TO_PAUSE_ENGINES 4
 
 #endif

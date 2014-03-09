@@ -9,6 +9,8 @@
 #include "scaling_manager.h"
 extern pthread_mutex_t i2c_mutex;
 
+
+
 extern MINER_BOX vm;
 #if 0
 int volt_to_vtrim[ASIC_VOLTAGE_COUNT] = 
@@ -166,9 +168,9 @@ static void dc2dc_select_i2c(int loop, int *err) { // 1 or 0
 
 
 void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
-
+  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%x\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
   assert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
-  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%d\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
+
   pthread_mutex_lock(&i2c_mutex);
 
   // printf("%d\n",v);

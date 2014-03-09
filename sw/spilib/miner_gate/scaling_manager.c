@@ -209,25 +209,25 @@ void print_scaling() {
     hi.a = &vm.hammer[addr];
     hi.l = addr/HAMMERS_PER_LOOP;
     hi.h = addr%HAMMERS_PER_LOOP;
-    if (hi.h == HAMMERS_PER_LOOP/2) {printf("\n---------------------------------");}
+    if (hi.h == HAMMERS_PER_LOOP/2) {printf("\n-----------------------------------");}
     if (hi.h == 0) {
       total_loops++;
       if (!vm.loop[hi.l].enabled_loop) {
-        printf("\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        printf("\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
       } else {    
         DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
 
         printf(GREEN 
           "\n%2d|%4x|%3d|%2d|"  
-          "%s%2d%s/%2d|%s%3d%s|"   
+          "%s%3d%s/%3d|%s%3d%s|"   
           "%3d|%d|%2d" RESET, 
           hi.l, 
           vm.loop_vtrim[hi.l]&0xffff,
           VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[hi.l]),
           dc2dc->dc_power_watts_16s/16,
           
-        ((dc2dc->dc_current_16s>=DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S - 1*16)?RED:GREEN), dc2dc->dc_current_16s/16,GREEN,
-          dc2dc->dc_current_limit_16s/16,
+        ((dc2dc->dc_current_16s>=DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S - 1*16)?RED:GREEN), dc2dc->dc_current_16s,GREEN,
+          dc2dc->dc_current_limit_16s,
         ((dc2dc->dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), dc2dc->dc_temp,GREEN,
         
           (vm.loop[hi.l].asic_count) ? vm.loop[hi.l].asic_temp_sum/vm.loop[hi.l].asic_count : 0,
@@ -240,7 +240,7 @@ void print_scaling() {
     }
     
     if (!hi.a->asic_present) {
-      printf("|xxxxxxxxxxxxxxxxxxxxxxx");           
+      printf("|xxxxxxxxxxxxxxxxxxxxxxxxx");           
       continue;
     }
 
@@ -249,12 +249,13 @@ void print_scaling() {
 
     total_asics++;
 
-    printf(GREEN "|%2x:%s%3dc%s %s%3dhz%s(%3d) %s%x" RESET, 
+    printf(GREEN "|%2x:%s%3dc%s %s%3dhz%s(%3d/%1d) %s%x" RESET, 
       hi.addr,
       (hi.a->asic_temp>=ASIC_TEMP_95)?((hi.a->asic_temp>=ASIC_TEMP_101)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
        corner_to_collor(hi.a->corner),hi.a->asic_freq*15+210,GREEN,
        hi.a->top_freq*15+210,
-       (vm.working_engines[hi.addr]!=0x7FFF)?GREEN_BOLD:GREEN, vm.working_engines[hi.addr]);
+       hi.a->top_freq_after_bist_only - hi.a->top_freq, 
+       (vm.hammer[hi.addr].working_engines!=0x7FFF)?GREEN_BOLD:GREEN, vm.hammer[hi.addr].working_engines);
 
   }
   // print last loop

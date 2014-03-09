@@ -229,7 +229,7 @@ typedef struct {
   uint8_t loop_address;
   ASIC_CORNER corner;
    
-  int top_freq;  
+
   // Failed bists (set by "do_bist_ok()")
   uint8_t failed_bists;
   // Passed engines (set by "do_bist_ok()")
@@ -238,9 +238,12 @@ typedef struct {
   // Asic temperature/frequency (polled periodicaly)
   ASIC_TEMP asic_temp; // periodic measurments - ASIC_TEMP_
   ASIC_FREQ asic_freq;        // *15 Hz
+  ASIC_FREQ top_freq;  
+  ASIC_FREQ top_freq_after_bist_only;   
   int last_freq_change_time; // time() when we increased ASIC frequency
 
   // Set durring initialisation currently enabled engines
+  uint32_t working_engines;
 
   // Jobs solved by ASIC
   uint32_t solved_jobs;
@@ -318,7 +321,7 @@ typedef struct {
 
   // our ASIC data
   HAMMER hammer[HAMMERS_COUNT];
-  uint32_t working_engines[HAMMERS_COUNT];
+  //uint32_t working_engines[HAMMERS_COUNT];
 
   
   // our loop and dc2dc data

@@ -369,11 +369,12 @@ int allocate_addresses_to_devices() {
           vm.loop[l].asic_count--;
           total_devices++;
           asics_in_loop++;
-          vm.working_engines[addr] = ALL_ENGINES_BITMASK;
+          vm.hammer[addr].working_engines = ALL_ENGINES_BITMASK;
           vm.hammer[addr].asic_present = 1;
           vm.hammer[addr].failed_bists = 0;    
           vm.hammer[addr].passed_last_bist_engines = ALL_ENGINES_BITMASK;
           vm.hammer[addr].top_freq = MAX_ASIC_FREQ;
+          vm.hammer[addr].top_freq_after_bist_only = MAX_ASIC_FREQ;
           if (vm.silent_test_mode && (addr%20 != 0)) {
             disable_asic_forever(addr);
           }
@@ -382,7 +383,7 @@ int allocate_addresses_to_devices() {
           vm.hammer[addr].address = addr;
           vm.hammer[addr].loop_address = l;
           vm.hammer[addr].asic_present = 0;
-          vm.working_engines[addr] = 0;
+          vm.hammer[addr].working_engines = 0;
         }
       }
       // Dont remove this print - used by scripts!!!!
@@ -702,8 +703,8 @@ int last_alive_jobs;
 void one_minute_tasks() {
   // Give them chance to raise over 3 hours if system got colder
   static int h = 0;
-  if (vm.hammer[h].top_freq < MAX_ASIC_FREQ) {
-    vm.hammer[h].top_freq++;
+  if (vm.hammer[h].top_freq < vm.hammer[h].top_freq_after_bist_only) {
+    vm.hammer[h].top_freq = (ASIC_FREQ)(vm.hammer[h].top_freq+1);
   }
 
   h = (h + 1)%HAMMERS_COUNT;
@@ -737,7 +738,7 @@ void once_second_tasks() {
   }
 
 
-  pthread_mutex_lock(&network_hw_mutex);
+  //pthread_mutex_lock(&network_hw_mutex);
   // static int not_mining_counter = 0;
   // See if we can stop engines
   printf("not_mining_counter %d\n", vm.not_mining_counter);
@@ -747,7 +748,7 @@ void once_second_tasks() {
       pause_all_mining_engines();
     }
   } 
-  pthread_mutex_unlock(&network_hw_mutex);
+  //pthread_mutex_unlock(&network_hw_mutex);
 
   end_stopper(&tv,"Whole one second task part 1");
   start_stopper(&tv);

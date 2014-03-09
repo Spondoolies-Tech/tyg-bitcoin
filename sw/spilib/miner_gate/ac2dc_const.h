@@ -4,13 +4,11 @@
 #include "defines.h"
 
 // imp from ac2dc.c
-#if MURATA_AC2DC == 1
-#define AC2DC_I2C_EEPROM_DEVICE 0x53
-#define AC2DC_I2C_MGMT_DEVICE 0x5b
-#else // Emerson
-#define AC2DC_I2C_EEPROM_DEVICE 0x57
-#define AC2DC_I2C_MGMT_DEVICE 0x5F
-#endif
+#define AC2DC_MURATA_I2C_EEPROM_DEVICE 0x53
+#define AC2DC_MURATA_I2C_MGMT_DEVICE 0x5b
+
+#define AC2DC_EMERSON_I2C_EEPROM_DEVICE 0x57
+#define AC2DC_EMERSON_I2C_MGMT_DEVICE 0x5F
 
 // MGMT i2c registers
 #define AC2DC_I2C_STATUS_WORD 0x79

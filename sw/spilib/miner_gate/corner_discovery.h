@@ -12,7 +12,7 @@
 void discover_good_loops();
 void compute_corners();
 const char* corner_to_collor(ASIC_CORNER c);
-void enable_voltage_freq(int vtrim, ASIC_FREQ f);
+void enable_voltage_freq(ASIC_FREQ f);
 void set_working_voltage_discover_top_speeds() ;
 
 

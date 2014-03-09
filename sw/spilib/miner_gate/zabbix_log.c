@@ -41,7 +41,7 @@ void update_zabbix_stats() {
   for (int l = 0; l < HAMMERS_COUNT; l++) {
     zabbix_log.asics[l].freq = vm.hammer[l].asic_freq;
     zabbix_log.asics[l].temp = vm.hammer[l].asic_temp;
-    zabbix_log.asics[l].working_engines = vm.working_engines[l];
+    zabbix_log.asics[l].working_engines = vm.hammer[l].working_engines;
     zabbix_log.asics[l].failed_bists = vm.hammer[l].failed_bists;
     zabbix_log.asics[l].freq_time = t - vm.hammer[l].last_freq_change_time;
   }
