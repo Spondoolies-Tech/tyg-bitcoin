@@ -124,6 +124,7 @@ emmc()
 web_server()
 {
 	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/lighttpd usr/bin
+	cp -a ${CUR_DIR}/../add-ons/lighttpd.conf etc
 	cp -a ${CUR_DIR}/../add-ons/S55lighttpd etc/init.d
 	for m in indexfile staticfile fastcgi redirect rewrite dirlisting auth
 	do
