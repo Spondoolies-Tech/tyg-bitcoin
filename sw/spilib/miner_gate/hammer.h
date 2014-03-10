@@ -280,8 +280,6 @@ typedef struct {
 typedef struct {
   // Fans set to high
   int fan_level;
-  uint8_t newest_hw_job_id;
-  uint8_t oldest_hw_job_id;
   uint32_t good_loops;
     
   int start_mine_time;
@@ -308,13 +306,20 @@ typedef struct {
   int bist_current;  
   int bist_voltage;  
 
-  int silent_test_mode;
+  int silent_mode;
+  int thermal_test_mode;  
   
   // ac2dc current and temperature
   int ac2dc_power;  // in ampers. 0 = bad reading.
   int dc2dc_total_power; 
   int total_mhash; 
   uint32_t ac2dc_temp;
+
+
+  
+  int last_second_jobs;
+  int last_alive_jobs;
+  int cur_leading_zeroes;
 
   // When system just started, search optimal speed agressively
 

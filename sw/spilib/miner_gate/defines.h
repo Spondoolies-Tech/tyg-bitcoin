@@ -2,7 +2,6 @@
 #define _____DC2DEFINES__45R_H____
 
 // compilation flags
-#define HAS_PLL 1
 #define TEST_BOARD 0
 #define ECONOMY 0
 
@@ -12,7 +11,7 @@
 
 
 #define COLD_ASIC_TEMPERATURE ASIC_TEMP_95
-#define MAX_ASIC_TEMPERATURE ASIC_TEMP_113
+#define MAX_ASIC_TEMPERATURE ASIC_TEMP_119
 #define HOT_ASIC_TEMPERATURE ASIC_TEMP_101
 
 #define ASIC_TO_SET_FANS_HIGH_COUNT   50
@@ -39,7 +38,7 @@
 
 #define AC2DC_TEMP_GREEN_LINE 110
 #define AC2DC_CURRENT_TRUSTWORTHY (10)
-#define AC2DC_POWER_LIMIT  (1150)
+#define AC2DC_POWER_LIMIT  (1200)
 #define AC2DC_UPSCALE_TIME_SECS   60  //2 2 minutes wait before upscaling AC2DC 
 #define AC2DC_SPARE_CURRENT_TO_UPSCALE 5
 #define AC2DC_LEFT_CURRENT_TO_DOWNSCALE 1
@@ -51,9 +50,9 @@
 
 
 #define DC2DC_TEMP_GREEN_LINE         120
-#define DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S (58 * 16) // TODO - for 6 ASICS
-#define DC2DC_MINIMAL_TOP_16S (58 * 16) // never remember to current smaller then this 
-#define DC2DC_INITIAL_CURRENT_16S (58 * 16) 
+#define DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S (59 * 16) // TODO - for 6 ASICS
+#define DC2DC_MINIMAL_TOP_16S (59 * 16) // never remember to current smaller then this 
+#define DC2DC_INITIAL_CURRENT_16S (59 * 16) 
 #define DC2DC_SAFE_TO_INCREASE_CURRENT_16S (1*16)
 #define DC2DC_UPSCALE_TIME_SECS   10  
 #define DC2DC_DOWNSCALE_TIME_SECS   20  
@@ -71,13 +70,16 @@
 #define VTRIM_666   0xFFD1
 #define VTRIM_669   0xFFD2
 #define VTRIM_672   0xFFD4
+#define VTRIM_671   0xFFD3
+#define VTRIM_669   0xFFD2
+
 #define VTRIM_810   0x10008
 
 #define VTRIM_HIGH  0x0FFef
 #if ECONOMY == 1
 #define VTRIM_START 0x0FFcA
 #else
-#define VTRIM_START VTRIM_664 //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
+#define VTRIM_START VTRIM_669 //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
 #endif
 
 
@@ -92,11 +94,11 @@
 #define LOW_AC2DC_POWER 900
 
 
-#define MAX_ASIC_FREQ ASIC_FREQ_810
+#define MAX_ASIC_FREQ ASIC_FREQ_705
 #define MINIMAL_ASIC_FREQ ASIC_FREQ_225
 #define ASIC_FREQ_SAFE ASIC_FREQ_300
 
-#define AC2DC_BUG    0
+#define AC2DC_BUG    1
 #define IDLE_TIME_TO_PAUSE_ENGINES 4
 
 #endif

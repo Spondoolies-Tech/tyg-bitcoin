@@ -49,7 +49,7 @@ int test_asic(int addr) {
   assert_serial_failures = false;
   int ver = read_reg_device(addr, ADDR_VERSION);
   assert_serial_failures = true;
-  // printf("Testing loop, version = %x\n", ver);
+  // psyslog("Testing loop, version = %x\n", ver);
   return ((ver & 0xFF) == 0x3c);
 }
 
@@ -62,7 +62,7 @@ void pause_all_mining_engines() {
   set_fan_level(0);
   while(some_asics_busy != 0) {
     int addr = BROADCAST_READ_ADDR(some_asics_busy);
-    printf(RED "some_asics_busy %x\n" RESET, some_asics_busy);
+    psyslog(RED "some_asics_busy %x\n" RESET, some_asics_busy);
     disable_asic_forever(addr);
     some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
   }
@@ -70,16 +70,16 @@ void pause_all_mining_engines() {
   disable_engines_all_asics();
   // disable_engines_all_asics();
   vm.asics_shut_down_powersave = 1;
-  printf("System has no jobs, going to sleep...\n");
+  psyslog("System has no jobs, going to sleep...\n");
 }
 
 void unpause_all_mining_engines() {
   int err;
-  printf("Got mining request, enable DC2DC!\n");
+  psyslog("Got mining request, enable DC2DC!\n");
   set_fan_level(100);  
   vm.not_mining_counter = 0;
   enable_good_engines_all_asics_ok();
-  printf("Got mining request, waking up done!\n");
+  psyslog("Got mining request, waking up done!\n");
   vm.asics_shut_down_powersave = 0;
 }
 
@@ -91,15 +91,15 @@ int test_serial(int loopid) {
   }
   */
   assert_serial_failures = false;
-  // printf("Testing loops: %x\n", (~read_spi(ADDR_SQUID_LOOP_BYPASS))&
+  // psyslog("Testing loops: %x\n", (~read_spi(ADDR_SQUID_LOOP_BYPASS))&
   // 0xFFFFFF);
   int i = 0;
   int val1;
   int val2;
-  // This printfs used in tests! Don`t remove!!
-  printf("Testing loop %d:\n", loopid);
+  // This psyslogs used in tests! Don`t remove!!
+  psyslog("Testing loop %d:\n", loopid);
   // For benny - TODO remove
-  /*printf("FAKING IT :)\n");
+  /*psyslog("FAKING IT :)\n");
   for (int j = 0 ; j < 1000 ; j++) {
     write_reg_broadcast(ADDR_VERSION, 0xAAAA);
   }*/
@@ -110,16 +110,16 @@ int test_serial(int loopid) {
     i++;
     if (i > 700) {
       // parse_squid_status(val1);
-      // printf("ERR (%d) loop is too noisy: ADDR_SQUID_STATUS=%x,
+      // psyslog("ERR (%d) loop is too noisy: ADDR_SQUID_STATUS=%x,
       // ADDR_SQUID_SERIAL_READ=%x\n",i, val1, val2);
-      // This printfs used in tests! Don`t remove!!
-      printf("NOISE\n");
+      // This psyslogs used in tests! Don`t remove!!
+      psyslog("NOISE\n");
       return 0;
     }
     usleep(10);
   }
 
-  // printf("Ok %d!\n", i);
+  // psyslog("Ok %d!\n", i);
 
   // test for connectivity
   int ver = read_reg_broadcast(ADDR_VERSION);
@@ -127,11 +127,11 @@ int test_serial(int loopid) {
   // printf("XTesting loop, version = %x\n", ver);
   if (BROADCAST_READ_DATA(ver) != 0x3c) {
     // printf("Failed: Got version: %x!\n", ver);
-    printf("BAD DATA (%x)\n",ver);
+    psyslog("BAD DATA (%x)\n",ver);
     return 0;
   }
 
-  printf("OK\n");
+  psyslog("OK\n");
   assert_serial_failures = true;
   return 1;
 }
@@ -149,7 +149,7 @@ int enable_good_loops_ok() {
     return 0;
   }
   for (int i = 0; i < LOOP_COUNT; i++) {
-    printf("%sloop %d enabled = %d%s\n",
+    psyslog("%sloop %d enabled = %d%s\n",
            (!vm.loop[i].enabled_loop) ? RED : RESET, i,
            (vm.loop[i].enabled_loop), RESET);
    
@@ -186,8 +186,20 @@ int count_ones(int failed_engines) {
 
 void print_miner_box() { DBG(DBG_SCALING, "MINER AC:%x\n", vm.ac2dc_power); }
 
+
+extern int rt_queue_size;
+extern int rt_queue_sw_write;
+extern int rt_queue_hw_done;
+
+
 void print_scaling() {
   int err;
+  
+  FILE *f = fopen("/tmp/asics", "w");
+  if (!f) {
+    psyslog("Failed to save ASIC state\n");
+    return;
+  }
 
   //hammer_iter_init(&hi);
   int total_hash_power=0;
@@ -195,13 +207,13 @@ void print_scaling() {
   int total_loops=0;
   int total_asics=0;
   int expected_rate=0;
-  printf(GREEN "\n----------\nAC2DC power=%d[%d], temp=%d\n" RESET,
+  fprintf(f, GREEN "\n----------\nAC2DC power=%d[%d], temp=%d\n" RESET,
       vm.ac2dc_power,
       AC2DC_POWER_LIMIT,
       vm.ac2dc_temp
     );
   int total_watt=0;
-  printf(GREEN "L |Vtrm|vlt|Wt|"  "A /Li|Tmp/"  "Tmp|A|H" RESET); 
+  fprintf(f, GREEN "L |Vtrm|vlt|Wt|"  "A /Li|Tmp/"  "Tmp|A|H" RESET); 
   for (int addr = 0; addr < HAMMERS_COUNT ; addr++) {
     
     hammer_iter hi;    
@@ -209,15 +221,15 @@ void print_scaling() {
     hi.a = &vm.hammer[addr];
     hi.l = addr/HAMMERS_PER_LOOP;
     hi.h = addr%HAMMERS_PER_LOOP;
-    if (hi.h == HAMMERS_PER_LOOP/2) {printf("\n-----------------------------------");}
+    if (hi.h == HAMMERS_PER_LOOP/2) {fprintf(f, "\n-----------------------------------");}
     if (hi.h == 0) {
       total_loops++;
       if (!vm.loop[hi.l].enabled_loop) {
-        printf("\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        fprintf(f, "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
       } else {    
         DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
 
-        printf(GREEN 
+        fprintf(f, GREEN 
           "\n%2d|%4x|%3d|%2d|"  
           "%s%3d%s/%3d|%s%3d%s|"   
           "%3d|%d|%2d" RESET, 
@@ -240,7 +252,7 @@ void print_scaling() {
     }
     
     if (!hi.a->asic_present) {
-      printf("|xxxxxxxxxxxxxxxxxxxxxxxxx");           
+      fprintf(f, "|xxxxxxxxxxxxxxxxxxxxxxxxx");           
       continue;
     }
 
@@ -249,7 +261,7 @@ void print_scaling() {
 
     total_asics++;
 
-    printf(GREEN "|%2x:%s%3dc%s %s%3dhz%s(%3d/%1d) %s%x" RESET, 
+    fprintf(f, GREEN "|%2x:%s%3dc%s %s%3dhz%s(%3d/%1d) %s%x" RESET, 
       hi.addr,
       (hi.a->asic_temp>=ASIC_TEMP_95)?((hi.a->asic_temp>=ASIC_TEMP_101)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
        corner_to_collor(hi.a->corner),hi.a->asic_freq*15+210,GREEN,
@@ -260,7 +272,7 @@ void print_scaling() {
   }
   // print last loop
   // print total hash power
-  printf(RESET "\n[H:%dGh/%dGh,W:%d,L:%d,A:%d,ER:%d,EP:%d]\n",
+  fprintf(f, RESET "\n[H:%dGh/%dGh,W:%d,L:%d,A:%d,ER:%d,EP:%d]\n",
   (total_hash_power*15)/1000,
   theoretical_hash_power*15/1000,
   total_watt/16,
@@ -270,5 +282,12 @@ void print_scaling() {
   (vm.ac2dc_power-70)/total_asics*192+70
   );
 
-  
+   fprintf(f, "Pushed %d jobs , in queue %d jobs!\n",
+             vm.last_second_jobs, rt_queue_size);
+   vm.last_second_jobs = 0;
+    fprintf(f, "wins:%d, leading-zeroes:%d idle:%d/%d\n", vm.solved_jobs_total,
+           vm.cur_leading_zeroes, vm.idle_probs, vm.busy_probs);
+    
+
+  fclose(f);
 }

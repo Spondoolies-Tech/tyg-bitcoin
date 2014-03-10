@@ -45,12 +45,14 @@
 #define passert(X...)                                                          \
   {                                                                            \
     if (X == 0) {                                                              \
-      printf("FATAL: %s:%d\n", __FILE__, __LINE__);                            \
+                                                                               \
+      psyslog("FATAL: %s:%d\n", __FILE__, __LINE__);                            \
       _passert(0);                                                             \
     }                                                                          \
   }
 #define pabort(X...)                                                           \
   { _pabort(X); }
+  
 #define psyslog(X...)                                                          \
   {                                                                            \
     syslog(LOG_WARNING, X);                                                    \

@@ -157,7 +157,7 @@ void ac2dc_scaling_one_minute() {
   int loops_on_max_current = 0;
   now = time(NULL);
   counter++;
-  //assert(0);
+  //passert(0);
   if (counter%5 != 0) {
     return;
   }

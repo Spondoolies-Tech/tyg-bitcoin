@@ -4,9 +4,9 @@
 #
 
 
+MINERGATE_CMD="nohup /usr/local/bin/miner_gate_arm  > foo.out 2> foo.err < /dev/null"
+CGMINER_CMD="nohup nice -n 20 /usr/local/bin/cgminer --config /etc/cgminer.conf"
 
-CGMINER_CMD="/usr/local/bin/cgminer --config /etc/cgminer.conf"
-MINERGATE_CMD="/usr/local/bin/miner_gate_arm"
 
 
 export PATH=$PATH:/usr/local/bin:/bin
@@ -16,7 +16,7 @@ export PATH=$PATH:/usr/local/bin:/bin
 miner_gate_arm_watchdog () {
 	$MINERGATE_CMD &
 	echo $! > /var/run/miner_gate_arm.pid
-	sleep 5
+	sleep 2
 	$CGMINER_CMD &
 	echo $! > /var/run/cgminer_arm.pid
 

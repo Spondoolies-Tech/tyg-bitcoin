@@ -40,38 +40,26 @@ int ac2dc_getint(int source) {
 static int ac2dc_get_power() {
   int err = 0;
   static int warned = 0;
-  
-  //printf("%s:%d\n",__FILE__, __LINE__);
-  //pthread_mutex_lock(&i2c_mutex);
-  //i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
   int r;
-#if 0
-  r = i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_IOUT_WORD, &err); 
-  r = ac2dc_getint(r);
-  r*=12;
-  r/=1000;
-#else
+
   do_stupid_i2c_workaround();
   r = i2c_read_word(mgmt_addr[murata], AC2DC_I2C_READ_POUT_WORD, &err);
   if (err) {
-    printf("RESET I2C BUS?\n");
+    psyslog("RESET I2C BUS?\n");
     system("echo 111 > /sys/class/gpio/export");
     system("echo out > /sys/class/gpio/gpio111/direction");
     system("echo 0 > /sys/class/gpio/gpio111/value");
     usleep(1000000);
     system("echo 111 > /sys/class/gpio/export");
-    assert(0);
+    passert(0);
   }
-  r = ac2dc_getint(r); //TODOZ
-#endif
-  //printf(CYAN "Zerem = %d\n" RESET,r);
-  int power = r;//ac2dc_getint(i2c_read_word(AC2DC_I2C_MGMT_DEVICE, AC2DC_I2C_READ_POUT_WORD, &err)); TODOZ
-  //i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+  int power = ac2dc_getint(r); //TODOZ
+
   if (err) {
     if ((warned++) < 10)
-      psyslog(RED "FAILED TO INIT AC2DC\n" RESET);
+      psyslog( "FAILED TO INIT AC2DC\n" );
     if ((warned) == 9)
-      psyslog(RED "FAILED TO INIT AC2DC, giving up :(\n" RESET);
+      psyslog( "FAILED TO INIT AC2DC, giving up :(\n" );
      //pthread_mutex_unlock(&i2c_mutex);
     return 100;
   }
@@ -86,10 +74,10 @@ void ac2dc_init() {
   i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
   int res = i2c_read_word(AC2DC_EMERSON_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD, &err);
   if (!err) {
-    printf("EMERSON AC2DC LOCATED\n");
+    psyslog("EMERSON AC2DC LOCATED\n");
     murata = 0;
   } else {
-    printf("MURATA AC2DC LOCATED\n");
+    psyslog("MURATA AC2DC LOCATED\n");
     murata = 1;
   }
   i2c_write(PRIMARY_I2C_SWITCH, 0);
@@ -100,7 +88,7 @@ void ac2dc_init() {
 // Return Watts
 static int ac2dc_get_temperature() {
   static int warned = 0;
-  //printf("%s:%d\n",__FILE__, __LINE__);
+  //psyslog("%s:%d\n",__FILE__, __LINE__);
 
 
   int err = 0;
@@ -146,10 +134,10 @@ int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd) {
   int revision_size = 2;
 
   if (NULL == pVpd) {
-    printf("call ac2dc_get_vpd performed without allocating sturcture first\n");
+    psyslog("call ac2dc_get_vpd performed without allocating sturcture first\n");
     return 1;
   }
-  //printf("%s:%d\n",__FILE__, __LINE__);
+  //psyslog("%s:%d\n",__FILE__, __LINE__);
   
   pthread_mutex_lock(&i2c_mutex);
 
@@ -209,7 +197,7 @@ ac2dc_get_eeprom_quick_err:
 // use this funtion when performing serial multiple reads
 /*
 unsigned char ac2dc_get_eeprom_quick(int offset, int *pError) {
-  //printf("%s:%d\n",__FILE__, __LINE__);
+  //psyslog("%s:%d\n",__FILE__, __LINE__);
 
   pthread_mutex_lock(&i2c_mutex);
 
@@ -278,8 +266,8 @@ int update_ac2dc_power_measurments() {
  
   reset_i2c();
   i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
-  do_stupid_i2c_workaround();
-#if AC2DC_BUG == 0  
+  //do_stupid_i2c_workaround();
+#if 0//AC2DC_BUG == 0  
   vm.ac2dc_temp = ac2dc_get_temperature();
 #endif
 
@@ -289,7 +277,7 @@ int update_ac2dc_power_measurments() {
 #if AC2DC_BUG == 0  
   power = ac2dc_get_power()/1000;
 #endif
-  printf(CYAN"power=%d(guessed=%d)\n" RESET, power,power_guessed);
+  //printf(CYAN"power=%d(guessed=%d)\n" RESET, power,power_guessed);
 
   if (
     !vm.asics_shut_down_powersave &&

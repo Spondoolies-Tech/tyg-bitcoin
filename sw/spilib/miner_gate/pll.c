@@ -8,7 +8,6 @@
 #include "squid.h"
 #include "hammer_lib.h"
 #include "scaling_manager.h"
-
 #include "spond_debug.h"
 
 pll_frequency_settings pfs[ASIC_FREQ_MAX] = {
@@ -67,7 +66,6 @@ void enable_all_engines_asic(int addr) {
 
 
 void set_pll(int addr, ASIC_FREQ freq) {
-#if HAS_PLL == 1
   passert(vm.engines_disabled == 1);
   write_reg_device(addr, ADDR_DLL_OFFSET_CFG_LOW, 0xC3C1C200);
   write_reg_device(addr, ADDR_DLL_OFFSET_CFG_HIGH, 0x0082C381);
@@ -82,18 +80,6 @@ void set_pll(int addr, ASIC_FREQ freq) {
   write_reg_device(addr, ADDR_PLL_CONFIG, pll_config);
   write_reg_device(addr, ADDR_PLL_ENABLE, 0x0);
   write_reg_device(addr, ADDR_PLL_ENABLE, 0x1);
-#if 0
-  int i = 0; 
-  while ((read_reg_device(addr, ADDR_PLL_STATUS) & 3)!= 3) {
-    if (i++ > 100) {
-      passert("PLL lock failure\n");
-    }
-    usleep(50);
-  }
-#else
-  //printf(RED "sPLL!\n" RESET);
-#endif
-#endif
 }
 
 void disable_asic_forever(int addr) {
@@ -113,7 +99,7 @@ int enable_good_engines_all_asics_ok() {
     int killed_pll=0;
     while ((reg = read_reg_broadcast(ADDR_BR_PLL_NOT_READY)) != 0) {
       if (i++ > 500) {
-        printf(RED "PLL %x stuck, killing ASIC\n" RESET, reg);
+        psyslog(RED "PLL %x stuck, killing ASIC\n" RESET, reg);
         //return 0;
         int addr = BROADCAST_READ_ADDR(reg);
         disable_asic_forever(addr);

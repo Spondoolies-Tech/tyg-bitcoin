@@ -11,11 +11,11 @@
 
 
 
-uint32_t vtrim_per_loop[] = { VTRIM_START+1, VTRIM_START+1, VTRIM_START+1, VTRIM_START+1, 
+uint32_t vtrim_per_loop[] = { VTRIM_START+3, VTRIM_START+3, VTRIM_START+3, VTRIM_START+3, 
                                VTRIM_START,  VTRIM_START, VTRIM_START, VTRIM_START, 
                                VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
                                
-                               VTRIM_START+1, VTRIM_START+1, VTRIM_START+1, VTRIM_START+1, 
+                               VTRIM_START+3, VTRIM_START+3, VTRIM_START+3, VTRIM_START+3, 
                                VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
                                VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
                                };
@@ -30,9 +30,14 @@ void enable_voltage_freq(ASIC_FREQ f) {
       // Set voltage
       int err;
       // dc2dc_set_voltage(l, vm.loop_vtrim[l], &err);
-      dc2dc_set_vtrim(l, vtrim_per_loop[l] , &err);
+      if (vm.thermal_test_mode) {
+        dc2dc_set_vtrim(l, VTRIM_672 , &err);
+      } else if (vm.silent_mode) {
+        dc2dc_set_vtrim(l, VTRIM_MIN, &err);
+      } else {
+        dc2dc_set_vtrim(l, vtrim_per_loop[l] , &err);
+      }
       // passert(err);
-
       // for each ASIC
       for (h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
         HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
@@ -118,48 +123,45 @@ void discover_good_loops() {
   write_spi(ADDR_SQUID_LOOP_BYPASS, 0);
   write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
 
-  success = test_serial(-1);
-  if (success) {
-    for (i = 0; i < LOOP_COUNT; i++) {
-      // vm.loop[i].present = true;
-      //nvm.loop_brocken[i] = false;
-      ret++;
-    }
-  } else {
-    for (i = 0; i < LOOP_COUNT; i++) {
-      vm.loop[i].id = i;
-      unsigned int bypass_loops = (~(1 << i) & 0xFFFFFF);
-      write_spi(ADDR_SQUID_LOOP_BYPASS, bypass_loops);
-      //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
-      //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
-      //printf("Testing loop::::::\n");
-      if (test_serial(i)) { // TODOZ
-        // printf("--00--\n");
-        vm.loop[i].enabled_loop = 1;
-        vm.loop_vtrim[i] = vtrim_per_loop[i];
-        vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
-        good_loops |= 1 << i;
-        ret++;
-      } else {
-        // printf("--11--\n");
-        vm.loop[i].enabled_loop = 0;
-        vm.loop_vtrim[i] = 0;
-        for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
-          // printf("remove ASIC 0x%x\n", h);
-          vm.hammer[h].asic_present = 0;
-          vm.hammer[h].working_engines = 0;
-        }
-        int err;
-        printf("Disabling DC2DC %d\n", i);
-        dc2dc_disable_dc2dc(i, &err);
-      }
-    }
-    write_spi(ADDR_SQUID_LOOP_BYPASS, ~(good_loops));
-    vm.good_loops = good_loops;
-    test_serial(-1);
-  }
  
-  printf("Found %d good loops\n", ret);
+  for (i = 0; i < LOOP_COUNT; i++) {
+    vm.loop[i].id = i;
+    unsigned int bypass_loops = (~(1 << i) & 0xFFFFFF);
+    write_spi(ADDR_SQUID_LOOP_BYPASS, bypass_loops);
+    //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
+    //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
+    //printf("Testing loop::::::\n");
+    if (test_serial(i)) { // TODOZ
+      // printf("--00--\n");
+      vm.loop[i].enabled_loop = 1;
+      if (vm.thermal_test_mode) {
+        vm.loop_vtrim[i] = VTRIM_672;
+      } else {
+        vm.loop_vtrim[i] = vtrim_per_loop[i];
+      }
+      vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
+      good_loops |= 1 << i;
+      ret++;
+    } else {
+      // printf("--11--\n");
+      vm.loop[i].enabled_loop = 0;
+      vm.loop_vtrim[i] = 0;
+      for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
+        // printf("remove ASIC 0x%x\n", h);
+        vm.hammer[h].asic_present = 0;
+        vm.hammer[h].working_engines = 0;
+      }
+      int err;
+      printf("Disabling DC2DC %d\n", i);
+      dc2dc_disable_dc2dc(i, &err);
+    }
+  }
+  write_spi(ADDR_SQUID_LOOP_BYPASS, ~(good_loops));
+  vm.good_loops = good_loops;
+  test_serial(-1);
+
+ 
+  psyslog("Found %d good loops\n", ret);
   // Devide current between availible loops
   
   

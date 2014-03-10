@@ -263,11 +263,10 @@ void resume_asics_if_needed() {
   }
 }
 
+
 void asic_scaling_once_second(int force) {
   static int counter = 0;  
   now = time(NULL);
-  struct timeval tv;
-  start_stopper(&tv);
   vm.dc2dc_total_power = 0;
   vm.total_mhash = 0;
   int critical_bist = 0;
@@ -295,7 +294,7 @@ void asic_scaling_once_second(int force) {
       vm.total_mhash += vm.loop[l].asic_hz_sum*ENGINES_PER_ASIC;
       if (vm.loop[l].asic_count == 0) {
         int err;
-        printf("Disabling DC2DC %d\n", l);
+        psyslog("Disabling DC2DC %d\n", l);
         dc2dc_disable_dc2dc(l, &err);
         vm.loop[l].enabled_loop = 0;
       }
@@ -306,11 +305,9 @@ void asic_scaling_once_second(int force) {
     }
   }
   vm.dc2dc_total_power/=16;
-  end_stopper(&tv, "SCALING1");
   
 
   //return;
-  start_stopper(&tv);
   counter++;
 
   if (critical_bist) {
@@ -318,21 +315,20 @@ void asic_scaling_once_second(int force) {
   }
 
   if (proccess_bist_results) {
-      printf(MAGENTA_BK "Running FREQ update\n" RESET);
+      psyslog(MAGENTA "Running FREQ update\n" RESET);
       asic_frequency_update();
       proccess_bist_results = 0;
   } 
 
   
-  if (!vm.asics_shut_down_powersave) { 
+  if (!vm.asics_shut_down_powersave && !vm.thermal_test_mode) { 
       if (force  || 
          ((counter % BIST_PERIOD_SECS) == 0)) {
-         printf(MAGENTA_BK "Running BIST\n" RESET);
+         psyslog(MAGENTA "Running BIST\n" RESET);
          do_bist();
          proccess_bist_results = 1;
       }
   }
-  end_stopper(&tv, "SCALING2");
 
   //change_dc2dc_voltage_if_needed();
   //resume_asics_if_needed();
@@ -359,7 +355,7 @@ void change_dc2dc_voltage_if_needed() {
       } else { 
         printf(RED "LOOP DOWNSCALE %d\n" RESET, l);
         HAMMER *h = find_asic_to_down(l);
-        assert(h);
+        passert(h);
         printf(RED "Starin ASIC DOWNSCALE %d\n" RESET, h->address);
         pause_asics_if_needed();
         asic_down_one(h);
@@ -440,7 +436,7 @@ void asic_frequency_update(int verbal) {
             printf("%x->%d ",h->address,h->asic_freq);
           }
 
-          //assert(h);
+          //passert(h);
           if (asic_can_down(h)) {
             h->top_freq_after_bist_only = h->top_freq = (ASIC_FREQ)(h->asic_freq-1);
             asic_down_one(h);
@@ -488,7 +484,7 @@ void asic_frequency_update(int verbal) {
      
     }
     
-     printf(CYAN "Failed in bist %d ASICs\n" RESET, cnt);
+     psyslog(CYAN "Failed in bist %d ASICs\n" RESET, cnt);
      //end_stopper(&tv, "go over bad stopper");
      resume_asics_if_needed();
 #if 0

@@ -58,11 +58,11 @@ int main(int argc, char *argv[]) {
 
       int i = 0;
     while (read_spi(ADDR_SQUID_STATUS) & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) {
-       printf("read garbage %x\n", read_spi(ADDR_SQUID_SERIAL_READ));
+       psyslog("read garbage %x\n", read_spi(ADDR_SQUID_SERIAL_READ));
              i++;
 
              if (i == 1000) {
-                printf("GARBAGE OVERFLOW!\n");
+                psyslog("GARBAGE OVERFLOW!\n");
                 return(0);
              }
     }

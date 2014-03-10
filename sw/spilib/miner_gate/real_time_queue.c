@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+
+#include "spond_debug.h"
 #include "hammer.h"
 #include "squid.h"
 #include "queue.h"
@@ -41,7 +43,6 @@ RT_JOB *add_to_sw_rt_queue(const RT_JOB *work) {
   if (rt_queue_size == MAX_PACKETS_IN_RT_QUEUE) {
     RT_JOB old_w;
     one_done_sw_rt_queue(&old_w);
-    vm.newest_hw_job_id = old_w.work_id_in_hw;
     push_work_rsp(&old_w);
   }
   passert(rt_queue[rt_queue_sw_write].work_state == WORK_STATE_FREE);

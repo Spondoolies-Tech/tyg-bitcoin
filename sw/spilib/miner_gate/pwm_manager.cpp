@@ -36,7 +36,7 @@ void init_pwm() {
   fclose(f);
   // pwm_values
   f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
-  assert(f != NULL);
+  passert(f != NULL);
   fprintf(f, "%d", PWM_VALUE(0));
   fclose(f);
 }
@@ -46,7 +46,7 @@ void kill_fan() {
   int val = 0;
   f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
   if (f <= 0) {
-    printf(RED "Fan PWM not found\n" RESET);
+    psyslog(RED "Fan PWM not found\n" RESET);
   } else {
     fprintf(f, "%d", val);
     fclose(f);
@@ -60,12 +60,12 @@ void set_fan_level(int fan_level) {
 	  passert(fan_level <= 100 && fan_level >=0);
 	  int val = PWM_VALUE(fan_level);
 	  
-	  if (vm.silent_test_mode) {
-		  val = 0;
+	  if (vm.silent_mode) {
+		  val = 20;
 	  }
 	  f = fopen("/sys/devices/ocp.3/pwm_test_P9_31.12/duty", "w");
 	  if (f <= 0) {
-	    printf(RED "Fan PWM not found\n" RESET);
+	    psyslog(RED "Fan PWM not found\n" RESET);
 	  } else {
 	    fprintf(f, "%d", val);
 	    fclose(f);
