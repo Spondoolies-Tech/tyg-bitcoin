@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2013.05-g83b2623-dirty Configuration
+# Buildroot 2013.05-g410aa97-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 # BR2_arcle is not set
@@ -640,7 +640,7 @@ BR2_PACKAGE_ZLIB=y
 # BR2_PACKAGE_LIBSHA1 is not set
 # BR2_PACKAGE_NETTLE is not set
 BR2_PACKAGE_OPENSSL=y
-# BR2_PACKAGE_OPENSSL_BIN is not set
+BR2_PACKAGE_OPENSSL_BIN=y
 # BR2_PACKAGE_OPENSSL_ENGINES is not set
 # BR2_PACKAGE_POLARSSL is not set
 
