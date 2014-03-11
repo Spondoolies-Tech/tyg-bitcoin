@@ -15,6 +15,7 @@
 #include <spond_debug.h>
 #include "hammer_lib.h"
 
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define BROADCAST_ADDR 0xffff
 
@@ -25,9 +26,9 @@ static uint32_t speed = 10000000;
 static uint16_t delay = 0;
 static int fd = 0;
 int assert_serial_failures = true;
+int enable_reg_debug;
 int spi_ioctls_read = 0;
 int spi_ioctls_write = 0;
-int   enable_reg_debug;
 
 #define SPI_CMD_READ 0x01
 #define SPI_CMD_WRITE 0x41

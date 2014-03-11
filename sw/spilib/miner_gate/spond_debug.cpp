@@ -13,21 +13,17 @@ void _pabort(const char *s) {
   int j, nptrs;
   void *buffer[SIZE];
   char **strings;
-  char *buf = (char *)malloc(4000);
-  char *orig_buf = buf;
-  printf("ERROR, ABORT, DYE!\n");
-  buf += sprintf(buf, "MINERGATE ERROR: ");
+  psyslog("ERROR, ABORT, DYE!\n");
+  psyslog("MINERGATE ERROR: ");
   if (s) {
-    perror(orig_buf);
-    buf += sprintf(buf, "%s :STACK:", s);
+    //perror(orig_buf);
+    psyslog("%s :STACK:", s);
   }
   nptrs = backtrace(buffer, SIZE);
   strings = backtrace_symbols(buffer, nptrs);
   for (j = 0; j < nptrs; j++) {
-    buf += sprintf(buf, " %s\n", strings[j]);
+    psyslog(" %s\n", strings[j]);
   }
-  printf("%s\n", orig_buf);
-  syslog(LOG_ALERT, "%s\n", orig_buf);
   abort();
 }
 
@@ -37,7 +33,7 @@ void _passert(int cond, const char *s) {
   }
 }
 
-void start_stopper(struct timeval *tv) { gettimeofday(tv, NULL); }
+void start_stopper(struct timeval *tv) {gettimeofday(tv, NULL);}
 
 void end_stopper(struct timeval *tv, const char *name) {
   int usec;
@@ -45,7 +41,5 @@ void end_stopper(struct timeval *tv, const char *name) {
   gettimeofday(&end, NULL);
   usec = (end.tv_sec - tv->tv_sec) * 1000000;
   usec += (end.tv_usec - tv->tv_usec);
-  if (usec > 10) {
-	  printf(YELLOW "STOPPER %s took %d usecs\n" RESET, name, usec);
-  } 
+  printf(YELLOW "%s took %d\n" RESET, name, usec);
 }

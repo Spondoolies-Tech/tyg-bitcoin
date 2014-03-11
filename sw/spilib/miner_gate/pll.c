@@ -8,7 +8,6 @@
 #include "squid.h"
 #include "hammer_lib.h"
 #include "scaling_manager.h"
-
 #include "spond_debug.h"
 
 pll_frequency_settings pfs[ASIC_FREQ_MAX] = {
@@ -67,7 +66,6 @@ void enable_all_engines_asic(int addr) {
 
 
 void set_pll(int addr, ASIC_FREQ freq) {
-#if HAS_PLL == 1
   passert(vm.engines_disabled == 1);
   write_reg_device(addr, ADDR_DLL_OFFSET_CFG_LOW, 0xC3C1C200);
   write_reg_device(addr, ADDR_DLL_OFFSET_CFG_HIGH, 0x0082C381);
@@ -82,22 +80,10 @@ void set_pll(int addr, ASIC_FREQ freq) {
   write_reg_device(addr, ADDR_PLL_CONFIG, pll_config);
   write_reg_device(addr, ADDR_PLL_ENABLE, 0x0);
   write_reg_device(addr, ADDR_PLL_ENABLE, 0x1);
-#if 0
-  int i = 0; 
-  while ((read_reg_device(addr, ADDR_PLL_STATUS) & 3)!= 3) {
-    if (i++ > 100) {
-      passert("PLL lock failure\n");
-    }
-    usleep(50);
-  }
-#else
-  //printf(RED "sPLL!\n" RESET);
-#endif
-#endif
 }
 
 void disable_asic_forever(int addr) {
-  vm.working_engines[addr] = 0;
+  vm.hammer[addr].working_engines = 0;
   vm.hammer[addr].asic_present = 0;
   disable_engines_asic(addr);
   psyslog("Disabing ASIC forever %x from loop %d\n", addr, addr/HAMMERS_PER_LOOP);
@@ -107,13 +93,13 @@ void disable_asic_forever(int addr) {
 
 
 int enable_good_engines_all_asics_ok() {
-#if 1
     int i = 0; 
     int reg;
     int killed_pll=0;
+    
     while ((reg = read_reg_broadcast(ADDR_BR_PLL_NOT_READY)) != 0) {
       if (i++ > 500) {
-        printf(RED "F*cking PLL %x stuck, killing ASIC\n" RESET, reg);
+        psyslog(RED "PLL %x stuck, killing ASIC\n" RESET, reg);
         //return 0;
         int addr = BROADCAST_READ_ADDR(reg);
         disable_asic_forever(addr);
@@ -121,7 +107,6 @@ int enable_good_engines_all_asics_ok() {
       }
       usleep(10);
     }
-#endif
    //printf("Enabling engines from NVM:\n");
    if (killed_pll) {
      passert(test_serial(-1)); 
@@ -146,20 +131,20 @@ int enable_good_engines_all_asics_ok() {
      } 
 
      if (vm.hammer[h].asic_present && 
-        vm.working_engines[h] != ALL_ENGINES_BITMASK) {
-        write_reg_device(h, ADDR_CLK_ENABLE, vm.working_engines[h]);
-        write_reg_device(h, ADDR_RESETING0, vm.working_engines[h]);
-        write_reg_device(h, ADDR_RESETING1, vm.working_engines[h] | 0x8000);
-        write_reg_device(h, ADDR_ENABLE_ENGINE, vm.working_engines[h]);
+        vm.hammer[h].working_engines != ALL_ENGINES_BITMASK) {
+        write_reg_device(h, ADDR_CLK_ENABLE, vm.hammer[h].working_engines);
+        write_reg_device(h, ADDR_RESETING0, vm.hammer[h].working_engines);
+        write_reg_device(h, ADDR_RESETING1, vm.hammer[h].working_engines | 0x8000);
+        write_reg_device(h, ADDR_ENABLE_ENGINE, vm.hammer[h].working_engines);
      }
    }
    /*
    while (hammer_iter_next_present(&hi)) {
      // for each ASIC
-     write_reg_device(hi.addr, ADDR_CLK_ENABLE, vm.working_engines[hi.addr]);
-     write_reg_device(hi.addr, ADDR_RESETING0, vm.working_engines[hi.addr]);
-     write_reg_device(hi.addr, ADDR_RESETING1, vm.working_engines[hi.addr] | 0x8000);
-     write_reg_device(hi.addr, ADDR_ENABLE_ENGINE, vm.working_engines[hi.addr]);
+     write_reg_device(hi.addr, ADDR_CLK_ENABLE, vm.hammer[hi.addr].working_engines);
+     write_reg_device(hi.addr, ADDR_RESETING0, vm.hammer[hi.addr].working_engines);
+     write_reg_device(hi.addr, ADDR_RESETING1, vm.hammer[hi.addr].working_engines | 0x8000);
+     write_reg_device(hi.addr, ADDR_ENABLE_ENGINE, vm.hammer[hi.addr].working_engines);
    }
    */
    vm.engines_disabled = 0;

@@ -4,16 +4,19 @@
 #
 
 
+MINERGATE_CMD="nohup /usr/local/bin/miner_gate_arm  > foo.out 2> foo.err < /dev/null"
+CGMINER_CMD="nohup nice -n 20 /usr/local/bin/cgminer --config /etc/cgminer.conf"
 
-CGMINER_CMD="/usr/local/bin/cgminer -o http://mining.eligius.st:8337 -u 1CS7gyvYjMyzAPwLtaVoRTXsdAxhfMSsUy -p x"
-MINERGATE_CMD="/usr/local/bin/miner_gate_arm"
 
 
 export PATH=$PATH:/usr/local/bin:/bin
+
+
+
 miner_gate_arm_watchdog () {
 	$MINERGATE_CMD &
 	echo $! > /var/run/miner_gate_arm.pid
-	sleep 5
+	sleep 2
 	$CGMINER_CMD &
 	echo $! > /var/run/cgminer_arm.pid
 
@@ -21,7 +24,7 @@ miner_gate_arm_watchdog () {
 		pidm=`cat /var/run/miner_gate_arm.pid`
 		if [ ! -e /proc/$pidm -a /proc/$pidm/exe ]; then
 			echo "Minergate died and restarted"
-			$MINERGATE_CM &
+			$MINERGATE_CMD &
 			echo $! > /var/run/miner_gate_arm.pid
 		fi
 
@@ -40,29 +43,31 @@ miner_gate_arm_watchdog () {
 
 
 start_mg() {
-	if [ -f "/var/run/miner_gate_arm.pid" ]; then
-		echo "minergate is already running"
-	else
-		miner_gate_arm_watchdog &
-		echo $! > /var/run/miner_gate_arm_watchdog.pid
-	fi
+	
+		if [ -f "/var/run/miner_gate_arm.pid" ]; then
+			echo "minergate is already running"
+		else
+			miner_gate_arm_watchdog &
+			echo $! > /var/run/miner_gate_arm_watchdog.pid
+		fi
 }
 
 
 stop_mg() {
-	if [ ! -f "/var/run/miner_gate_arm_watchdog.pid" ]; then
-		echo "Mining manager not running"
-	else
-		pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
-		pid2=`cat /var/run/cgminer_arm.pid`
-		pid3=`cat /var/run/miner_gate_arm.pid`
-		kill $pid1
-		kill $pid2
-		kill $pid3
-		rm /var/run/miner_gate_arm_watchdog.pid
-		rm /var/run/miner_gate_arm.pid
-		rm /var/run/cgminer_arm.pid
-	fi
+		if [ ! -f "/var/run/miner_gate_arm_watchdog.pid" ]
+		then
+			echo "Mining manager not running"
+		else
+			pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
+			pid2=`cat /var/run/cgminer_arm.pid`
+			pid3=`cat /var/run/miner_gate_arm.pid`
+			kill $pid1
+			kill $pid2
+			kill $pid3
+			rm /var/run/miner_gate_arm_watchdog.pid
+			rm /var/run/miner_gate_arm.pid
+			rm /var/run/cgminer_arm.pid
+		fi
 }
 
 

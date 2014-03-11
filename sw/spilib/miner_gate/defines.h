@@ -2,7 +2,6 @@
 #define _____DC2DEFINES__45R_H____
 
 // compilation flags
-#define HAS_PLL 1
 #define TEST_BOARD 0
 #define ECONOMY 0
 
@@ -22,7 +21,6 @@
 #define MAX_FAN_LEVEL                   100
 #define HOT_ASICS_IN_LOOP_FOR_DOWNSCALE 6
 #define COLD_ASICS_IN_LOOP_FOR_UPSCALE  4
-#define RUNTIME_TO_START_CHANGING_VOLTAGES 60 
 
 
 #define TIME_FOR_DLL_USECS  1000
@@ -33,15 +31,14 @@
 
 // In seconds
 #define BIST_PERIOD_SECS_RAMPUP            1
-#define BIST_PERIOD_SECS                   5
-#define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 10
-#define HOT_ASIC_FREQ_DECREASE_PERIOD_SECS 5           
+#define BIST_PERIOD_SECS                   30 // unless hot ASICs discovered
+#define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 30
 
 
 
 #define AC2DC_TEMP_GREEN_LINE 110
 #define AC2DC_CURRENT_TRUSTWORTHY (10)
-#define AC2DC_POWER_LIMIT  (1150)
+#define AC2DC_POWER_LIMIT  (1220)
 #define AC2DC_UPSCALE_TIME_SECS   60  //2 2 minutes wait before upscaling AC2DC 
 #define AC2DC_SPARE_CURRENT_TO_UPSCALE 5
 #define AC2DC_LEFT_CURRENT_TO_DOWNSCALE 1
@@ -53,9 +50,9 @@
 
 
 #define DC2DC_TEMP_GREEN_LINE         120
-#define DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S (58 * 16) // TODO - for 6 ASICS
-#define DC2DC_MINIMAL_TOP_16S (58 * 16) // never remember to current smaller then this 
-#define DC2DC_INITIAL_CURRENT_16S (58 * 16) 
+#define DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S (59 * 16) // TODO - for 6 ASICS
+#define DC2DC_MINIMAL_TOP_16S (59 * 16) // never remember to current smaller then this 
+#define DC2DC_INITIAL_CURRENT_16S (59 * 16) 
 #define DC2DC_SAFE_TO_INCREASE_CURRENT_16S (1*16)
 #define DC2DC_UPSCALE_TIME_SECS   10  
 #define DC2DC_DOWNSCALE_TIME_SECS   20  
@@ -69,16 +66,24 @@
 #define ASIC_VOLTAGE_DEFAULT ASIC_VOLTAGE_720
 
 #define VTRIM_550   0xFFC4
+#define VTRIM_664   0xFFD0
+#define VTRIM_666   0xFFD1
+#define VTRIM_669   0xFFD2
+#define VTRIM_678   0xFFD6
+#define VTRIM_676   0xFFD5
+#define VTRIM_674   0xFFD4
+#define VTRIM_671   0xFFD3
+#define VTRIM_669   0xFFD2
+
 #define VTRIM_810   0x10008
 
 #define VTRIM_HIGH  0x0FFef
 #if ECONOMY == 1
 #define VTRIM_START 0x0FFcA
 #else
-#define VTRIM_START 0x0FFd0//0x0FFd0//VTRIM_MIN//(0x0FFd2+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
+#define VTRIM_START VTRIM_676 //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
 #endif
-#define VTRIM_LOW   0x0FFc0
-#define VTRIM_CORNER_DISCOVERY   0x0FFd3
+
 
 #define CORNER_DISCOVERY_FREQ_FF       ASIC_FREQ_540
 #define CORNER_DISCOVERY_FREQ_TF       ASIC_FREQ_525
@@ -91,12 +96,11 @@
 #define LOW_AC2DC_POWER 900
 
 
-#define MAX_ASIC_FREQ ASIC_FREQ_810
+#define MAX_ASIC_FREQ ASIC_FREQ_705
 #define MINIMAL_ASIC_FREQ ASIC_FREQ_225
 #define ASIC_FREQ_SAFE ASIC_FREQ_300
 
 #define AC2DC_BUG    1
-#define MURATA_AC2DC 0
-#define IDLE_TIME_TO_PAUSE_ENGINES 20
+#define IDLE_TIME_TO_PAUSE_ENGINES 4
 
 #endif

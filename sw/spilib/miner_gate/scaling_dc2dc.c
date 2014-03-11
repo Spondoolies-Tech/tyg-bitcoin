@@ -44,37 +44,10 @@ void do_bist() {
 
 
 void set_safe_voltage_and_frequency() {
-  enable_voltage_freq(VTRIM_START, ASIC_FREQ_660);
+  enable_voltage_freq(ASIC_FREQ_660);
   enable_good_engines_all_asics_ok(); 
 }
 
-/*
-void enable_voltage_from_nvm() {
-  int l, h, i = 0;
-  // for each enabled loop
-  
-  disable_engines_all_asics();
-  for (l = 0; l < LOOP_COUNT; l++) {
-    if (vm.loop[l].enabled_loop) {
-      // Set voltage
-      int err;
-      // dc2dc_set_voltage(l, vm.loop_vtrim[l], &err);
-      dc2dc_set_vtrim(l, vm.loop_vtrim[l], &err);
-      // passert(err);
-
-      // for each ASIC
-      for (h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
-        HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
-        // Set freq
-        if (a->asic_present) {
-          set_asic_freq(a->address, MAX_ASIC_FREQ);
-        }
-      }
-    }
-  }
-  enable_good_engines_all_asics_ok();
-}
-*/
 
 
 // returns worst asic
@@ -171,6 +144,15 @@ void asic_down_completly(HAMMER *a) {
 }
 
 
+void asic_up_completly(HAMMER *a) {
+   passert(vm.engines_disabled == 1);
+   ASIC_FREQ wanted_freq = MAX_ASIC_FREQ;
+   a->asic_freq = wanted_freq;
+   set_pll(a->address, wanted_freq);        
+   a->last_freq_change_time = now;      
+}
+
+
 void asic_down_one(HAMMER *a) {
    passert(vm.engines_disabled == 1);
    //printf(RED "xASIC DOWNSCALE %x!\n", a->address);
@@ -254,15 +236,26 @@ void resume_asics_if_needed() {
   }
 }
 
+
 void asic_scaling_once_second(int force) {
   static int counter = 0;  
   now = time(NULL);
-  struct timeval tv;
-  start_stopper(&tv);
   vm.dc2dc_total_power = 0;
+  vm.total_mhash = 0;
+  int critical_bist = 0;
+  static int proccess_bist_results = 0;
 
   // Remove disabled loops and pdate statistics
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
+    if (vm.loop[l].dc2dc.kill_me_i_am_bad) {
+      // Kill ASICS in bad DC2DCs
+      for (int addr = l*HAMMERS_PER_LOOP; addr < l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP; addr++) {
+        disable_asic_forever(addr);
+        vm.loop[l].dc2dc.kill_me_i_am_bad = 0;
+      }
+    }
+
+    
     if (vm.loop[l].enabled_loop) {
       vm.loop[l].asic_count = 0;
       vm.loop[l].asic_temp_sum = 0;
@@ -270,41 +263,55 @@ void asic_scaling_once_second(int force) {
       for (int i = 0 ; i < HAMMERS_PER_LOOP ; i++) {
         HAMMER* h = &vm.hammer[l*HAMMERS_PER_LOOP+i];
         if (h->asic_present) {
+          if (h->asic_temp >= MAX_ASIC_TEMPERATURE && h->asic_freq > MINIMAL_ASIC_FREQ) {
+            printf("Running critical BIST for ASIC TEMP on %x\n", h->asic_temp );
+            critical_bist=1;
+          }
           vm.loop[l].asic_count++;
           vm.loop[l].asic_temp_sum += h->asic_temp*6+77;
           vm.loop[l].asic_hz_sum += h->asic_freq*15+210;
         }
       }
       vm.dc2dc_total_power += vm.loop[l].dc2dc.dc_power_watts_16s;
+      vm.total_mhash += vm.loop[l].asic_hz_sum*ENGINES_PER_ASIC;
       if (vm.loop[l].asic_count == 0) {
+        int err;
+        psyslog("Disabling DC2DC %d\n", l);
+        dc2dc_disable_dc2dc(l, &err);
         vm.loop[l].enabled_loop = 0;
+        int loop_bit = 1 << l;
+        vm.good_loops &= ~(loop_bit);
+        write_spi(ADDR_SQUID_LOOP_BYPASS, ~(vm.good_loops));
       }
+      if (vm.loop[l].dc2dc.dc_current_16s == vm.loop[l].dc2dc.dc_current_limit_16s) {
+        printf("Running critical BIST for DC2DC\n");
+        critical_bist=1;
+      }   
     }
   }
   vm.dc2dc_total_power/=16;
-  end_stopper(&tv, "SCALING1");
   
 
   //return;
-  start_stopper(&tv);
   counter++;
-  if (!vm.asics_shut_down_powersave) { 
-      //Once every 10 seconds upscale ASICs if can
-      if (force  || 
-         (vm.ac2dc_power < LOW_AC2DC_POWER) ||
-         ((counter % BIST_PERIOD_SECS) == 0)) {
-        // printf("bbb\n");
-         do_bist();
-      }
-            
-      if (force  || 
-        (vm.ac2dc_power < LOW_AC2DC_POWER) ||
-        ((counter % BIST_PERIOD_SECS) == 1)) {
-         asic_frequency_update();
-      } 
 
+  if (proccess_bist_results ||
+      critical_bist ||
+      vm.ac2dc_power > AC2DC_POWER_LIMIT) {
+      psyslog(MAGENTA "Running FREQ update\n" RESET);
+      asic_frequency_update();
+      proccess_bist_results = 0;
+  } 
+
+  
+  if (!vm.asics_shut_down_powersave && !vm.thermal_test_mode) { 
+      if (force  || 
+         ((counter % BIST_PERIOD_SECS) == 0)) {
+         psyslog(MAGENTA "Running BIST\n" RESET);
+         do_bist();
+         proccess_bist_results = 1;
+      }
   }
-  end_stopper(&tv, "SCALING2");
 
   //change_dc2dc_voltage_if_needed();
   //resume_asics_if_needed();
@@ -331,7 +338,7 @@ void change_dc2dc_voltage_if_needed() {
       } else { 
         printf(RED "LOOP DOWNSCALE %d\n" RESET, l);
         HAMMER *h = find_asic_to_down(l);
-        assert(h);
+        passert(h);
         printf(RED "Starin ASIC DOWNSCALE %d\n" RESET, h->address);
         pause_asics_if_needed();
         asic_down_one(h);
@@ -391,9 +398,9 @@ void asic_frequency_update(int verbal) {
         
         int passed = h->passed_last_bist_engines;
         if (h->asic_temp >= MAX_ASIC_TEMPERATURE) {
-          
           if (asic_can_down(h)) {
-            h->top_freq = h->asic_freq-1;
+            h->top_freq = (ASIC_FREQ)(h->asic_freq-1);
+            // let it cool off
             asic_down_completly(h);
           }
         }
@@ -412,14 +419,15 @@ void asic_frequency_update(int verbal) {
             printf("%x->%d ",h->address,h->asic_freq);
           }
 
-          //assert(h);
+          //passert(h);
           if (asic_can_down(h)) {
-            h->top_freq = h->asic_freq-1;
+            h->top_freq_after_bist_only = h->top_freq = (ASIC_FREQ)(h->asic_freq-1);
             asic_down_one(h);
           } else {
             h->top_freq = MAX_ASIC_FREQ;
-            vm.working_engines[h->address] = vm.working_engines[h->address]&passed;
-            if (vm.working_engines[h->address] == 0) {
+            asic_up_completly(h);
+            vm.hammer[h->address].working_engines = vm.hammer[h->address].working_engines&passed;
+            if (vm.hammer[h->address].working_engines == 0) {
               // disable ASIC failing bist on all engines.
               disable_asic_forever(h->address);
             }
@@ -444,6 +452,7 @@ void asic_frequency_update(int verbal) {
         }
       }
 
+
       if (vm.loop[l].dc2dc.dc_current_limit_16s - vm.loop[l].dc2dc.dc_current_16s < 16) {
          hh = find_asic_to_down(l);
          if(hh) {
@@ -458,8 +467,20 @@ void asic_frequency_update(int verbal) {
       }
      
     }
+
     
-     printf(CYAN "Failed in bist %d ASICs\n" RESET, cnt);
+    if (vm.ac2dc_power >= AC2DC_POWER_LIMIT)  {
+        int l = rand()%LOOP_COUNT;
+        while (!vm.loop[l].enabled_loop) {
+          l = rand()%LOOP_COUNT;
+        }
+         HAMMER *hh = find_asic_to_down(l);
+         if(hh) {
+           asic_down_one(hh);
+         }
+    }
+       
+     psyslog(CYAN "Failed in bist %d ASICs\n" RESET, cnt);
      //end_stopper(&tv, "go over bad stopper");
      resume_asics_if_needed();
 #if 0

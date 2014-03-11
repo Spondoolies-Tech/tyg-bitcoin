@@ -11,13 +11,17 @@
 
 
 
-DC2DC_VOLTAGE CORNER_TO_VOLTAGE_TABLE[ASIC_CORNER_COUNT] = {
-  ASIC_VOLTAGE_765, ASIC_VOLTAGE_765, ASIC_VOLTAGE_720, ASIC_VOLTAGE_630,
-  ASIC_VOLTAGE_630, ASIC_VOLTAGE_630
-};
+uint32_t vtrim_per_loop[] = { VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, 
+                               VTRIM_START+2,  VTRIM_START+2, VTRIM_START+2, VTRIM_START+2, 
+                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
+                               
+                               VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, 
+                                VTRIM_START+2,  VTRIM_START+2, VTRIM_START+2, VTRIM_START+2, 
+                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
+                               };
 
 
-void enable_voltage_freq(int vtrim, ASIC_FREQ f) {
+void enable_voltage_freq(ASIC_FREQ f) {
   int l, h, i = 0;
   // for each enabled loop
   
@@ -27,9 +31,14 @@ void enable_voltage_freq(int vtrim, ASIC_FREQ f) {
       // Set voltage
       int err;
       // dc2dc_set_voltage(l, vm.loop_vtrim[l], &err);
-      dc2dc_set_vtrim(l, vtrim , &err);
+      if (vm.thermal_test_mode) {
+        dc2dc_set_vtrim(l, VTRIM_674, &err);
+      } else if (vm.silent_mode) {
+        dc2dc_set_vtrim(l, VTRIM_MIN, &err);
+      } else {
+        dc2dc_set_vtrim(l, vtrim_per_loop[l] , &err);
+      }
       // passert(err);
-
       // for each ASIC
       for (h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
         HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
@@ -50,9 +59,9 @@ const char* corner_to_collor(ASIC_CORNER c) {
   return color[c];
 }
 
-
+/*
 void compute_corners() {
-  enable_voltage_freq(VTRIM_CORNER_DISCOVERY, ASIC_FREQ_810);
+  enable_voltage_freq(ASIC_FREQ_810);
   hammer_iter hi;
   hammer_iter_init(&hi);
 
@@ -80,14 +89,11 @@ void compute_corners() {
    
    resume_asics_if_needed();
 }
-
+*/
 
 
 void set_working_voltage_discover_top_speeds() {
-  enable_voltage_freq(VTRIM_START, ASIC_FREQ_810);
-
-  hammer_iter hi;
-  hammer_iter_init(&hi);
+  enable_voltage_freq(ASIC_FREQ_810);
 
   int bist_ok;
   do {
@@ -96,7 +102,23 @@ void set_working_voltage_discover_top_speeds() {
     pause_asics_if_needed();
     asic_frequency_update(1);
  } while (!bist_ok);
- //enable_voltage_freq(VTRIM_START, ASIC_FREQ_405);
+ hammer_iter hi;
+ hammer_iter_init(&hi);
+ 
+ pause_asics_if_needed();
+ while (hammer_iter_next_present(&hi)) {
+    if (asic_can_down(hi.a)) {
+      asic_down_one(hi.a);
+    }
+
+    if (asic_can_down(hi.a)) {
+      asic_down_one(hi.a);
+    }
+
+    if (asic_can_down(hi.a)) {
+      asic_down_one(hi.a);
+    }
+ }
  resume_asics_if_needed();
 }
 
@@ -116,48 +138,45 @@ void discover_good_loops() {
   write_spi(ADDR_SQUID_LOOP_BYPASS, 0);
   write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
 
-  success = test_serial(-1);
-  if (success) {
-    for (i = 0; i < LOOP_COUNT; i++) {
-      // vm.loop[i].present = true;
-      //nvm.loop_brocken[i] = false;
-      ret++;
-    }
-  } else {
-    for (i = 0; i < LOOP_COUNT; i++) {
-      vm.loop[i].id = i;
-      unsigned int bypass_loops = (~(1 << i) & 0xFFFFFF);
-      write_spi(ADDR_SQUID_LOOP_BYPASS, bypass_loops);
-      //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
-      //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
-      //printf("Testing loop::::::\n");
-      if (test_serial(i)) { // TODOZ
-        // printf("--00--\n");
-        vm.loop[i].enabled_loop = 1;
-        vm.loop_vtrim[i] = VTRIM_CORNER_DISCOVERY;
-        vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
-        good_loops |= 1 << i;
-        ret++;
-      } else {
-        // printf("--11--\n");
-        vm.loop[i].enabled_loop = 0;
-        vm.loop_vtrim[i] = 0;
-        for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
-          // printf("remove ASIC 0x%x\n", h);
-          vm.hammer[h].asic_present = 0;
-          vm.working_engines[h] = 0;
-        }
-        int err;
-        printf("Disabling DC2DC %d\n", i);
-        dc2dc_disable_dc2dc(i, &err);
-      }
-    }
-    write_spi(ADDR_SQUID_LOOP_BYPASS, ~(good_loops));
-    vm.good_loops = good_loops;
-    test_serial(-1);
-  }
  
-  printf("Found %d good loops\n", ret);
+  for (i = 0; i < LOOP_COUNT; i++) {
+    vm.loop[i].id = i;
+    unsigned int bypass_loops = (~(1 << i) & 0xFFFFFF);
+    write_spi(ADDR_SQUID_LOOP_BYPASS, bypass_loops);
+    //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
+    //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
+    //printf("Testing loop::::::\n");
+    if (test_serial(i)) { // TODOZ
+      // printf("--00--\n");
+      vm.loop[i].enabled_loop = 1;
+      if (vm.thermal_test_mode) {
+        vm.loop_vtrim[i] = VTRIM_674;
+      } else {
+        vm.loop_vtrim[i] = vtrim_per_loop[i];
+      }
+      vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
+      good_loops |= 1 << i;
+      ret++;
+    } else {
+      // printf("--11--\n");
+      vm.loop[i].enabled_loop = 0;
+      vm.loop_vtrim[i] = 0;
+      for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
+        // printf("remove ASIC 0x%x\n", h);
+        vm.hammer[h].asic_present = 0;
+        vm.hammer[h].working_engines = 0;
+      }
+      int err;
+      printf("Disabling DC2DC %d\n", i);
+      dc2dc_disable_dc2dc(i, &err);
+    }
+  }
+  write_spi(ADDR_SQUID_LOOP_BYPASS, ~(good_loops));
+  vm.good_loops = good_loops;
+  test_serial(-1);
+
+ 
+  psyslog("Found %d good loops\n", ret);
   // Devide current between availible loops
   
   

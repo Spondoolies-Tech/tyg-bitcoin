@@ -36,12 +36,7 @@ void do_leakage_discovery_loop(int l) {
    
    for (int h = 0 ; h < HAMMERS_PER_LOOP; h++) {
       struct timeval tv;
-      start_stopper(&tv);
       int addr = h+l*HAMMERS_PER_LOOP;
-      printf("Running long bist on ASIC %x\n", addr);
-     
-
-      
       // Heat to 117 degree
       int temp = 0;
       disable_engines_all_asics();
@@ -59,15 +54,7 @@ void do_leakage_discovery_loop(int l) {
 
 
       disable_engines_asic(addr);
-      end_stopper(&tv,"Long bist");
-   }
-   
-
-   
-   
-
-
-   
+   }   
    dc2dc_set_vtrim(l, VTRIM_MIN, &err);
 }
 

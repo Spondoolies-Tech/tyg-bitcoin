@@ -33,7 +33,7 @@ int init_socket() {
   socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
    if(socket_fd < 0)
    {
-    printf("socket() failed\n");
+    psyslog("socket() failed\n");
     perror("Err:");
     return 0;
    }
@@ -48,7 +48,7 @@ int init_socket() {
         (struct sockaddr *) &address, 
         sizeof(struct sockaddr_un)) != 0)
    {
-    printf("connect() failed\n");
+    psyslog("connect() failed\n");
     perror("Err:");
     return 0;
    }

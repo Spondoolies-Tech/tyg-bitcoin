@@ -9,6 +9,8 @@
 #include "scaling_manager.h"
 extern pthread_mutex_t i2c_mutex;
 
+
+
 extern MINER_BOX vm;
 #if 0
 int volt_to_vtrim[ASIC_VOLTAGE_COUNT] = 
@@ -45,8 +47,6 @@ void dc2dc_init() {
 #else
   for (int loop = 0; loop < LOOP_COUNT; loop++) {
 #endif    
-
-    
 
     dc2dc_select_i2c(loop, &err);
     if (err) {
@@ -166,9 +166,9 @@ static void dc2dc_select_i2c(int loop, int *err) { // 1 or 0
 
 
 void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
+  psyslog("Set VOLTAGE Loop %d Milli:%d Vtrim:%x\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
+  passert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
 
-  assert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
-  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%d\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
   pthread_mutex_lock(&i2c_mutex);
 
   // printf("%d\n",v);
@@ -198,7 +198,7 @@ int get_dc2dc_error(int loop) {
   dc2dc_set_channel(0, &err);
   error_happened |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
   if (error_happened) {
-    printf(RED "DC2DC ERR0 %x\n" RESET,error_happened);
+    psyslog(RED "DC2DC ERR0 %x\n" RESET,error_happened);
     i2c_write(I2C_DC2DC,3,&err);
   }
   
@@ -207,7 +207,7 @@ int get_dc2dc_error(int loop) {
   error_happened |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
   
   if (error_happened) {
-    printf(RED "DC2DC ERR1 %x\n" RESET,error_happened);
+    psyslog(RED "DC2DC ERR1 %x\n" RESET,error_happened);
     i2c_write(I2C_DC2DC,3,&err);
   }
   dc2dc_set_channel(0x81,&err);

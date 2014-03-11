@@ -87,7 +87,7 @@ static void sighandler(int sig)
     dc2dc_disable_dc2dc(l, &err); 
   }
   kill_fan();
-  printf("Here comes unexpected death!\n");
+  psyslog("Here comes unexpected death!\n");
   exit(0);
 }
 
@@ -95,7 +95,7 @@ static void sighandler(int sig)
 void print_adapter() {
   minergate_adapter *a = adapters[0];
   if (a) {
-    printf("Adapter queues: rsp=%d, req=%d\n", a->work_minergate_rsp.size(),
+    psyslog("Adapter queues: rsp=%d, req=%d\n", a->work_minergate_rsp.size(),
            a->work_minergate_req.size());
   }
 }
@@ -218,7 +218,7 @@ int pull_work_rsp(minergate_do_job_rsp *r, minergate_adapter *adapter) {
 // Support new minergate client
 //
 void *connection_handler_thread(void *adptr) {
-  printf("New adapter connected!\n");
+  psyslog("New adapter connected!\n");
   minergate_adapter *adapter = (minergate_adapter *)adptr;
   // DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
 
@@ -243,14 +243,25 @@ void *connection_handler_thread(void *adptr) {
   // minergate_data* md1 =    get_minergate_data(adapter->next_rsp,  300, 3);
   // minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
   // Read packet
+  struct timeval now;      
+  struct timeval last_time; 
+  gettimeofday(&now, NULL);
+  gettimeofday(&last_time, NULL);
   while ((nbytes = read(adapter->connection_fd, (void *)adapter->last_req,
-                        sizeof(minergate_req_packet))) >
-         0) {
+                        sizeof(minergate_req_packet))) > 0) {
+    struct timeval now;      
+    struct timeval last_time; 
+    int usec;
     if (nbytes) {
       // DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length +
       // MINERGATE_PACKET_HEADER_SIZE, nbytes);
       passert(adapter->last_req->magic == 0xcaf4);
+      gettimeofday(&now, NULL);
 
+      usec = (now.tv_sec - last_time.tv_sec) * 1000000;
+      usec += (now.tv_usec - last_time.tv_usec);
+  
+      
       pthread_mutex_lock(&network_hw_mutex);
       vm.not_mining_counter = 0;
       set_fan_level(100);
@@ -276,6 +287,8 @@ void *connection_handler_thread(void *adptr) {
         passert(res);
       }
       adapter->next_rsp->rsp_count = rsp_count;
+      int mhashes_done = (vm.total_mhash/1000)*(usec/1000);
+      adapter->next_rsp->gh_done = mhashes_done/1000;  
       // printf("SND %d\n", rsp_count);
 
       // DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n",
@@ -298,6 +311,7 @@ void *connection_handler_thread(void *adptr) {
 
       // Clear packet.
       adapter->next_rsp->rsp_count = 0;
+      last_time = now;
     }
   }
   adapters[adapter->adapter_id] = NULL;
@@ -484,8 +498,22 @@ int main(int argc, char *argv[]) {
     test_mode = 1;
     printf("--testreset = Test asic reset!!!\n");
     printf("--test = Test mode!!!\n");
+    printf("--silent-test = Work with 10 ASICs!!!\n");
+    printf("--thermal-test = Only test thermal!!!\n");    
     printf("<num> = Asic to mesure\n");
     return 0;
+  }
+
+
+  if ((argc > 1) && strcmp(argv[1], "--silent-test") == 0) {
+    vm.silent_mode = 1;
+    printf("Test mode, using few ASICs !!!\n");
+  }
+
+ 
+  if ((argc > 1) && strcmp(argv[1], "--thermal-test") == 0) {
+    vm.thermal_test_mode = 1;
+    printf("Test mode, using few ASICs !!!\n");
   }
 
   if ((argc > 1) && strcmp(argv[1], "--test") == 0) {
@@ -506,17 +534,19 @@ int main(int argc, char *argv[]) {
   pthread_t dc2dc_thread;
   // pthread_t conn_pth;
   pid_t child;
-  printf("reset_squid\n");
+  psyslog("reset_squid\n");
   reset_squid();
-  printf("init_spi\n");
+  psyslog("init_spi\n");
   init_spi();
-  printf("i2c_init\n");
+  psyslog("i2c_init\n");
   i2c_init();
-  printf("dc2dc_init\n");
+  psyslog("dc2dc_init\n");
   dc2dc_init();
-  printf("init_pwm\n");
+  psyslog("ac2dc_init\n");
+  ac2dc_init();
+  psyslog("init_pwm\n");
   init_pwm();
-  printf("set_fan_level\n");
+  psyslog("set_fan_level\n");
   set_fan_level(0);
   //exit(0);
   reset_sw_rt_queue();
@@ -539,29 +569,29 @@ int main(int argc, char *argv[]) {
 
   //set loops in FPGA
   if (!enable_good_loops_ok()) {
-    printf("LOOP TEST FAILED, RESTARTING:%x\n", vm.good_loops);
+    psyslog("LOOP TEST FAILED, RESTARTING:%x\n", vm.good_loops);
     passert(0);
   }
 
 
 
-  printf("enable_good_loops_ok done %d\n", __LINE__);
+  psyslog("enable_good_loops_ok done %d\n", __LINE__);
   // Allocates addresses, sets nonce range.
   // Reset all hammers
   init_hammers();
 
   
   int addr;
-   //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
+   //passert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
  
    while (addr = BROADCAST_READ_ADDR(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
-      printf(RED "CONDUCTOR BUZY IN %x (%X)\n" RESET, addr,read_reg_broadcast(ADDR_VERSION));
+      psyslog(RED "CONDUCTOR BUZY IN %x (%X)\n" RESET, addr,read_reg_broadcast(ADDR_VERSION));
       disable_asic_forever(addr);
    }
     
   // Give addresses to devices.
   allocate_addresses_to_devices(); 
-  //assert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
+  //passert(read_reg_broadcast(ADDR_VERSION)&0xFF == 0x3c);
   // Set nonce ranges
   set_nonce_range_in_engines(0xFFFFFFFF);
 
@@ -570,12 +600,7 @@ int main(int argc, char *argv[]) {
   // Set all frequency to ASIC_FREQ_225
   set_safe_voltage_and_frequency();
   // Set all engines to 0x7FFF
-  
-  printf("setting ASIC engines %d\n", __LINE__);  
-  //enable_good_engines_all_asics_ok();
-  //enable_all_engines_asic(int addr);
-   
-  printf("hammer initialisation done %d\n", __LINE__);
+  psyslog("hammer initialisation done %d\n", __LINE__);
   thermal_init();
   
 
@@ -583,7 +608,7 @@ int main(int argc, char *argv[]) {
 //  printf("enable_voltage_from_nvm\n");
 //  enable_voltage_from_nvm();
   
-  printf("init_scaling done, ready to mine, saving NVM\n");
+  psyslog("init_scaling done, ready to mine, saving NVM\n");
 
   if (testreset_mode) {
     test_asic_reset();
@@ -600,7 +625,7 @@ int main(int argc, char *argv[]) {
   set_working_voltage_discover_top_speeds();
 
   
-  printf("Opening socket for cgminer\n");
+  psyslog("Opening socket for cgminer\n");
   // test HAMMER read
   // passert(read_reg_broadcast(ADDR_VERSION), "No version found in ASICs");
   socket_fd = init_socket();
@@ -608,7 +633,7 @@ int main(int argc, char *argv[]) {
 
   
 
-  printf("Starting HW thread\n");
+  psyslog("Starting HW thread\n");
 
   s = pthread_create(&main_thread, NULL, squid_regular_state_machine,
                      (void *)NULL);
@@ -624,7 +649,7 @@ int main(int argc, char *argv[]) {
               accept(socket_fd, (struct sockaddr *)&address, &address_length)) >
          -1) {
     // Only 1 thread supportd so far...
-    printf("New adapter connected %d %x!\n", adapter->connection_fd, adapter);
+    psyslog("New adapter connected %d %x!\n", adapter->connection_fd, adapter);
     s = pthread_create(&adapter->conn_pth, NULL, connection_handler_thread,
                        (void *)adapter);
     passert(s == 0);
@@ -632,7 +657,7 @@ int main(int argc, char *argv[]) {
     adapter = new minergate_adapter;
     passert((int)adapter);
   }
-  printf("Err %d:", adapter->connection_fd);
+  psyslog("Err %d:", adapter->connection_fd);
   passert(0, "Err");
 
   close(socket_fd);

@@ -229,7 +229,7 @@ typedef struct {
   uint8_t loop_address;
   ASIC_CORNER corner;
    
-  int top_freq;  
+
   // Failed bists (set by "do_bist_ok()")
   uint8_t failed_bists;
   // Passed engines (set by "do_bist_ok()")
@@ -238,9 +238,12 @@ typedef struct {
   // Asic temperature/frequency (polled periodicaly)
   ASIC_TEMP asic_temp; // periodic measurments - ASIC_TEMP_
   ASIC_FREQ asic_freq;        // *15 Hz
+  ASIC_FREQ top_freq;  
+  ASIC_FREQ top_freq_after_bist_only;   
   int last_freq_change_time; // time() when we increased ASIC frequency
 
   // Set durring initialisation currently enabled engines
+  uint32_t working_engines;
 
   // Jobs solved by ASIC
   uint32_t solved_jobs;
@@ -256,6 +259,7 @@ typedef struct {
   int dc_current_limit_16s;   
   int dc_power_watts_16s;  
   int last_voltage_change_time;
+  int kill_me_i_am_bad;
   // Guessing added current
 } DC2DC;
 
@@ -277,8 +281,6 @@ typedef struct {
 typedef struct {
   // Fans set to high
   int fan_level;
-  uint8_t newest_hw_job_id;
-  uint8_t oldest_hw_job_id;
   uint32_t good_loops;
     
   int start_mine_time;
@@ -305,19 +307,27 @@ typedef struct {
   int bist_current;  
   int bist_voltage;  
 
-
+  int silent_mode;
+  int thermal_test_mode;  
   
   // ac2dc current and temperature
   int ac2dc_power;  // in ampers. 0 = bad reading.
   int dc2dc_total_power; 
+  int total_mhash; 
   uint32_t ac2dc_temp;
+
+
+  
+  int last_second_jobs;
+  int last_alive_jobs;
+  int cur_leading_zeroes;
 
   // When system just started, search optimal speed agressively
 
 
   // our ASIC data
   HAMMER hammer[HAMMERS_COUNT];
-  uint32_t working_engines[HAMMERS_COUNT];
+  //uint32_t working_engines[HAMMERS_COUNT];
 
   
   // our loop and dc2dc data
