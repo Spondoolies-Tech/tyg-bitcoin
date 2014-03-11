@@ -97,7 +97,6 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
-	cp -f ${CUR_DIR}/../add-ons/spondoolies-pub.pem etc
 	date > build_date.txt
 	
 }
@@ -163,6 +162,15 @@ mounts()
 
 }
 
+sw_upgrade()
+{
+	cp -f ${CUR_DIR}/../add-ons/spondoolies-pub.pem etc
+	for f in download-file.sh upgrade-software.sh verify-digest.sh
+	do
+		cp -a ${CUR_DIR}/../provisioning/${f} usr/local/bin
+	done
+}
+
 main()
 {
 	set -e
@@ -180,6 +188,7 @@ main()
 	emmc
 	web_server
 	mounts
+	sw_upgrade
 }
 
 main $@
