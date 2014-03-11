@@ -752,7 +752,9 @@ void update_vm_with_currents_and_temperatures() {
   }
   int e = get_dc2dc_error(loop); 
   if (e) {
-    passert(0);
+    vm.loop[loop].dc2dc.kill_me_i_am_bad = 1;
+    //dc2dc_disable_dc2dc(loop, &err);
+    //passert(0);
   }
   loop = (loop+1)%LOOP_COUNT;
 }
@@ -820,6 +822,7 @@ void once_33_msec_tasks() {
       if (temp_measure_temp == ASIC_TEMP_107)
         temp_measure_temp = ASIC_TEMP_83;
     }
+
     
     push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win);
     squid_wait_hammer_reads();
@@ -930,7 +933,6 @@ void *i2c_state_machine(void *p) {
    if (usec >= (1000000/40)) { 
       counter++;
       if ((counter%(40)) == 0) {      
-        printf("Sec %d\n", time(NULL));
         print_scaling();
       }
       

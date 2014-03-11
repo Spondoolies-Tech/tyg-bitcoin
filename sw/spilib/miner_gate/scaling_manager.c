@@ -195,7 +195,7 @@ extern int rt_queue_hw_done;
 void print_scaling() {
   int err;
   
-  FILE *f = fopen("/tmp/asics", "w");
+  FILE *f = fopen("/var/log/asics", "w");
   if (!f) {
     psyslog("Failed to save ASIC state\n");
     return;

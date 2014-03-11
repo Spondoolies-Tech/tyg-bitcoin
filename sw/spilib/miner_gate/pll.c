@@ -93,10 +93,10 @@ void disable_asic_forever(int addr) {
 
 
 int enable_good_engines_all_asics_ok() {
-#if 1
     int i = 0; 
     int reg;
     int killed_pll=0;
+    
     while ((reg = read_reg_broadcast(ADDR_BR_PLL_NOT_READY)) != 0) {
       if (i++ > 500) {
         psyslog(RED "PLL %x stuck, killing ASIC\n" RESET, reg);
@@ -107,7 +107,6 @@ int enable_good_engines_all_asics_ok() {
       }
       usleep(10);
     }
-#endif
    //printf("Enabling engines from NVM:\n");
    if (killed_pll) {
      passert(test_serial(-1)); 

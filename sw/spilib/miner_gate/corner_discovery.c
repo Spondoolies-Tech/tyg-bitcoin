@@ -11,14 +11,15 @@
 
 
 
-uint32_t vtrim_per_loop[] = { VTRIM_START+3, VTRIM_START+3, VTRIM_START+3, VTRIM_START+3, 
-                               VTRIM_START,  VTRIM_START, VTRIM_START, VTRIM_START, 
+uint32_t vtrim_per_loop[] = { VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, 
+                               VTRIM_START+2,  VTRIM_START+2, VTRIM_START+2, VTRIM_START+2, 
                                VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
                                
-                               VTRIM_START+3, VTRIM_START+3, VTRIM_START+3, VTRIM_START+3, 
-                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
+                               VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, 
+                                VTRIM_START+2,  VTRIM_START+2, VTRIM_START+2, VTRIM_START+2, 
                                VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
                                };
+
 
 void enable_voltage_freq(ASIC_FREQ f) {
   int l, h, i = 0;
@@ -31,7 +32,7 @@ void enable_voltage_freq(ASIC_FREQ f) {
       int err;
       // dc2dc_set_voltage(l, vm.loop_vtrim[l], &err);
       if (vm.thermal_test_mode) {
-        dc2dc_set_vtrim(l, VTRIM_672 , &err);
+        dc2dc_set_vtrim(l, VTRIM_674, &err);
       } else if (vm.silent_mode) {
         dc2dc_set_vtrim(l, VTRIM_MIN, &err);
       } else {
@@ -94,9 +95,6 @@ void compute_corners() {
 void set_working_voltage_discover_top_speeds() {
   enable_voltage_freq(ASIC_FREQ_810);
 
-  hammer_iter hi;
-  hammer_iter_init(&hi);
-
   int bist_ok;
   do {
     resume_asics_if_needed();
@@ -104,6 +102,23 @@ void set_working_voltage_discover_top_speeds() {
     pause_asics_if_needed();
     asic_frequency_update(1);
  } while (!bist_ok);
+ hammer_iter hi;
+ hammer_iter_init(&hi);
+ 
+ pause_asics_if_needed();
+ while (hammer_iter_next_present(&hi)) {
+    if (asic_can_down(hi.a)) {
+      asic_down_one(hi.a);
+    }
+
+    if (asic_can_down(hi.a)) {
+      asic_down_one(hi.a);
+    }
+
+    if (asic_can_down(hi.a)) {
+      asic_down_one(hi.a);
+    }
+ }
  resume_asics_if_needed();
 }
 
@@ -135,7 +150,7 @@ void discover_good_loops() {
       // printf("--00--\n");
       vm.loop[i].enabled_loop = 1;
       if (vm.thermal_test_mode) {
-        vm.loop_vtrim[i] = VTRIM_672;
+        vm.loop_vtrim[i] = VTRIM_674;
       } else {
         vm.loop_vtrim[i] = vtrim_per_loop[i];
       }

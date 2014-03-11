@@ -259,6 +259,7 @@ typedef struct {
   int dc_current_limit_16s;   
   int dc_power_watts_16s;  
   int last_voltage_change_time;
+  int kill_me_i_am_bad;
   // Guessing added current
 } DC2DC;
 
