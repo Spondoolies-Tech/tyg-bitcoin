@@ -39,7 +39,7 @@ void update_zabbix_stats() {
 
   int t = time(NULL);
   for (int l = 0; l < HAMMERS_COUNT; l++) {
-    zabbix_log.asics[l].freq = vm.hammer[l].asic_freq;
+    zabbix_log.asics[l].freq = vm.hammer[l].freq_wanted;
     zabbix_log.asics[l].temp = vm.hammer[l].asic_temp;
     zabbix_log.asics[l].working_engines = vm.hammer[l].working_engines;
     zabbix_log.asics[l].failed_bists = vm.hammer[l].failed_bists;
@@ -140,7 +140,7 @@ void dump_zabbix_stats() {
       JsonNode *asic_address = json_mkarray();
       JsonNode *asic_enabled = json_mkarray();
       JsonNode *asic_corner = json_mkarray();
-      JsonNode *asic_freq = json_mkarray();
+      JsonNode *freq = json_mkarray();
       JsonNode *asic_max_freq = json_mkarray();
       JsonNode *asic_engines_on = json_mkarray();
       JsonNode *asic_engins_working = json_mkarray();
@@ -150,7 +150,7 @@ void dump_zabbix_stats() {
       json_append_member(loop, "asic_address", asic_address);
       json_append_member(loop, "asic_enabled", asic_enabled);
       json_append_member(loop, "asic_corner", asic_corner);
-      json_append_member(loop, "asic_freq", asic_freq);
+      json_append_member(loop, "freq", freq);
       json_append_member(loop, "asic_max_freq", asic_max_freq);
       json_append_member(loop, "asic_engines_on", asic_engines_on);
       json_append_member(loop, "asic_engins_working", asic_engins_working);
@@ -166,7 +166,7 @@ void dump_zabbix_stats() {
         json_append_element(asic_enabled, json_mknumber(ham->present));
         json_append_element(asic_corner,
                             json_mknumber(nvm.asic_corner[ham->address]));
-        json_append_element(asic_freq, json_mknumber(ham->freq));
+        json_append_element(freq, json_mknumber(ham->freq));
         json_append_element(asic_max_freq,
                             json_mknumber(ham->max_freq));
         json_append_element(asic_temp, json_mknumber(ham->asic_temp));

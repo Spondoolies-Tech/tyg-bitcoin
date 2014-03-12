@@ -28,60 +28,37 @@
 
 static int now; // cahce time
 
-#if 0
 int loop_can_down(int l) {
   if (l == -1)
       return 0;
   
   return  
      (vm.loop[l].enabled_loop && 
-     (vm.loop_vtrim[l] != VTRIM_LOW) &&
-     (now - vm.loop[l].last_ac2dc_scaling_on_loop > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS) &&
-     vm.loop[l].asic_hz_sum &&
-     vm.loop[l].dc2dc.dc_power_watts_16s);
+     (vm.loop_vtrim[l] > VTRIM_MIN) &&
+     (now - vm.loop[l].last_ac2dc_scaling_on_loop > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS));
 }
 
 
 void loop_down(int l) {
   int err;
-   if ((vm.loop_vtrim[l] < VTRIM_HIGH)) {
-    dc2dc_set_vtrim(l, vm.loop_vtrim[l]-1, &err);
-  }
-  vm.loop[l].last_ac2dc_scaling_on_loop  = now;
-}
+   printf("vtrim=%x\n",vm.loop_vtrim[l]);
+   dc2dc_set_vtrim(l, vm.loop_vtrim[l]-1, &err);
+   vm.loop[l].last_ac2dc_scaling_on_loop  = now;
 
-
-// returns worst asic
-//  Any ASIC is worth then NULL
-int choose_loop_to_down(int a, int b) {
-  if ((a==-1) || !loop_can_down(a))
-    return b;
-  if ((b==-1) || !loop_can_down(b))
-    return a;
-
-  if (vm.loop[a].dc2dc.dc_current_16s > vm.loop[a].dc2dc.dc_current_limit_16s) return a;
-  if (vm.loop[b].dc2dc.dc_current_16s > vm.loop[b].dc2dc.dc_current_limit_16s) return b;
-  
-
-
-  int performance_a = vm.loop[a].asic_hz_sum /vm.loop[a].dc2dc.dc_power_watts_16s;
-  int performance_b = vm.loop[b].asic_hz_sum /vm.loop[b].dc2dc.dc_power_watts_16s;
-  
-  return (performance_a < performance_b)?a:b;
-}
-
-// return worst loop ID
-int find_loop_to_down() {
-  int best = -1;
-  for (int l = 0; l < LOOP_COUNT; l++) { 
-    if (vm.loop[l].enabled_loop) {
-      best = choose_loop_to_down(best, l);
+   for (int h = l*HAMMERS_PER_LOOP; h< l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
+    if (vm.hammer[h].asic_present) {
+      if (vm.hammer[h].freq_thermal_limit < ASIC_FREQ_MAX-1) 
+        {
+          vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit;
+          /*
+          if (vm.hammer[h].freq_thermal_limit > MINIMAL_ASIC_FREQ + 1) {
+            asic_down(&vm.hammer[h],1);
+          }
+          */
+        }
+      }
     }
-  }
-
-  if((best!=-1) && loop_can_down(best))
-    return best;
-  return 0;
+   
 }
 
 
@@ -89,35 +66,37 @@ int find_loop_to_down() {
 int loop_can_up(int l) {
   if (l == -1)
       return 0;
-  /*
-  printf(" %d %d %d %d %d %d",
-    ,now - vm.loop[l].last_ac2dc_scaling_on_loop,
-    ,,,,)
-*/
+  
   return  
     (vm.loop[l].enabled_loop &&
-    (vm.loop_vtrim[l] != VTRIM_HIGH) &&
-    ((now - vm.loop[l].last_ac2dc_scaling_on_loop) > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS) &&
-     (vm.loop[l].dc2dc.dc_current_limit_16s > DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S-1*16) &&
-     vm.loop[l].asic_hz_sum &&
-     vm.loop[l].dc2dc.dc_power_watts_16s);
+    (vm.loop_vtrim[l] < VTRIM_HIGH) &&
+    ((now - vm.loop[l].last_ac2dc_scaling_on_loop) > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS));
  
 }
 
 
 void loop_up(int l) {
-  int err;
-  if (vm.loop_vtrim[l] == VTRIM_LOW) {
-    dc2dc_set_vtrim(l, VTRIM_START, &err);
-  }
-   if (vm.loop_vtrim[l] == VTRIM_START) {
-    dc2dc_set_vtrim(l, VTRIM_HIGH, &err);
-  }
-   vm.loop[l].last_ac2dc_scaling_on_loop  = now;
+  int err;  
+  //printf("1\n");
+  dc2dc_set_vtrim(l, vm.loop_vtrim[l]+1, &err);
+  vm.loop[l].last_ac2dc_scaling_on_loop  = now;
+   //printf("3\n");
+  for (int h = l*HAMMERS_PER_LOOP; h< l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
+    if (vm.hammer[h].asic_present) {
+      if (vm.hammer[h].freq_thermal_limit < ASIC_FREQ_MAX-1) 
+        {
+          vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_thermal_limit+2;
+          vm.hammer[h].freq_bist_limit    = vm.hammer[h].freq_thermal_limit;
+          //set_asic_freq(h,vm.hammer[h].freq_thermal_limit - 4);
+          asic_down(&vm.hammer[h],2);
+        }
+      }
+    }
 }
 
 
 // returns best loop or -1
+/*
 int choose_loop_to_up(int a, int b) {
 
   if ((a==-1) || !loop_can_up(a))
@@ -145,93 +124,103 @@ int find_loop_to_up() {
     return best;
   return -1;
 }
+*/
 
 
-void ac2dc_scaling_one_minute() {
 
-
-#if 0  
-  static int counter = 0;
-  int l;
-  int do_upscaling = 0;
-  int loops_on_max_current = 0;
-  now = time(NULL);
-  counter++;
-  //passert(0);
-  if (counter%5 != 0) {
-    return;
-  }
-  printf(CYAN "******************************\n******************************\nAC2DC SCALING\n******************************\n" RESET);
-
-
-  
-  
-  if ((!vm.asics_shut_down_powersave) &&
-       (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING)) {
-
-    int spare_juice = 0;
-    for (l = 0; l < LOOP_COUNT ; l++) {
-      // scale down loops with 8 asics, where current near critical or more then 6 hot asics 
-      if ((vm.loop[l].asic_count == HAMMERS_PER_LOOP) &&
-        (
-          (vm.loop[l].dc2dc.dc_current_16s >= vm.loop[l].dc2dc.dc_current_limit_16s-16) ||
-          (vm.loop[l].hot_asics_count >= HOT_ASICS_IN_LOOP_FOR_DOWNSCALE))
-        ) {
-        if (loop_can_down(l)) {
-          printf(CYAN "LOOP DOWN:%d\n" RESET, l);
-          loop_down(l);
-          spare_juice++;
-        }
+int asic_frequency_update_fast() {    
+  pause_asics_if_needed();
+  int one_ok = 0;
+  for (int l = 0 ; l < LOOP_COUNT ; l++) {
+    if (!vm.loop[l].enabled_loop) {
+      continue;
+    }
+   
+    for (int a = 0 ; a < HAMMERS_PER_LOOP; a++) {
+      HAMMER *h = &vm.hammer[l*HAMMERS_PER_LOOP+a];
+      if (!h->asic_present) {
+        continue;
+      }
+      int passed = h->passed_last_bist_engines;        
+      if ((passed == ALL_ENGINES_BITMASK)) {
+          one_ok = 1;
+          h->freq_wanted= h->freq_wanted+1;
+          h->freq_thermal_limit = h->freq_wanted;
+          h->freq_bist_limit = h->freq_wanted;          
+          set_pll(h->address, h->freq_wanted);    
+      } else {
+        h->failed_bists = 0;    
+        h->passed_last_bist_engines = ALL_ENGINES_BITMASK;
       }
     }
-
-    // add spare to 'downed' loops
-    if ((vm.ac2dc_power < AC2DC_SPARE_CURRENT_TO_UPSCALE)) {
-      spare_juice+=(AC2DC_POWER_LIMIT-vm.ac2dc_power/5);
-    }
-
-
-    // only scale up if has power
-    for (int l = 0; (l < LOOP_COUNT) && spare_juice ; l++) {
-      // scale down loops with 8 asics, where current near critical or more then 6 hot asics 
-      if ((vm.loop[l].asic_count == HAMMERS_PER_LOOP) &&
-         (
-          (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s-16*2) ||
-          (vm.loop[l].hot_asics_count >= COLD_ASICS_IN_LOOP_FOR_UPSCALE))
-        ) {
-        if (loop_can_up(l)) {
-          printf(CYAN "LOOP UP:%d\n" RESET, l);
-          loop_up(l);
-          spare_juice--;
-        }
-      }
-    }
-
-#if 0
-
-    if (!downed &&
-        (vm.ac2dc_power > (AC2DC_POWER_LIMIT - AC2DC_LEFT_CURRENT_TO_DOWNSCALE))) {
-       l = find_loop_to_down();
-       printf(CYAN "LOOP %d down\n" RESET, l);
-      if (l != -1) {
-         loop_down(l);
-      } 
-    }
-
-
-        l = find_loop_to_up();
-        if (l != -1) {
-          printf(CYAN "LOOP %d UP\n" RESET, l);
-          loop_up(l);
-        }
-
-        l = find_loop_to_down();
-        if (l != -1) {
-           printf(CYAN "LOOP %d down\n" RESET, l);
-           loop_down(l);
-        }
-#endif
   }
-#endif  
+  return one_ok; 
 }
-#endif
+
+
+
+void set_working_voltage_discover_top_speeds() {
+  ASIC_FREQ n = ASIC_FREQ_225;
+  int one_ok;
+  enable_voltage_freq(ASIC_FREQ_225);
+  do {
+    n = n + 1;
+    resume_asics_if_needed();
+    do_bist_ok(0);
+    one_ok = asic_frequency_update_fast();
+ } while (one_ok);
+ resume_asics_if_needed();
+ //assert(0);
+}
+
+
+
+
+
+
+
+// Called from low-priority thread.
+void ac2dc_scaling_one_minute() {
+  for (int l = 0; l < LOOP_COUNT; l++) {
+     int changed = 0;
+    now=time(NULL);
+    if ((!vm.asics_shut_down_powersave) && (vm.loop[l].enabled_loop) &&
+         (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING)) {
+      
+        int temperature_high = (vm.loop[l].asic_temp_sum / vm.loop[l].asic_count > 110);
+        int too_hot_for_frequency = (vm.loop[l].unused_frequecy > 10);
+        int fully_utilized = (vm.loop[l].unused_frequecy == 0); // h->freq_thermal_limit - h->freq
+        int free_current = (vm.loop[l].dc2dc.dc_current_limit_16s - vm.loop[l].dc2dc.dc_current_16s);
+        int tmp_scaled=0;
+       
+       
+        //printf(CYAN "ac2dc %d %d %d!\n" RESET, l, vm.loop[l].unused_frequecy, free_current);
+
+         if (free_current >= 3*16) {
+          // has unused freq - scale down.
+         if (vm.loop[l].unused_frequecy > 3) {
+            psyslog(CYAN "LOOP DOWN:%d\n" RESET, l);
+            if (loop_can_down(l)) {
+              changed = 1;
+              loop_down(l);
+            }
+         } else if (vm.loop[l].unused_frequecy == 0  && 
+                    !temperature_high &&
+                    vm.ac2dc_power < AC2DC_POWER_LIMIT) 
+            // scale up
+                psyslog(CYAN "LOOP UP:%d\n" RESET, l);
+                if (loop_can_up(l)) {
+                  changed = 1;
+                  loop_up(l);
+                  vm.ac2dc_power += 10;
+                  for (int i = 0; i < HAMMERS_PER_LOOP; i++) {
+                      vm.hammer[i+l*HAMMERS_PER_LOOP].try_higher = 1;
+                    }
+                  }
+         }
+          }
+         vm.loop[l].dc2dc.last_voltage_change_time = time(NULL);
+       }
+    }
+
+

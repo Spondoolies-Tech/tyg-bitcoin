@@ -299,6 +299,7 @@ void push_to_hw_queue(RT_JOB *work) {
 }
 
 
+
 // destribute range between 0 and max_range
 void set_nonce_range_in_engines(unsigned int max_range) {
   int d, e;
@@ -368,8 +369,8 @@ int allocate_addresses_to_devices() {
           vm.hammer[addr].asic_present = 1;
           vm.hammer[addr].failed_bists = 0;    
           vm.hammer[addr].passed_last_bist_engines = ALL_ENGINES_BITMASK;
-          vm.hammer[addr].top_freq = MAX_ASIC_FREQ;
-          vm.hammer[addr].top_freq_after_bist_only = MAX_ASIC_FREQ;
+          vm.hammer[addr].freq_thermal_limit = MAX_ASIC_FREQ;
+          vm.hammer[addr].freq_bist_limit = MAX_ASIC_FREQ;
           if (vm.silent_mode && (addr%20 != 0)) {
             disable_asic_forever(addr);
           }
@@ -554,7 +555,7 @@ BIST_VECTOR bist_tests[TOTAL_BISTS] =
 int do_bist_ok(int long_bist) {
   // Choose random bist.
   static int bist_id = 2;
- int next_bist;
+  int next_bist;
   do {
     next_bist = rand()%TOTAL_BISTS;
   } while (next_bist == bist_id);
@@ -610,12 +611,8 @@ int do_bist_ok(int long_bist) {
     last_res = res;
     i++;
   }
-  static hammer_iter hi = {-6,-6,-6,-6,NULL};
-
-  if (hi.addr == -6 || !hammer_iter_next_present(&hi)) {
-    hammer_iter_init(&hi);
-    hammer_iter_next_present(&hi);
-  } 
+  
+ 
 
   uint32_t single_win_test;
 #if 0  
@@ -637,7 +634,8 @@ int do_bist_ok(int long_bist) {
     // printf("Writing %x to %x because read %d\n", BIT_INTR_BIST_FAIL,
     // failed_addr, bist_fail);
     //if (!1) {
-    // printf(RED "Failed Bist %x::%x\n" RESET, failed_addr, h->passed_last_bist_engines);
+    printf(RED "Failed Bist %x::%x, speed %x:%x \n" RESET, failed_addr, 
+    h->passed_last_bist_engines, h->freq_wanted, h->freq_hw);
     //}
     write_reg_device(failed_addr, ADDR_INTR_CLEAR, BIT_INTR_BIST_FAIL);
     write_reg_device(failed_addr, ADDR_INTR_CLEAR, BIT_INTR_WIN);
@@ -660,12 +658,7 @@ int has_work_req();
 
 void one_minute_tasks() {
   // Give them chance to raise over 3 hours if system got colder
-  static int h = 0;
-  if (vm.hammer[h].top_freq < vm.hammer[h].top_freq_after_bist_only) {
-    vm.hammer[h].top_freq = (ASIC_FREQ)(vm.hammer[h].top_freq+1);
-  }
-
-  h = (h + 1)%HAMMERS_COUNT;
+  
 }
 
 
@@ -752,9 +745,12 @@ void update_vm_with_currents_and_temperatures() {
   }
   int e = get_dc2dc_error(loop); 
   if (e) {
-    vm.loop[loop].dc2dc.kill_me_i_am_bad = 1;
-    //dc2dc_disable_dc2dc(loop, &err);
-    //passert(0);
+    if (1/*time(NULL) - vm.start_mine_time < 30*/) {
+      vm.loop[loop].dc2dc.kill_me_i_am_bad = 1;
+    } else {
+      psyslog("DC2DC ERROR!!!\n - reset!\n");
+      passert(0);
+    }
   }
   loop = (loop+1)%LOOP_COUNT;
 }
@@ -767,104 +763,133 @@ void check_for_dc2dc_errors() {
 
 
 
-// 30 times per second
-/*
-void update_vm_with_asic_current_and_temperature() {
-  {
-    // 40 times a second poll 1 loop ASICs for 2 temperatures
-    // We measure 1 loop on all temperatures over 1/8 second
-    // We complete full cycle of all loops all temperatures over 3 seconds    
-    static int temp_measure_loop = 0;
-    static ASIC_TEMP temp_measure_temp = ASIC_TEMP_83;
+void set_temp_reading(int measure_temp_addr, ASIC_TEMP temp_measure_temp, uint32_t* intr) {
+  // measure "temp_measure_temp"
+    write_reg_device(measure_temp_addr, ADDR_TS_SET_0, temp_measure_temp-1);
+    // Measure next temperature with it
+    write_reg_device(measure_temp_addr, ADDR_TS_SET_1, temp_measure_temp-1+2);
+    write_reg_device(measure_temp_addr, ADDR_COMMAND, BIT_CMD_TS_RESET_1 | BIT_CMD_TS_RESET_0);
+    //flush_spi_write();
+    push_hammer_read(measure_temp_addr, ADDR_INTR_RAW, intr);
 
-    read_some_asic_temperatures(temp_measure_loop, temp_measure_temp, (ASIC_TEMP)(temp_measure_temp+1));
-    // Progress loop and (maybe) temperature
 
-    temp_measure_loop = (temp_measure_loop + 1) % LOOP_COUNT;
-    if (temp_measure_loop == 0) {
-     temp_measure_temp=(ASIC_TEMP)(temp_measure_temp+2);
-     if (temp_measure_temp >= ASIC_TEMP_COUNT) {
-       temp_measure_temp = ASIC_TEMP_83;
-     }
-    }
-    if (temp_measure_temp >= ASIC_TEMP_83 &&
-       temp_measure_loop == 0) {
-     printf("Temperature cycle - done.\n");
-    }
-  }
 }
+
+void proccess_temp_reading(HAMMER *a, ASIC_TEMP temp_measure_temp, int intr) {
+
+//printf("intr=%x\n", intr);
+     if (intr & BIT_INTR_0_OVER && (a->asic_temp < temp_measure_temp)) { 
+          //printf("Asic %x hotter then %d\n", a->address, temp_measure_temp*6+77);
+          a->asic_temp = temp_measure_temp;
+          a->asic_temp_raising = 1;
+          
+     } 
+
+     if (!(intr & BIT_INTR_0_OVER) && (a->asic_temp >= temp_measure_temp)) { 
+         //printf("Asic %x colder then %d\n", a->address, temp_measure_temp*6+77);
+         a->asic_temp = (ASIC_TEMP)(temp_measure_temp-1);
+         a->asic_temp_raising = 0;
+     }
+
+     if (intr & BIT_INTR_1_OVER && (a->asic_temp < (temp_measure_temp+2))) { 
+          //printf("Asic %x hotter then %d\n", a->address, (temp_measure_temp+4)*6+77);
+          a->asic_temp = (ASIC_TEMP)(temp_measure_temp + 2);
+          a->asic_temp_raising = 1;
+     } 
+
+     if (!(intr & BIT_INTR_1_OVER) && (a->asic_temp >= (temp_measure_temp+2))) { 
+         //printf("Asic %x colder then %d\n", a->address, (temp_measure_temp+4)*6+77);
+         a->asic_temp = (ASIC_TEMP)(temp_measure_temp-1+2);
+         a->asic_temp_raising = 0;
+     }
+/*
+     write_reg_broadcast(ADDR_TS_SET_0, (ASIC_TEMP_125- 1) | 
+                        ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
+     write_reg_broadcast(ADDR_TS_SET_1, (ASIC_TEMP_125- 1) | 
+                        ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
 */
 
-// 30 times a second - poll win and 1 temperature
+}
+
+// 30 times a second - poll win and 1 temperature 
+// and set 1 pll
 void once_33_msec_tasks() {
   static int counter = 0;
   static int measure_temp_addr = 0;
-  static ASIC_TEMP temp_measure_temp = ASIC_TEMP_83;
+  static int pll_set_addr = 0;
+  static ASIC_TEMP temp_measure_temp = ASIC_TEMP_107;
+  
+  static uint32_t win_reg =0;
+  static uint32_t intr_reg=0;
+ // static uint32_t pll_reg=0;  
+
+
   
   if (!vm.asics_shut_down_powersave) {
+
     // printf("-"); 
-    uint32_t win;
-    uint32_t intr;
     measure_temp_addr = (measure_temp_addr+1)%HAMMERS_COUNT;
-    HAMMER *a = &vm.hammer[measure_temp_addr];
-    if(a->asic_present) {
-        // measure "temp_measure_temp"
-        write_reg_device(measure_temp_addr, ADDR_TS_SET_0, temp_measure_temp-1);
-        // Measure next temperature with it
-        write_reg_device(measure_temp_addr, ADDR_TS_SET_1, temp_measure_temp-1+4);
-        write_reg_device(measure_temp_addr, ADDR_COMMAND, BIT_CMD_TS_RESET_1 | BIT_CMD_TS_RESET_0);
-        //flush_spi_write();
-        push_hammer_read(measure_temp_addr, ADDR_INTR_RAW, &intr);
+   
+    // PLL set should be one ahead of pll get.
+    pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
+    int next_pll =  (pll_set_addr+1)%HAMMERS_COUNT;
+    
+    if(vm.hammer[measure_temp_addr].asic_present) {
+      set_temp_reading( measure_temp_addr,temp_measure_temp, &intr_reg); 
     }
+
+   if (vm.hammer[next_pll].asic_present && 
+       (vm.hammer[next_pll].freq_wanted != vm.hammer[next_pll].freq_hw)) {
+     disable_engines_asic(next_pll);
+     //printf("once_33_msec_tasks set pll %x", pll_set_addr);
+     //printf("Set pll %x %d to %d\n",next_pll,vm.hammer[next_pll].freq_hw,vm.hammer[next_pll].freq_wanted);
+     set_pll(next_pll, vm.hammer[next_pll].freq_wanted);
+     vm.hammer[next_pll].pll_waiting_reply = true;
+   }
+
+
+    if (vm.hammer[pll_set_addr].asic_present && 
+        vm.hammer[pll_set_addr].pll_waiting_reply) {
+      enable_engines_asic(vm.hammer[pll_set_addr].address, vm.hammer[pll_set_addr].working_engines);
+      vm.hammer[pll_set_addr].pll_waiting_reply = false;
+      //printf("Enable engines:%x %x \n",vm.hammer[pll_set_addr].address,vm.hammer[pll_set_addr].working_engines);
+    }
+
+
     
     if (measure_temp_addr == 0) {
+      // rotate temperature
       temp_measure_temp = (ASIC_TEMP)(temp_measure_temp+1);
-      if (temp_measure_temp == ASIC_TEMP_107)
-        temp_measure_temp = ASIC_TEMP_83;
+      if (temp_measure_temp == ASIC_TEMP_119)
+        temp_measure_temp = ASIC_TEMP_107;
     }
 
     
-    push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win);
-    squid_wait_hammer_reads();
+    push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win_reg);
+   // push_hammer_read(BROADCAST_ADDR,ADDR_BR_PLL_NOT_READY,&pll_reg);
+
+
+    // Handle previous READs/WRITEs
+      squid_wait_hammer_reads();
+      
     
-    while (win) {
-      uint16_t winner_device = BROADCAST_READ_ADDR(win);
-      vm.hammer[winner_device].solved_jobs++;
-      vm.solved_jobs_total++;
-      int ok = get_print_win(winner_device);
-      push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win);      
-      squid_wait_hammer_reads();    
-    }
-
-    // Update temperature.
+      // read last time...
+      if (win_reg) {
+        uint16_t winner_device = BROADCAST_READ_ADDR(win_reg);
+        vm.hammer[winner_device].solved_jobs++;
+        vm.solved_jobs_total++;
+        int ok = get_print_win(winner_device);
+        //push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win_reg);      
+        //squid_wait_hammer_reads();    
+      }
     
-    if (a->asic_present) {
-       //printf("intr=%x\n", intr);
-       if (intr & BIT_INTR_0_OVER && (a->asic_temp < temp_measure_temp)) { 
-            //printf("Asic %x hotter then %d\n", a->address, temp_measure_temp*6+77);
-            a->asic_temp = temp_measure_temp;
-       } 
-
-       if (!(intr & BIT_INTR_0_OVER) && (a->asic_temp >= temp_measure_temp)) { 
-           //printf("Asic %x colder then %d\n", a->address, temp_measure_temp*6+77);
-           a->asic_temp = (ASIC_TEMP)(temp_measure_temp-1);
-       }
-
-       if (intr & BIT_INTR_1_OVER && (a->asic_temp < (temp_measure_temp+4))) { 
-            //printf("Asic %x hotter then %d\n", a->address, (temp_measure_temp+4)*6+77);
-            a->asic_temp = (ASIC_TEMP)(temp_measure_temp + 4);
-       } 
- 
-       if (!(intr & BIT_INTR_1_OVER) && (a->asic_temp >= (temp_measure_temp+4))) { 
-           //printf("Asic %x colder then %d\n", a->address, (temp_measure_temp+4)*6+77);
-           a->asic_temp = (ASIC_TEMP)(temp_measure_temp-1+4);
-       }
-
-       write_reg_broadcast(ADDR_TS_SET_0, (ASIC_TEMP_125- 1) | 
-                          ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
-       write_reg_broadcast(ADDR_TS_SET_1, (ASIC_TEMP_125- 1) | 
-                          ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
-    }    
+      // Update temperature.
+      if (vm.hammer[measure_temp_addr].asic_present) {
+        // will be NULL on first run, not a problem
+        proccess_temp_reading(&vm.hammer[measure_temp_addr], temp_measure_temp, intr_reg);
+      } 
+    
+   
   }
  
   if (++counter % 30 == 0) {
@@ -915,6 +940,7 @@ void once_1500_usec_tasks() {
 }
 
 
+void asic_scaling_compute_results();
 
 // never returns - thread
 void *i2c_state_machine(void *p) {
@@ -932,7 +958,8 @@ void *i2c_state_machine(void *p) {
     usec += (tv.tv_usec - last_job_pushed.tv_usec);
    if (usec >= (1000000/40)) { 
       counter++;
-      if ((counter%(40)) == 0) {      
+      if ((counter%(40)) == 0) {   
+        asic_scaling_compute_results();
         print_scaling();
       }
       

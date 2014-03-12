@@ -98,7 +98,15 @@ copy_all_spond_files() {
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
 	date > build_date.txt
-	
+
+	#php
+	if [ ! -d "opt/minepeon" ]; then
+		mkdir opt/minepeon
+		mkdir opt/minepeon/etc
+	fi
+	cp ${CUR_DIR}/../add-ons/miner.conf opt/minepeon/etc/
+	cp ${CUR_DIR}/../add-ons/minepeon.conf opt/minepeon/etc/
+	cp ${CUR_DIR}/../add-ons/php.ini etc/
 }
 
 common_defs()
@@ -124,6 +132,7 @@ emmc()
 
 web_server()
 {
+	cp -a ${CUR_DIR}/../../../../minepeon/http/* var/www/ -rf
 	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/lighttpd usr/bin
 	cp -a ${CUR_DIR}/../add-ons/lighttpd.conf etc
 	cp -a ${CUR_DIR}/../add-ons/S55lighttpd etc/init.d

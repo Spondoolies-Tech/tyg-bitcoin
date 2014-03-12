@@ -234,6 +234,7 @@ int update_dc2dc_current_temp_measurments(int loop) {
     if (!vm.asics_shut_down_powersave) {
         vm.loop[i].dc2dc.dc_current_16s =
                         dc2dc_get_current_16s_of_amper(i, &err);
+
         vm.loop[i].dc2dc.dc_power_watts_16s = 
         vm.loop[i].dc2dc.dc_current_16s*VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[i])/1000;
     } else {

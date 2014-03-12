@@ -14,17 +14,17 @@ start)
 	#	mount /mnt/mmc-config
 	#	mount /mnt/mmc-boot
 
-
 	if [ -e "/mnt/mmc-config/autorun" ]; then
 		NORMALBOOT=0
-		/mnt/nfs/autorun
+		/mnt/mmc-config/autorun
 	fi
-
-
+	
+	mount /mnt/sd-boot
 	if [ -e "/mnt/sd-boot/autorun" ]; then
 		NORMALBOOT=0
 		/mnt/sd-boot/autorun
 	fi
+	umount /mnt/sd-boot
 
 	echo "NORMALBOOT=${NORMALBOOT}"
 	if [ ${NORMALBOOT} -eq 1 ]; then 

@@ -220,6 +220,7 @@ typedef struct {
 #define WAIT_BETWEEN_FREQ_CHANGE 30 // seconds
 // 192 ASICs
 #define HAMMER_TO_LOOP(H) ((H->address >> 16) & 0xFF)
+
 typedef struct {
   // asic present and used
   // If loop not enabled set to false
@@ -228,8 +229,6 @@ typedef struct {
   uint8_t address;
   uint8_t loop_address;
   ASIC_CORNER corner;
-   
-
   // Failed bists (set by "do_bist_ok()")
   uint8_t failed_bists;
   // Passed engines (set by "do_bist_ok()")
@@ -237,11 +236,18 @@ typedef struct {
 
   // Asic temperature/frequency (polled periodicaly)
   ASIC_TEMP asic_temp; // periodic measurments - ASIC_TEMP_
-  ASIC_FREQ asic_freq;        // *15 Hz
-  ASIC_FREQ top_freq;  
-  ASIC_FREQ top_freq_after_bist_only;   
+  int asic_temp_raising;
+  ASIC_FREQ freq_hw;        // *15 Hz  
+  ASIC_FREQ freq_wanted;        // *15 Hz
+  int pll_waiting_reply;
+  ASIC_FREQ freq_thermal_limit; 
+  ASIC_FREQ freq_bist_limit;   
+  
+  int try_higher;
+  int thermaly_punished;
   int last_freq_change_time; // time() when we increased ASIC frequency
-
+  int last_down_freq_change_time;
+  //int dc2dc_ac2dc_limit;
   // Set durring initialisation currently enabled engines
   uint32_t working_engines;
 
@@ -270,10 +276,12 @@ typedef struct {
   uint8_t enabled_loop;
   int     asic_temp_sum; // if asics disabled or missing give them fake temp
   int     asic_hz_sum; // if asics disabled or missing give them fake temp
-
+  int unused_frequecy;
   int asics_failing_bist;
   int asic_count;
+  int crit_temp;
   DC2DC dc2dc;
+  int power_throttled;
 } LOOP;
 
 // Global data

@@ -29,7 +29,7 @@
 
 #include "corner_discovery.h"
 
-
+/*
 void do_leakage_discovery_loop(int l) {
    int err; 
    dc2dc_set_vtrim(l, VTRIM_810, &err);
@@ -42,7 +42,7 @@ void do_leakage_discovery_loop(int l) {
       disable_engines_all_asics();
       set_pll(addr, ASIC_FREQ_510);
       // Enable work mode
-      enable_all_engines_asic(addr);     
+      enable_engines_asic(addr, ALL_ENGINES_BITMASK);     
       while (temp != 3) {
         
         do_bist_ok(0);
@@ -57,7 +57,8 @@ void do_leakage_discovery_loop(int l) {
    }   
    dc2dc_set_vtrim(l, VTRIM_MIN, &err);
 }
-
+*/
+/*
 void do_leakage_discovery() {
   // first heat up the ASICs 
   hammer_iter hi;
@@ -76,4 +77,4 @@ void do_leakage_discovery() {
   
   exit(0);
 }
-
+*/

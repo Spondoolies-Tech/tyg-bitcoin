@@ -9,17 +9,18 @@
 #include "squid.h"
 #include "pll.h"
 
+/*
 
-
-uint32_t vtrim_per_loop[] = { VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, 
-                               VTRIM_START+2,  VTRIM_START+2, VTRIM_START+2, VTRIM_START+2, 
+uint32_t vtrim_per_loop[] = { VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
+                               VTRIM_START,  VTRIM_START, VTRIM_START, VTRIM_START, 
                                VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
                                
-                               VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, VTRIM_START+5, 
-                                VTRIM_START+2,  VTRIM_START+2, VTRIM_START+2, VTRIM_START+2, 
+                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
+                                VTRIM_START,  VTRIM_START, VTRIM_START, VTRIM_START, 
                                VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
                                };
 
+*/
 
 void enable_voltage_freq(ASIC_FREQ f) {
   int l, h, i = 0;
@@ -36,7 +37,7 @@ void enable_voltage_freq(ASIC_FREQ f) {
       } else if (vm.silent_mode) {
         dc2dc_set_vtrim(l, VTRIM_MIN, &err);
       } else {
-        dc2dc_set_vtrim(l, vtrim_per_loop[l] , &err);
+        dc2dc_set_vtrim(l, vm.loop_vtrim[l], &err);
       }
       // passert(err);
       // for each ASIC
@@ -44,7 +45,7 @@ void enable_voltage_freq(ASIC_FREQ f) {
         HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
         // Set freq
         if (a->asic_present) {
-          set_asic_freq(a->address, f);
+          set_pll(a->address, f);
         }
       }
     }
@@ -52,6 +53,13 @@ void enable_voltage_freq(ASIC_FREQ f) {
   enable_good_engines_all_asics_ok();
 }
 
+
+
+
+void set_safe_voltage_and_frequency() {
+  enable_voltage_freq(ASIC_FREQ_405);
+  enable_good_engines_all_asics_ok(); 
+}
 
 
 const char* corner_to_collor(ASIC_CORNER c) {
@@ -74,13 +82,13 @@ void compute_corners() {
  } while (!bist_ok);
 
    while (hammer_iter_next_present(&hi)) {
-      if (hi.a->asic_freq >= CORNER_DISCOVERY_FREQ_FF)
+      if (hi.a->freq >= CORNER_DISCOVERY_FREQ_FF)
         hi.a->corner = ASIC_CORNER_FFG;
-      else if (hi.a->asic_freq >= CORNER_DISCOVERY_FREQ_TF)
+      else if (hi.a->freq >= CORNER_DISCOVERY_FREQ_TF)
         hi.a->corner = ASIC_CORNER_TTFFG;
-      else if (hi.a->asic_freq >= CORNER_DISCOVERY_FREQ_TT)
+      else if (hi.a->freq >= CORNER_DISCOVERY_FREQ_TT)
         hi.a->corner = ASIC_CORNER_TT;
-      else if (hi.a->asic_freq >= CORNER_DISCOVERY_FREQ_TS)
+      else if (hi.a->freq >= CORNER_DISCOVERY_FREQ_TS)
         hi.a->corner = ASIC_CORNER_SSTT;
       else 
         hi.a->corner = ASIC_CORNER_SS;
@@ -91,37 +99,13 @@ void compute_corners() {
 }
 */
 
+/*
+int set_working_voltage_discover_top_speeds();
 
 void set_working_voltage_discover_top_speeds() {
-  enable_voltage_freq(ASIC_FREQ_810);
-
-  int bist_ok;
-  do {
-    resume_asics_if_needed();
-    bist_ok = do_bist_ok(0);
-    pause_asics_if_needed();
-    asic_frequency_update(1);
- } while (!bist_ok);
- hammer_iter hi;
- hammer_iter_init(&hi);
- 
- pause_asics_if_needed();
- while (hammer_iter_next_present(&hi)) {
-    if (asic_can_down(hi.a)) {
-      asic_down_one(hi.a);
-    }
-
-    if (asic_can_down(hi.a)) {
-      asic_down_one(hi.a);
-    }
-
-    if (asic_can_down(hi.a)) {
-      asic_down_one(hi.a);
-    }
- }
- resume_asics_if_needed();
+   set_working_voltage_discover_top_speeds();
 }
-
+*/
 
 
 
@@ -152,7 +136,7 @@ void discover_good_loops() {
       if (vm.thermal_test_mode) {
         vm.loop_vtrim[i] = VTRIM_674;
       } else {
-        vm.loop_vtrim[i] = vtrim_per_loop[i];
+        vm.loop_vtrim[i] = VTRIM_START;
       }
       vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
       good_loops |= 1 << i;

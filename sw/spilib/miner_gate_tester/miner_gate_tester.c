@@ -106,6 +106,9 @@ int main(int argc, char* argv[])
  int requests = 0;
  int responces = 0;
  int rate = 0;
+ int global_rate = 0; 
+ int global_rate_cnt = 0; 
+ 
  //nbytes = snprintf(buffer, 256, "hello from a client");
  srand (time(NULL));
 
@@ -142,8 +145,10 @@ int main(int argc, char* argv[])
    static int counter = 0;
    counter++;
    // Show rate each 30 seconds 
-   if ((counter%((10000/jobs_period))) == 0) {
-      printf(MAGENTA "HASH RATE=%dGH\n" RESET,rate*4/10);
+   if ((counter%((1000/jobs_period))) == 0) {
+      global_rate+=rate;
+      global_rate_cnt++;
+      printf(MAGENTA "HASH RATE=%dGH (TOTAL=%dGH)\n" RESET,rate*4,(global_rate/global_rate_cnt)*4);
       rate=0;
    }
  }

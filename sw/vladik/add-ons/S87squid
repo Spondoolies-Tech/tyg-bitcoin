@@ -7,8 +7,13 @@ export PATH=$PATH:/usr/local/bin:/bin
 
 
 load_fpga() {
+	echo 22 > /sys/class/gpio/export
+	echo out > /sys/class/gpio/gpio2251/direction
+	echo 1 > /sys/class/gpio/gpio22/value
+
 	cd /spond-data
 	/usr/local/bin/fpga-load.sh squid_top.jam
+	echo 0 > /sys/class/gpio/gpio22/value
 }
 
 

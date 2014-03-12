@@ -213,7 +213,7 @@ void print_scaling() {
       vm.ac2dc_temp
     );
   int total_watt=0;
-  fprintf(f, GREEN "L |Vtrm|vlt|Wt|"  "A /Li|Tmp/"  "Tmp|A|H" RESET); 
+  fprintf(f, GREEN "L |Vtrm|vlt|Wt|"  "A /Li|Tmp/"  "Tmp|A|H(H-)" RESET); 
   for (int addr = 0; addr < HAMMERS_COUNT ; addr++) {
     
     hammer_iter hi;    
@@ -221,30 +221,31 @@ void print_scaling() {
     hi.a = &vm.hammer[addr];
     hi.l = addr/HAMMERS_PER_LOOP;
     hi.h = addr%HAMMERS_PER_LOOP;
-    if (hi.h == HAMMERS_PER_LOOP/2) {fprintf(f, "\n-----------------------------------");}
+    if (hi.h == HAMMERS_PER_LOOP/2) {fprintf(f, "\n-----------------------------------------");}
     if (hi.h == 0) {
       total_loops++;
       if (!vm.loop[hi.l].enabled_loop) {
-        fprintf(f, "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        fprintf(f, "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
       } else {    
         DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
 
         fprintf(f, GREEN 
           "\n%2d|%4x|%3d|%2d|"  
           "%s%3d%s/%3d|%s%3d%s|"   
-          "%3d|%d|%2d" RESET, 
+          "%3d|%3d|%2d(%2d)" RESET, 
           hi.l, 
           vm.loop_vtrim[hi.l]&0xffff,
           VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[hi.l]),
           dc2dc->dc_power_watts_16s/16,
           
-        ((dc2dc->dc_current_16s>=DC2DC_CURRENT_TOP_BEFORE_LEARNING_16S - 1*16)?RED:GREEN), dc2dc->dc_current_16s,GREEN,
+        ((dc2dc->dc_current_16s>=DC2DC_INITIAL_CURRENT_16S - 1*16)?RED:GREEN), dc2dc->dc_current_16s,GREEN,
           dc2dc->dc_current_limit_16s,
         ((dc2dc->dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), dc2dc->dc_temp,GREEN,
         
           (vm.loop[hi.l].asic_count) ? vm.loop[hi.l].asic_temp_sum/vm.loop[hi.l].asic_count : 0,
-          vm.loop[hi.l].asic_count,
-          vm.loop[hi.l].asic_hz_sum*15/1000
+          vm.loop[hi.l].crit_temp,
+          vm.loop[hi.l].asic_hz_sum*15/1000,
+          vm.loop[hi.l].unused_frequecy
           );
 
         total_watt+=dc2dc->dc_power_watts_16s;
@@ -256,19 +257,20 @@ void print_scaling() {
       continue;
     }
 
-    total_hash_power += hi.a->asic_freq*15+220;            
-    theoretical_hash_power += hi.a->top_freq*15+220;
+    total_hash_power += hi.a->freq_wanted*15+220;            
+    theoretical_hash_power += hi.a->freq_thermal_limit*15+220;
 
     total_asics++;
 
-    fprintf(f, GREEN "|%2x:%s%3dc%s %s%3dhz%s(%3d/%1d) %s%x" RESET, 
+    fprintf(f, GREEN "|%2x:%s%3dc%s%s %s%3dhz%s(%3d/%2d) %s%x" RESET, 
       hi.addr,
-      (hi.a->asic_temp>=ASIC_TEMP_95)?((hi.a->asic_temp>=ASIC_TEMP_101)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
-       corner_to_collor(hi.a->corner),hi.a->asic_freq*15+210,GREEN,
-       hi.a->top_freq*15+210,
-       hi.a->top_freq_after_bist_only - hi.a->top_freq, 
-       (vm.hammer[hi.addr].working_engines!=0x7FFF)?GREEN_BOLD:GREEN, vm.hammer[hi.addr].working_engines);
+      (hi.a->asic_temp>=ASIC_TEMP_107)?((hi.a->asic_temp>=ASIC_TEMP_113)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
+      (hi.a->asic_temp_raising)?(RED "^" RESET):(BLUE "v" RESET),
 
+    corner_to_collor(hi.a->corner),hi.a->freq_wanted*15+210,GREEN,
+       hi.a->freq_thermal_limit*15+210,
+       hi.a->freq_bist_limit - hi.a->freq_thermal_limit, 
+       (vm.hammer[hi.addr].working_engines!=0x7FFF)?GREEN_BOLD:GREEN, vm.hammer[hi.addr].working_engines);
   }
   // print last loop
   // print total hash power

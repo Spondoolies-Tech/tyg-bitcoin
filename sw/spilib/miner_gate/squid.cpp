@@ -237,7 +237,10 @@ int hammer_serial_stack[64] = { 0 };
 int hammer_serial_stack_size = 0;
 
 void push_hammer_serial_packet_to_hw(uint32_t d1, uint32_t d2) {
-  passert(hammer_serial_stack_size < 64);
+  if(hammer_serial_stack_size >= 64) {
+	psyslog("hammer_serial_stack_size = %d\n",hammer_serial_stack_size);
+	passert(0);
+  }
   hammer_serial_stack[hammer_serial_stack_size++] = d1;
   hammer_serial_stack[hammer_serial_stack_size++] = d2;
   if (hammer_serial_stack_size == 60) {

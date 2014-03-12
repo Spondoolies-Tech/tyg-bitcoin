@@ -20,9 +20,10 @@
 #include "hammer_lib.h"
 #include "real_time_queue.h"
 
-#define MAX_PACKETS_IN_RT_QUEUE 50
+// How long we wait for winn? 666 is 1 second
+#define MAX_PACKETS_IN_RT_QUEUE 150
 // hash table
-RT_JOB rt_queue[0x100] = { 0 };
+RT_JOB rt_queue[0x100] = { 0 }; // must be of that size because address is 0xXX
 int rt_queue_sw_write;
 int rt_queue_hw_done;
 int rt_queue_size =

@@ -16,7 +16,7 @@ export PATH=$PATH:/usr/local/bin:/bin
 miner_gate_arm_watchdog () {
 	$MINERGATE_CMD &
 	echo $! > /var/run/miner_gate_arm.pid
-	sleep 2
+	sleep 4
 	$CGMINER_CMD &
 	echo $! > /var/run/cgminer_arm.pid
 
