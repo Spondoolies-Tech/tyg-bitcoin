@@ -1,0 +1,26 @@
+			Software Upgrade error codes and messages
+					11.03.2014
+			=========================================
+
+
+Code	Displayed string					Comment
+===============================================================================
+1-199	<cURL errors, see 'man curl'>
+
+						upgrade-software.sh errors
+						--------------------------
+200	upgrade-software.sh usage displayed
+201	Cannot detect boot source.
+202	Software booted from network. Cannot upgrade.
+203	Cannot read Board ID.
+204	Cannot mount /mnt/${bootfrom}-boot.			bootfrom=sd|mmc
+205	Cannot find /mnt/${bootfrom}-boot/uImage.		bootfrom=sd|mmc
+206	<does not exist>
+207	${shar}: bad signature					shar=.SHAR file
+
+						.SHAR errors
+						------------
+220	Cannot move uImage to uImage.old
+221	Cannot move spondoolies.dtb to spondoolies.dtb.old
+222	Cannot copy new uImage, revert to the old version
+223	Cannot copy new DTB, revert to the old version
