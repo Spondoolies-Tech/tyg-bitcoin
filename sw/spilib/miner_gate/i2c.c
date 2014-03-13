@@ -31,6 +31,7 @@ command);
 
 static char buf[10] = { 0 };
 
+
 // set the I2C slave address for all subsequent I2C device transfers
 static void i2c_set_address(int address, int *pError) {
   passert(file);
@@ -40,6 +41,17 @@ static void i2c_set_address(int address, int *pError) {
   }  
   *pError = ioctl_err;
 }
+
+int __i2c_write_block_data(unsigned char command, unsigned char len ,const unsigned char * buff ){
+	//return i2c_smbus_write_block_data( file, command,len, buff);
+	return 1;
+}
+
+
+void my_i2c_set_address(int address, int *pError) {
+	i2c_set_address(address , pError);
+}
+
 
 // 0 = no error
 uint8_t i2c_read(uint8_t addr, int *pError) {
@@ -107,6 +119,45 @@ uint8_t i2c_read_byte(uint8_t addr, uint8_t command, int *pError) {
   return res;
 }
 
+
+//TODO
+uint8_t i2c_waddr_read_byte(uint8_t addr, uint16_t dev_addr, int *pError) {
+  uint8_t res;
+  //__s32 r;
+  pthread_mutex_lock(&i2cm);
+  passert(pError);
+  i2c_set_address(addr, pError);
+
+  uint8_t command = (uint8_t)(dev_addr & 0xFF);
+  uint8_t addr_data = (uint8_t)(dev_addr & 0xFF00);
+
+  union i2c_smbus_data data;
+  data.byte = addr_data;
+
+  i2c_set_address(addr, pError);
+  if (*pError != 0) {
+    //printf("i2c_read_byte(%d): call to i2c_set_address returned with err %d\n",__LINE__ , *pError);
+    psyslog(RED "i2c read byte 0x%x 0x%x error1\n" RESET, addr, command);
+     passert(0);
+  //  res = 0xFF;
+  } else {
+    __s32 ioctl_err = i2c_smbus_access(file , I2C_SMBUS_READ , command , I2C_SMBUS_WORD_DATA , &data);
+
+    if (0 != ioctl_err) {
+    	printf("i2c error caught in i2c_smbus_read_byte_data %d\n" , ioctl_err);
+        if (NULL != pError)
+          * pError = ioctl_err;
+    }
+
+    else{
+    	res = data.byte;
+    }
+  }
+  pthread_mutex_unlock(&i2cm);
+  //printf("i2c_read [%x:%x] = %x\n",addr,command ,res);
+  return res;
+}
+
 // uint16_t i2c_read_w(uint8_t addr) {
 //    uint16_t res;
 //    pthread_mutex_lock(&i2cm);
@@ -124,6 +175,28 @@ uint8_t i2c_read_byte(uint8_t addr, uint8_t command, int *pError) {
 //    usleep(SLEEP_TIME_I2C);
 //      pthread_mutex_unlock(&i2cm);
 //}
+
+//TODO
+//
+void i2c_waddr_write_byte(uint8_t addr, uint16_t dev_addr, uint8_t value, int *pError) {
+	  pthread_mutex_lock(&i2cm);
+	  passert(pError);
+	  i2c_set_address(addr, pError);
+	  if (*pError != 0) {
+	    psyslog(RED "i2c write byte 0x%x 0x%x = 0x%x error1\n" RESET, addr, dev_addr, value);
+
+	  } else {
+		  uint8_t command = (uint8_t)(dev_addr & 0xFF);
+		  uint8_t block[] = { (uint8_t)(dev_addr >> 8),value};
+		  if (i2c_smbus_write_block_data(file , command , 2 , block) == -1){
+	    	  psyslog(RED "i2c_waddr_write_byte 0x%x 0x%x = 0x%x error2 ; c=%d , b0=%d , b1=%d\n" RESET, addr, dev_addr, value , command , block[0] , block[1]);
+	        *pError = -1;
+	    }
+	    //usleep(SLEEP_TIME_I2C);
+	  }
+	  //printf("i2c_write [%x:%x] = %x\n",addr,command,value);
+	  pthread_mutex_unlock(&i2cm);
+}
 
 void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value, int *pError) {
   pthread_mutex_lock(&i2cm);

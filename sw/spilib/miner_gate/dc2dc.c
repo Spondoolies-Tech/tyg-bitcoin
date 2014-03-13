@@ -75,7 +75,9 @@ void dc2dc_init() {
    // i2c_write(I2C_DC2DC, 0x15);
     usleep(1000);
     i2c_write(I2C_DC2DC, 0x03);
+#ifndef __MBTEST__
     psyslog("OK INIT DC2DC\n");
+#endif
     dc2dc_i2c_close();
   }
 
@@ -109,13 +111,18 @@ void dc2dc_enable_dc2dc(int loop, int *err) {
   
 
   //printf("%s:%d\n",__FILE__, __LINE__);
+// disengage from scale manager if not needed
+#ifdef MINERGATE
   if (vm.loop[loop].enabled_loop) {
-    pthread_mutex_lock(&i2c_mutex);
+#endif
+	pthread_mutex_lock(&i2c_mutex);
     dc2dc_select_i2c(loop, err);
     i2c_write_byte(I2C_DC2DC, 0x02, 0x02, err);
     dc2dc_i2c_close();
     pthread_mutex_unlock(&i2c_mutex);
+  #ifdef MINERGATE
   }
+#endif
 }
 
 // miner-# i2cset -y 0 0x1b 0x02 0x12
@@ -166,7 +173,10 @@ static void dc2dc_select_i2c(int loop, int *err) { // 1 or 0
 
 
 void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
-  psyslog("Set VOLTAGE Loop %d Milli:%d Vtrim:%x\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
+
+#ifndef __MBTEST__
+	psyslog("Set VOLTAGE Loop %d Milli:%d Vtrim:%x\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
+#endif
   passert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
 
   pthread_mutex_lock(&i2c_mutex);
@@ -177,8 +187,13 @@ void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
 //  passert((v < ASIC_VOLTAGE_COUNT) && (v >= 0));
   i2c_write_word(I2C_DC2DC, 0xd4, vtrim&0xFFFF);
   i2c_write_byte(I2C_DC2DC, 0x01, 0);
+
+  // disengage from scale manager if not needed
+#ifdef MINERGATE
   vm.loop_vtrim[loop] = vtrim;
   vm.loop[loop].dc2dc.last_voltage_change_time = time(NULL);
+#endif
+
   dc2dc_i2c_close();
   pthread_mutex_unlock(&i2c_mutex);
 }
@@ -223,7 +238,8 @@ int get_dc2dc_error(int loop) {
 }
 
 
-
+// disengage from scale manager if not needed
+#ifdef MINERGATE
 // Return 1 if needs urgent scaling
 int update_dc2dc_current_temp_measurments(int loop) {
   int err;
@@ -246,7 +262,7 @@ int update_dc2dc_current_temp_measurments(int loop) {
   }
   return 0;
 }
-
+#endif
 
 
 // returns AMPERS

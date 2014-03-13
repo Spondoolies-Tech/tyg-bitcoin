@@ -36,7 +36,8 @@
 #define PRIMARY_TESTBOARD_SWITCH 0x75
 
 extern int ignorable_err;
-
+void my_i2c_set_address(int address, int *pError);
+int __i2c_write_block_data(uint8_t command, uint8_t len ,const unsigned char * buff );
 void i2c_init(int *pError = &ignorable_err);
 uint8_t i2c_read(uint8_t addr, int *pError = &ignorable_err);
 void i2c_write(uint8_t addr, uint8_t value, int *pError = &ignorable_err);
@@ -44,9 +45,9 @@ uint8_t i2c_read_byte(uint8_t addr, uint8_t command, int *pError = &ignorable_er
 void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value,
                     int *pError = &ignorable_err);
 uint16_t i2c_read_word(uint8_t addr, uint8_t command, int *pError = &ignorable_err);
-void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value,
-                    int *pError = &ignorable_err);
-
+void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value, int *pError = &ignorable_err);
+uint8_t i2c_waddr_read_byte(uint8_t addr, uint16_t dev_addr, int *pError = &ignorable_err);
+void i2c_waddr_write_byte(uint8_t addr, uint16_t dev_addr, uint8_t value, int *pError = &ignorable_err);
 uint16_t read_mgmt_temp();
 
 #endif

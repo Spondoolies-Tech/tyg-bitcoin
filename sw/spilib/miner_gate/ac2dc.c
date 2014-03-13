@@ -81,7 +81,6 @@ void ac2dc_init() {
     murata = 1;
   }
   i2c_write(PRIMARY_I2C_SWITCH, 0);
-
 }
 
 
@@ -121,9 +120,11 @@ static int ac2dc_get_temperature() {
   return temp1 / 1000;
 }
 
-/*
+#ifndef MINERGATE
 int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd) {
-  int err = 0;
+
+	int rc = 0;
+	int err = 0;
   int pnr_offset = 0x34;
   int pnr_size = 15;
   int model_offset = 0x57;
@@ -133,12 +134,14 @@ int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd) {
   int revision_offset = 0x61;
   int revision_size = 2;
 
+
   if (NULL == pVpd) {
     psyslog("call ac2dc_get_vpd performed without allocating sturcture first\n");
     return 1;
   }
   //psyslog("%s:%d\n",__FILE__, __LINE__);
   
+
   pthread_mutex_lock(&i2c_mutex);
 
   i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN  , &err);
@@ -168,51 +171,51 @@ int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd) {
       goto ac2dc_get_eeprom_quick_err;
   }
 
+
   for (int i = 0; i < serial_size; i++) {
     pVpd->serial[i] = ac2dc_get_eeprom_quick(serial_offset + i, &err);
     if (err)
       goto ac2dc_get_eeprom_quick_err;
   }
 
-  i2c_write(PRIMARY_I2C_SWITCH, 0x00);
 
 ac2dc_get_eeprom_quick_err:
 
   if (err) {
-     pthread_mutex_unlock(&i2c_mutex);
-    fprintf(stderr, RED
-            "Failed reading AC2DC eeprom (err %d)\n" RESET,
-            err);
-    
-    return err;
+    fprintf(stderr, RED            "Failed reading AC2DC eeprom (err %d)\n" RESET, err);
+    rc =  err;
   }
 
-  return 0;
+  i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+  pthread_mutex_unlock(&i2c_mutex);
+
+  return rc;
 }
-*/
+#endif
+
 // this function assumes as a precondition
 // that the i2c bridge is already pointing to the correct device
 // needed to read ac2dc eeprom
 // no side effect either
 // use this funtion when performing serial multiple reads
-/*
+#ifndef MINERGATE
 unsigned char ac2dc_get_eeprom_quick(int offset, int *pError) {
-  //psyslog("%s:%d\n",__FILE__, __LINE__);
 
-  pthread_mutex_lock(&i2c_mutex);
+
+  //pthread_mutex_lock(&i2c_mutex); no lock here !!
 
   unsigned char b =
-      (unsigned char)i2c_read_byte(eeprom_addr[murata],offset, offset, pError);
-   pthread_mutex_unlock(&i2c_mutex);
+      (unsigned char)i2c_read_byte(eeprom_addr[murata], offset, pError);
+
   return b;
 }
-*/
+#endif
 
 // no precondition as per i2c
 // and thus sets switch first,
 // and then sets it back
 // side effect - it closes the i2c bridge when finishes.
-/*
+#ifndef MINERGATE
 int ac2dc_get_eeprom(int offset, int *pError) {
   // Stub for remo
   
@@ -225,12 +228,12 @@ int ac2dc_get_eeprom(int offset, int *pError) {
     return *pError;
   }
 
-  b = i2c_read_byte(eeprom_addr[murata],, offset, pError);
+  b = i2c_read_byte(eeprom_addr[murata], offset, pError);
   i2c_write(PRIMARY_I2C_SWITCH, 0x00);
    pthread_mutex_unlock(&i2c_mutex);
   return b;
 }
-*/
+#endif
 
 void reset_i2c() {
   /*
@@ -257,7 +260,7 @@ void reset_i2c() {
 
 
 
-
+#ifdef MINERGATE
 int update_ac2dc_power_measurments() {
   int err;
   static int counter = 0;
@@ -292,5 +295,5 @@ int update_ac2dc_power_measurments() {
   pthread_mutex_unlock(&i2c_mutex);  
   return 0;
 }
-
+#endif
 
