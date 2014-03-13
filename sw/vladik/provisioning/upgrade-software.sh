@@ -57,10 +57,12 @@ usage()
 parse_args()
 {
 	opts="help,url:"
-	temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
-	[ $? -ne 0 ] && usage
 
-	eval set -- "$temp"
+	# NOTE: getopt is not available on the miners!
+
+	#temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
+	#[ $? -ne 0 ] && usage
+	#eval set -- "$temp"
 
 	while :
 	do
@@ -68,7 +70,7 @@ parse_args()
 		-h|--help)              usage; exit 0; shift ;;
 		--url)			url=$2;
 					shar=`basename ${url}`
-					shift 2 ;;
+					shift 2 ; break;;
 		--)                     shift; break 2 ;;  # exit loop
 		* )                     echo "unknown parameter $1"; return 1 ;;
 	esac
