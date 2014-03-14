@@ -58,11 +58,9 @@ parse_args()
 {
 	opts="help,url:"
 
-	# NOTE: getopt is not available on the miners!
-
-	#temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
-	#[ $? -ne 0 ] && usage
-	#eval set -- "$temp"
+	temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
+	[ $? -ne 0 ] && usage
+	eval set -- "$temp"
 
 	while :
 	do
