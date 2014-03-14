@@ -58,11 +58,9 @@ parse_args()
 {
 	opts="help,url:"
 
-	# NOTE: getopt is not available on the miners!
-
-	#temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
-	#[ $? -ne 0 ] && usage
-	#eval set -- "$temp"
+	temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
+	[ $? -ne 0 ] && usage
+	eval set -- "$temp"
 
 	while :
 	do
@@ -84,8 +82,14 @@ detect_boot_source()
 {
 	# bootfrom=<BOOTSOURCE> is always the last element of kernel
 	# command line so may get it this way.
-	grep -q bootfrom /proc/cmdline &&
-		bootfrom=`sed 's/.*bootfrom=//' /proc/cmdline` ||
+
+	# on 10.0.0.20, 13/03/2014, this returns: console=ttyO0,115200n8 ip=::::::none::
+	# so we cannot get bootsource with this command
+	#grep -q bootfrom /proc/cmdline &&
+	#	bootfrom=`sed 's/.*bootfrom=//' /proc/cmdline` ||
+
+	#instead, lets look for uImage under /mnt. 
+	bootfrom=`find /mnt -name uImage | head -1 | sed 's/-.*//;s/^.*\///'` ||
 			{ echo 'Cannot detect boot source.'; exit ${no_bootsource}; }
 }
 
