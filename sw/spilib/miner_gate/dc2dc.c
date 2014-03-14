@@ -34,20 +34,20 @@ static void dc2dc_i2c_close();
 static void dc2dc_select_i2c(int loop, int *err);
 static void dc2dc_set_channel(int channel_mask, int *err);
 
+// not locked
 void dc2dc_init_loop(int loop) {
+  
     int err;
     dc2dc_select_i2c(loop, &err);
     if (err) {
-      psyslog(RED "FAILED TO INIT DC2DC1 %d\n" RESET,
-              loop);
+      psyslog(RED "FAILED TO INIT DC2DC1 %d\n" RESET, loop);
       dc2dc_i2c_close();
       return;
     }
 
     i2c_write_byte(I2C_DC2DC, 0x00, 0x81, &err);
     if (err) {
-      psyslog(RED "FAILED TO INIT DC2DC2 %d\n" RESET,
-              loop);
+      psyslog(RED "FAILED TO INIT DC2DC2 %d\n" RESET, loop);
       dc2dc_i2c_close();
       return;
     }
@@ -60,7 +60,7 @@ void dc2dc_init_loop(int loop) {
     i2c_write_byte(I2C_DC2DC, 0x47, 0x3C);
     i2c_write_byte(I2C_DC2DC, 0xd7, 0x03);
     i2c_write_byte(I2C_DC2DC, 0x02, 0x02);
-   // i2c_write(I2C_DC2DC, 0x15);
+    //i2c_write(I2C_DC2DC, 0x15);
     usleep(1000);
     i2c_write(I2C_DC2DC, 0x03);
     psyslog("OK INIT DC2DC\n");
@@ -200,15 +200,12 @@ int get_dc2dc_error(int loop) {
   }
   
   dc2dc_set_channel(1, &err);
-  
   error_happened |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
-  
   if (error_happened) {
     psyslog(RED "DC2DC ERR1 %x\n" RESET,error_happened);
     i2c_write(I2C_DC2DC,3,&err);
   }
   dc2dc_set_channel(0x81,&err);
-  
   if (err) {
     dc2dc_i2c_close();
     pthread_mutex_unlock(&i2c_mutex);

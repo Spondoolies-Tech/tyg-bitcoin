@@ -34,8 +34,7 @@ int loop_can_down(int l) {
   
   return  
      (vm.loop[l].enabled_loop && 
-     (vm.loop_vtrim[l] > VTRIM_MIN) &&
-     (now - vm.loop[l].last_ac2dc_scaling_on_loop > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS));
+     (vm.loop_vtrim[l] > VTRIM_MIN));
 }
 
 
@@ -78,7 +77,7 @@ void loop_up(int l) {
    //printf("3\n");
   for (int h = l*HAMMERS_PER_LOOP; h< l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
     if (vm.hammer[h].asic_present) {
-      if (vm.hammer[h].freq_thermal_limit < ASIC_FREQ_MAX-1) 
+      if (vm.hammer[h].freq_thermal_limit < ASIC_FREQ_MAX-2) 
         {
           vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_thermal_limit+2;
           vm.hammer[h].agressivly_scale_up = true;
@@ -179,7 +178,7 @@ void ac2dc_scaling_one_minute() {
 
       
        // has unused freq - scale down.
-       if (vm.loop[l].unused_frequecy >= 3) {
+       if (vm.loop[l].unused_frequecy >= 4) {
           psyslog(CYAN "LOOP DOWN:%d\n" RESET, l);
           if (loop_can_down(l)) {
             changed = 1;

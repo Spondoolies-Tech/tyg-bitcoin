@@ -257,7 +257,7 @@ void print_scaling() {
       continue;
     }
 
-    total_hash_power += hi.a->freq_wanted*15+220;            
+    total_hash_power += hi.a->freq_hw*15+220;            
     theoretical_hash_power += hi.a->freq_thermal_limit*15+220;
 
     total_asics++;
