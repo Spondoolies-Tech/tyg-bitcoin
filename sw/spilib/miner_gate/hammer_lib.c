@@ -23,8 +23,9 @@
 #include "miner_gate.h"
 #include "scaling_manager.h"
 #include <sched.h>
-
 #include "pll.h"
+
+extern int do_bist_please;
 
 extern pthread_mutex_t network_hw_mutex;
 pthread_mutex_t hammer_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -661,7 +662,8 @@ int has_work_req();
 
 void one_minute_tasks() {
   // Give them chance to raise over 3 hours if system got colder
-  
+  psyslog("Last minute rate: %d", (vm.solved_difficulty_total/60)*4)
+  vm.solved_difficulty_total = 0;
 }
 
 
@@ -751,7 +753,9 @@ void once_second_tasks() {
 
  if (!vm.asics_shut_down_powersave) {
     // Change frequencies if needed
-    if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) {
+    if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING ||
+        do_bist_please) {
+      do_bist_please = 0;
       do_bist_fix_loops(0);
     }
 
@@ -801,6 +805,7 @@ void update_vm_with_currents_and_temperatures() {
   
   int e = get_dc2dc_error(loop); 
   if (e) {
+    passert(0);
     psyslog("DC2DC ERROR STAGE0! %d\n", loop);
     vm.loop[loop].dc2dc.kill_me_i_am_bad = 1;
   }
@@ -867,7 +872,6 @@ void once_33_msec_tasks() {
   
   static uint32_t win_reg =0;
   static uint32_t intr_reg=0;
-  static uint32_t idle=0;
  // static uint32_t pll_reg=0;  
 
 
@@ -935,23 +939,10 @@ void once_33_msec_tasks() {
     
     push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win_reg);
     //push_hammer_read(BROADCAST_ADDR,ADDR_BR_PLL_NOT_READY,&pll_reg);
-    push_hammer_read(BROADCAST_ADDR, ADDR_BR_CONDUCTOR_IDLE, &idle);
 
     // Handle previous READs/WRITEs
     squid_wait_hammer_reads();
-      
-
-    if (idle) {
-      if (BROADCAST_READ_ADDR(idle) != pll_set_addr) {
-        vm.idle_probs++;
-      } else if (vm.cosecutive_jobs) {
-        //printf("FAKE IDLE::::<3:::%x\n", idle);
-      }
-    } else {
-      vm.busy_probs++;
-    }
-
-    
+     
       // read last time...
      while (win_reg) {
             //struct timeval tv;;
@@ -959,6 +950,7 @@ void once_33_msec_tasks() {
             uint16_t winner_device = BROADCAST_READ_ADDR(win_reg);
             vm.hammer[winner_device].solved_jobs++;
             vm.solved_jobs_total++;
+            vm.solved_difficulty_total += 1<<(vm.cur_leading_zeroes-32);
             //printf("WON:%x\n", winner_device);
             win_reg = get_print_win(winner_device);
             //end_stopper(&tv,"WIN STOPPER");
@@ -1010,15 +1002,34 @@ void push_job_to_hw() {
 void once_1500_usec_tasks() {
   static int counter = 0;
   //start_stopper(&tv);
- 
+  static uint32_t idle=0;
+  counter++;
 
+ 
+  if (rand()%22==0) {  
+    idle = read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE);
+    
+    if (idle) {
+      if (BROADCAST_READ_ADDR(idle) != pll_set_addr) {
+        vm.idle_probs++;
+      } else if (vm.cosecutive_jobs) {
+        //printf("FAKE IDLE::::<3:::%x\n", idle);
+      }
+    } else {
+      vm.busy_probs++;
+    }
+  }
+  
   if (!vm.asics_shut_down_powersave) {
     push_job_to_hw();
+    
   }
 
-   if (++counter % 22 == 0) {
+
+  if (counter % 22 == 0) {
     once_33_msec_tasks();
     push_job_to_hw();
+    
     // Push one more job!
   }
  

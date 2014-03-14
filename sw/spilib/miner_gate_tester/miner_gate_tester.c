@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
    usleep(jobs_period*1000);
    static int counter = 0;
    counter++;
-   // Show rate each 30 seconds 
+   // Show rate each X seconds 
    if ((counter%((1000/jobs_period))) == 0) {
       global_rate+=rate;
       global_rate_cnt++;

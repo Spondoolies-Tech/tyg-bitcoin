@@ -163,7 +163,7 @@ static void dc2dc_select_i2c(int loop, int *err) { // 1 or 0
 
 
 void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
-  psyslog("Set VOLTAGE Loop %d Milli:%d Vtrim:%x\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
+  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%x\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);
   passert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
 
   pthread_mutex_lock(&i2c_mutex);

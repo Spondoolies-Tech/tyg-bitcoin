@@ -276,7 +276,7 @@ typedef struct {
   uint8_t enabled_loop;
   int     asic_temp_sum; // if asics disabled or missing give them fake temp
   int     asic_hz_sum; // if asics disabled or missing give them fake temp
-  int unused_frequecy;
+  int overheating_asics;
   int asics_failing_bist;
   int asic_count;
   int crit_temp;
@@ -297,6 +297,8 @@ typedef struct {
 
   // How many WINs we got
   uint32_t solved_jobs_total;
+  uint32_t solved_difficulty_total;
+  
   // random checking of ASICs to see utilisation.
   uint32_t idle_probs;
   uint32_t busy_probs;
