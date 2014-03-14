@@ -34,26 +34,14 @@ static void dc2dc_i2c_close();
 static void dc2dc_select_i2c(int loop, int *err);
 static void dc2dc_set_channel(int channel_mask, int *err);
 
-
-void dc2dc_init() {
-  //printf("%s:%d\n",__FILE__, __LINE__);
-  
-  pthread_mutex_lock(&i2c_mutex);
-  int err = 0;
-  // static int warned = 0;
-  // Write defaults
-#if TEST_BOARD == 1
-  for (int loop = 0; loop < 1; loop++) {
-#else
-  for (int loop = 0; loop < LOOP_COUNT; loop++) {
-#endif    
-
+void dc2dc_init_loop(int loop) {
+    int err;
     dc2dc_select_i2c(loop, &err);
     if (err) {
       psyslog(RED "FAILED TO INIT DC2DC1 %d\n" RESET,
               loop);
       dc2dc_i2c_close();
-      continue;
+      return;
     }
 
     i2c_write_byte(I2C_DC2DC, 0x00, 0x81, &err);
@@ -61,7 +49,7 @@ void dc2dc_init() {
       psyslog(RED "FAILED TO INIT DC2DC2 %d\n" RESET,
               loop);
       dc2dc_i2c_close();
-      continue;
+      return;
     }
 
     i2c_write_word(I2C_DC2DC, 0x35, 0xf028);
@@ -77,6 +65,17 @@ void dc2dc_init() {
     i2c_write(I2C_DC2DC, 0x03);
     psyslog("OK INIT DC2DC\n");
     dc2dc_i2c_close();
+}
+
+void dc2dc_init() {
+  //printf("%s:%d\n",__FILE__, __LINE__);
+  
+  pthread_mutex_lock(&i2c_mutex);
+  int err = 0;
+  // static int warned = 0;
+  // Write defaults
+  for (int loop = 0; loop < LOOP_COUNT; loop++) {
+    dc2dc_init_loop(loop);
   }
 
   pthread_mutex_unlock(&i2c_mutex);
@@ -106,8 +105,6 @@ void dc2dc_disable_dc2dc(int loop, int *err) {
 
 
 void dc2dc_enable_dc2dc(int loop, int *err) {
-  
-
   //printf("%s:%d\n",__FILE__, __LINE__);
   if (vm.loop[loop].enabled_loop) {
     pthread_mutex_lock(&i2c_mutex);
@@ -230,11 +227,19 @@ int update_dc2dc_current_temp_measurments(int loop) {
   int i = loop;
   if (vm.loop[i].enabled_loop) {
     vm.loop[i].dc2dc.dc_temp = dc2dc_get_temp(i, &err);
-    int current = dc2dc_get_current_16s_of_amper(i, &err);
+  
     if (!vm.asics_shut_down_powersave) {
-        vm.loop[i].dc2dc.dc_current_16s =
-                        dc2dc_get_current_16s_of_amper(i, &err);
-
+        int current = dc2dc_get_current_16s_of_amper(i, &err);
+        vm.loop[i].dc2dc.dc_current_16s_arr[vm.loop[i].dc2dc.dc_current_16s_arr_ptr]= current;
+        vm.loop[i].dc2dc.dc_current_16s_arr_ptr=(vm.loop[i].dc2dc.dc_current_16s_arr_ptr+1)%4;
+        // Remove noise
+        //printf("READ  %d %d\n",loop,current,current);
+        vm.loop[i].dc2dc.dc_current_16s = 
+          (vm.loop[i].dc2dc.dc_current_16s_arr[0] + 
+           vm.loop[i].dc2dc.dc_current_16s_arr[1] +
+           vm.loop[i].dc2dc.dc_current_16s_arr[2] +
+           vm.loop[i].dc2dc.dc_current_16s_arr[3]) >> 2;
+          
         vm.loop[i].dc2dc.dc_power_watts_16s = 
         vm.loop[i].dc2dc.dc_current_16s*VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[i])/1000;
     } else {
@@ -298,8 +303,9 @@ int dc2dc_get_voltage(int loop, int *err) {
 
 int dc2dc_get_temp(int loop, int *err) {
   // returns max temperature of the 2 sensors
+#if 0  
   passert(err != NULL);
-  int temp1, temp2;
+  int temp1;
   //printf("%s:%d\n",__FILE__, __LINE__);
 
   pthread_mutex_lock(&i2c_mutex);
@@ -318,11 +324,12 @@ int dc2dc_get_temp(int loop, int *err) {
     pthread_mutex_unlock(&i2c_mutex);
     return 0;
   }
-  if (temp2 > temp1)
-    temp1 = temp2;
+  dc2dc_set_channel(1, err);
   dc2dc_i2c_close();
   pthread_mutex_unlock(&i2c_mutex);
   return temp1;
+#endif
+  return 0; // saveCPU
 }
 
 

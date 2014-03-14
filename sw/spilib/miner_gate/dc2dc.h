@@ -47,6 +47,8 @@ typedef enum {
 void dc2dc_disable_dc2dc(int loop, int *err);
 void dc2dc_enable_dc2dc(int loop, int *err);
 void dc2dc_init();
+void dc2dc_init_loop(int loop);
+
 int update_dc2dc_current_temp_measurments(int loop);
 
 // in takes 0.2second for voltage to be stable.

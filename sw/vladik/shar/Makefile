@@ -3,7 +3,7 @@ SHAR				:= spon.shar
 SHAR_LATEST			:= spon-latest.shar
 SCRIPT				:= ./sw-upgrade.sh
 
-MAKESELF_FLAGS			:= --noprogress --nocomp
+MAKESELF_FLAGS			:= --nocomp
 
 ifeq ($(PRIVATE_KEY),)
 $(warning Set PRIVATE_KEY: make PRIVATE_KEY=<priv key file>)

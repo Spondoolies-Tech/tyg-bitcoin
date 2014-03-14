@@ -40,7 +40,7 @@ void disable_engines_all_asics() {
   write_reg_broadcast(ADDR_RESETING1, 0);
   write_reg_broadcast(ADDR_RESETING0, 0);
   write_reg_broadcast(ADDR_CLK_ENABLE, 0);
-  //flush_spi_write();
+  flush_spi_write();
   vm.engines_disabled = 1;
 }
 
@@ -72,6 +72,7 @@ void set_pll(int addr, ASIC_FREQ freq) {
   write_reg_device(addr, ADDR_DLL_OFFSET_CFG_LOW, 0xC3C1C200);
   write_reg_device(addr, ADDR_DLL_OFFSET_CFG_HIGH, 0x0082C381);
   passert(freq < ASIC_FREQ_MAX);
+  passert(freq >= ASIC_FREQ_225);
   pll_frequency_settings *ppfs = &pfs[freq];
   uint32_t pll_config = 0;
   uint32_t M = ppfs->m_mult;
@@ -153,6 +154,7 @@ int enable_good_engines_all_asics_ok() {
 void set_asic_freq(int addr, ASIC_FREQ new_freq) {
   if (vm.hammer[addr].freq_hw != new_freq) {
     //printf("Changes ASIC %x frequency from %d to %d\n", addr,vm.hammer[addr].freq*15+210,new_freq*15+210);
+    assert(new_freq >= MINIMAL_ASIC_FREQ);
     vm.hammer[addr].freq_wanted = new_freq;
     vm.hammer[addr].freq_hw = new_freq;
   }

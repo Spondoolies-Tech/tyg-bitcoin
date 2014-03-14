@@ -81,7 +81,8 @@ static void sighandler(int sig)
   /* Restore signal handlers so we can still quit if kill_work fails */
   sigaction(SIGTERM, &termhandler, NULL);
   sigaction(SIGINT, &inthandler, NULL);
- 
+  set_light(LIGHT_YELLOW, 0);
+  set_light(LIGHT_GREEN, 0);   
   disable_engines_all_asics();
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
     dc2dc_disable_dc2dc(l, &err); 
@@ -168,11 +169,13 @@ int pull_work_req(RT_JOB *w) {
   // go over adapters...
   // TODO
   pthread_mutex_lock(&network_hw_mutex);
+ int ret = false;
   minergate_adapter *adapter = adapters[0];
   if (adapter) {
-    pull_work_req_adapter(w, adapter);
+      ret =pull_work_req_adapter(w, adapter);
   }
   pthread_mutex_unlock(&network_hw_mutex);
+  return ret;
 }
 
 int has_work_req() {
@@ -423,33 +426,7 @@ void enable_sinal_handler() {
   sigaction(SIGINT, &handler, &inthandler);
 
 }
-
-void test_harel() {
-
-  printf("Running BISTs... :");
-  printf(do_bist_ok(0) ? " OK" : " FAIL");
-  printf(do_bist_ok(0) ? " OK" : " FAIL");
-  printf(do_bist_ok(0) ? " OK\n" : " FAIL\n");
-  
-  for (int l = 0; l < LOOP_COUNT; l++) {
-    for (int h = 0; h < HAMMERS_PER_LOOP; h++) {
-      if (!vm.loop[l].enabled_loop) {
-        // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-        printf("Hammer %02d %02d DISCONNECTED\n", l, h);
-      } else if (!vm.hammer[l * HAMMERS_PER_LOOP + h].asic_present) {
-        // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-        printf("Hammer %02d %02d MISSING\n", l, h);
-      } else if (vm.hammer[l * HAMMERS_PER_LOOP + h].failed_bists) {
-        // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-        printf("Hammer %02d %02d BIST_FAIL\n", l, h);
-      } else {
-        // DONT REMOVE THIS PRINT!! USED BY TESTS!!
-        printf("Hammer %02d %02d OK\n", l, h);
-      }
-    }
-  }
-}
-
+ 
 void reset_squid() {
   FILE *f = fopen("/sys/class/gpio/export", "w");
   if (!f)
@@ -479,7 +456,6 @@ int loop_to_measure;
 
 int main(int argc, char *argv[]) {
   printf(RESET);
-  int test_mode = 0;
   int testreset_mode = 0;
   int init_mode = 0;
   int s;
@@ -495,9 +471,7 @@ int main(int argc, char *argv[]) {
 
 
   if ((argc > 1) && strcmp(argv[1], "--help") == 0) {
-    test_mode = 1;
     printf("--testreset = Test asic reset!!!\n");
-    printf("--test = Test mode!!!\n");
     printf("--silent-test = Work with 10 ASICs!!!\n");
     printf("--thermal-test = Only test thermal!!!\n");    
     printf("<num> = Asic to mesure\n");
@@ -514,11 +488,6 @@ int main(int argc, char *argv[]) {
   if ((argc > 1) && strcmp(argv[1], "--thermal-test") == 0) {
     vm.thermal_test_mode = 1;
     printf("Test mode, using few ASICs !!!\n");
-  }
-
-  if ((argc > 1) && strcmp(argv[1], "--test") == 0) {
-    test_mode = 1;
-    printf("Test mode, !!!\n");
   }
 
   if ((argc > 1) && strcmp(argv[1], "--testreset") == 0) {
@@ -550,7 +519,8 @@ int main(int argc, char *argv[]) {
   set_fan_level(0);
   //exit(0);
   reset_sw_rt_queue();
-
+  leds_init();
+  set_light(LIGHT_YELLOW, 1);
 
 
   // test SPI
@@ -612,11 +582,6 @@ int main(int argc, char *argv[]) {
 
   if (testreset_mode) {
     test_asic_reset();
-    return 0;
-  }
-
-  if (test_mode) {
-    test_harel();
     return 0;
   }
 

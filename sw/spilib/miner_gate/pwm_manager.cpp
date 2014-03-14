@@ -15,6 +15,45 @@ extern pthread_mutex_t i2cm;
 
 */
 
+// 2 lamps - 0=green, 1=yellow
+void set_light(int light_id, bool on) {
+
+//  echo 1 > /sys/class/gpio/gpio22/value
+  FILE *f;
+  if (light_id==LIGHT_YELLOW) {
+  	f = fopen("/sys/class/gpio/gpio22/value", "w");
+  } else {
+    f = fopen("/sys/class/gpio/gpio51/value", "w");
+  }
+
+  if (on) {
+	fprintf(f, "1");
+  } else {
+    fprintf(f, "0");
+  }
+
+  fclose(f);
+}
+
+
+void leds_init() {
+  FILE *f;
+  f = fopen("/sys/class/gpio/export", "w");
+  fprintf(f, "22");
+  fclose(f);
+  f = fopen("/sys/class/gpio/gpio22/direction", "w");
+  fprintf(f, "out");
+  fclose(f);
+  f = fopen("/sys/class/gpio/export", "w");
+  fprintf(f, "51");
+  fclose(f);
+  f = fopen("/sys/class/gpio/gpio51/direction", "w");
+  fprintf(f, "out");
+  fclose(f);
+}
+
+
+
 // XX in percent - 0 to 100
 // #define PWM_VALUE(XX)  (12000+XX*(320-120)) 
 #define PWM_VALUE(XX)  (12000+XX*(200))  // TODO - can go up to 250

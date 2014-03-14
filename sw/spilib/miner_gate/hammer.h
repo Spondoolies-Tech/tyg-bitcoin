@@ -229,14 +229,11 @@ typedef struct {
   uint8_t address;
   uint8_t loop_address;
   ASIC_CORNER corner;
-  // Failed bists (set by "do_bist_ok()")
-  uint8_t failed_bists;
   // Passed engines (set by "do_bist_ok()")
   uint16_t passed_last_bist_engines;
 
   // Asic temperature/frequency (polled periodicaly)
   ASIC_TEMP asic_temp; // periodic measurments - ASIC_TEMP_
-  int asic_temp_raising;
   ASIC_FREQ freq_hw;        // *15 Hz  
   ASIC_FREQ freq_wanted;        // *15 Hz
   int pll_waiting_reply;
@@ -244,7 +241,7 @@ typedef struct {
   ASIC_FREQ freq_bist_limit;   
   
   int try_higher;
-  int thermaly_punished;
+  int agressivly_scale_up;
   int last_freq_change_time; // time() when we increased ASIC frequency
   int last_down_freq_change_time;
   //int dc2dc_ac2dc_limit;
@@ -261,7 +258,10 @@ typedef struct {
 // 24 dc2dc
 typedef struct {
   uint8_t dc_temp;
+  int dc_current_16s_arr_ptr;
+  int dc_current_16s_arr[4]; // do median - its noisy
   int dc_current_16s; // in 1/16 of amper. 0 = bad reading
+  
   int dc_current_limit_16s;   
   int dc_power_watts_16s;  
   int last_voltage_change_time;
