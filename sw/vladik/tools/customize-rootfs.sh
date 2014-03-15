@@ -184,6 +184,12 @@ sw_upgrade()
 	done
 }
 
+# Ugly hack to add php-rrd to the image.
+rrd()
+{
+	xzcat ${CUR_DIR}/../rrd/php-rrd.tar.xz | tar -xf -
+}
+
 main()
 {
 	set -e
@@ -202,6 +208,7 @@ main()
 	web_server
 	mounts
 	sw_upgrade
+	rrd
 }
 
 main $@
