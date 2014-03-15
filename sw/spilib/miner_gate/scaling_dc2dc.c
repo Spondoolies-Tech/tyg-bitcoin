@@ -38,7 +38,7 @@ void do_bist() {
   //start_stopper(&tv);
   
   resume_asics_if_needed();
-  do_bist_ok(0);
+  do_bist_ok_rt(0);
   //end_stopper(&tv, "bist stopper");
 }
 
@@ -227,7 +227,7 @@ HAMMER *find_asic_to_up(int l, int force) {
 void pause_asics_if_needed() {
   if (vm.engines_disabled == 0) {
     //printf("Disabling hehe\n");
-    stop_all_work();
+    stop_all_work_rt();
     disable_engines_all_asics();
   }
 }
@@ -242,7 +242,7 @@ void resume_asics_if_needed() {
 }
 
 
-void do_bist_fix_loops(int force) {
+void do_bist_fix_loops_rt(int force) {
   static int counter = 0;  
   counter++; 
 
@@ -254,7 +254,7 @@ void do_bist_fix_loops(int force) {
 
          struct timeval tv; 
          start_stopper(&tv);
-         int failed = do_bist_ok(1);
+         int failed = do_bist_ok_rt(1);
          end_stopper(&tv,"BIST");
          printf(MAGENTA "Bist failed %d times\n" RESET, failed);
          if (failed) {
@@ -270,7 +270,7 @@ void do_bist_fix_loops(int force) {
 
 
 // Runs from non RT thread once a second
-void maybe_change_freqs() {
+void maybe_change_freqs_nrt() {
   static int counter = 0;  
    now = time(NULL);
    vm.dc2dc_total_power = 0;
@@ -324,7 +324,7 @@ void maybe_change_freqs() {
        (vm.ac2dc_power > AC2DC_POWER_LIMIT)) {
        printf(MAGENTA "Running FREQ update\n" RESET);
        //!!!  HERE WE DO FREQUENCY UPDATES!!!
-       asic_frequency_update();
+       asic_frequency_update_nrt();
        proccess_bist_results = 0;
        // Dont run for next 7 seconds.
    }
@@ -348,7 +348,7 @@ int loop_down(int l);
 
 // Runs from LOW priority thread.
 // every 7 seconds or so
-void asic_frequency_update(int verbal) {    
+void asic_frequency_update_nrt(int verbal) {    
     int now = time(NULL);
     int usec;
     int time_from_last_call;
@@ -422,7 +422,7 @@ void asic_frequency_update(int verbal) {
              asic_down_completly(h);
            }
          } else if (h->agressivly_scale_up && asic_can_up(h,0) && (upped_fast==0)) {
-            if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 16*3) {
+            if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 16*2) {
                 upped_fast++;
                 printf(MAGENTA "UPPER FAST WITH %d", h->address);
                 asic_up_fast(h);
@@ -476,7 +476,7 @@ void asic_frequency_update(int verbal) {
            asic_down(hh);
            changed++;
          }
-    }
+      }
       
        last_call = now;
        printf(MAGENTA "freq changed %d\n" MAGENTA, changed);

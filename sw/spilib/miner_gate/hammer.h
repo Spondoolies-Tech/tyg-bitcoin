@@ -229,7 +229,7 @@ typedef struct {
   uint8_t address;
   uint8_t loop_address;
   ASIC_CORNER corner;
-  // Passed engines (set by "do_bist_ok()")
+  // Passed engines (set by "do_bist_ok_rt()")
   uint16_t passed_last_bist_engines;
 
   // Asic temperature/frequency (polled periodicaly)

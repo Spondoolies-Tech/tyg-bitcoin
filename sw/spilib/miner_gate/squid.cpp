@@ -319,9 +319,7 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
     // TODO  - handle timeout?
     if (assert_serial_failures) {
       printf("FAILED TO READ 0x%x 0x%x\n", address, offset);
-#ifdef DC2DC_CHECK_ON_ERROR
-	  check_for_dc2dc_errors();
-#endif
+	  passert(0);
       return 0;
     } else {
       printf("SPI Rx queue timeout.\n");

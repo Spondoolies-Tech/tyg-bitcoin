@@ -42,14 +42,13 @@ typedef enum {
     VALUE = xxx[ENUM];                                                         \
   }
 */
-  int get_dc2dc_error(int loop);
-
+  
 void dc2dc_disable_dc2dc(int loop, int *err);
 void dc2dc_enable_dc2dc(int loop, int *err);
 void dc2dc_init();
 void dc2dc_init_loop(int loop);
 
-int update_dc2dc_current_temp_measurments(int loop);
+int update_dc2dc_current_temp_measurments(int loop, int* overcurrent_err);
 
 // in takes 0.2second for voltage to be stable.
 // Remember to wait after you exit this function
@@ -60,8 +59,5 @@ void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err);
 // Returns value like 810, 765 etc`
 int dc2dc_get_voltage(int loop, int *err);
 int dc2dc_get_temp(int loop, int *err);
-
-// return AMPERS
-int dc2dc_get_current_16s_of_amper(int loop, int *err);
 
 #endif
