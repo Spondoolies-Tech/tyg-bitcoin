@@ -21,27 +21,38 @@
 
 
 void enable_thermal_shutdown() {
+/*
   write_reg_broadcast(ADDR_TS_EN_0, 1);
   write_reg_broadcast(ADDR_TS_EN_1, 1);
   write_reg_broadcast(ADDR_SHUTDOWN_ACTION, ALL_ENGINES_BITMASK | 0x78);  
   write_reg_broadcast(ADDR_TS_RSTN_0, 0);
   write_reg_broadcast(ADDR_TS_RSTN_1, 0);
-  /*
   write_reg_broadcast(ADDR_TS_SET_0, (ASIC_TEMP_125- 1) | 
                           ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
   write_reg_broadcast(ADDR_TS_SET_1, (ASIC_TEMP_125- 1) | 
                           ADDR_TS_SET_THERMAL_SHUTDOWN_ENABLE);
-  */
   write_reg_broadcast(ADDR_TS_RSTN_0, 1);
   write_reg_broadcast(ADDR_TS_RSTN_1, 1);
   flush_spi_write();
-
+*/
 }
 
 
 
 void thermal_init() {
-  enable_thermal_shutdown();
+  write_reg_broadcast(ADDR_TS_EN_0, 1);
+  write_reg_broadcast(ADDR_TS_EN_1, 1);
+  write_reg_broadcast(ADDR_SHUTDOWN_ACTION, ALL_ENGINES_BITMASK | 0x78);  
+  write_reg_broadcast(ADDR_TS_RSTN_0, 0);
+  write_reg_broadcast(ADDR_TS_RSTN_1, 0);
+  // Set to MAX_ASIC_TEMPERATURE-1 
+  write_reg_broadcast(ADDR_TS_SET_0, (MAX_ASIC_TEMPERATURE-2));
+  // Set to MAX_ASIC_TEMPERATURE
+  write_reg_broadcast(ADDR_TS_SET_1, (MAX_ASIC_TEMPERATURE-1));
+  write_reg_broadcast(ADDR_TS_RSTN_0, 1);
+  write_reg_broadcast(ADDR_TS_RSTN_1, 1);
+  flush_spi_write();
+  
 }
 
 // Returns bitmask temp_measure_temp0 | temp_measure_temp1<1

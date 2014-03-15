@@ -63,6 +63,10 @@ spi_stuff()
 }
 
 copy_all_spond_files() {
+	if [ ! -d "var/www" ]; then
+		mkdir var/www
+	fi
+	
 	cp ${CUR_DIR}/../../../../minepeon/http/* var/www -r
 
 	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d

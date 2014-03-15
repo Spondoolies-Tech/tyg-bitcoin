@@ -4,8 +4,8 @@
 #
 
 
-MINERGATE_CMD="nohup /usr/local/bin/miner_gate_arm  > foo.out 2> foo.err < /dev/null"
-CGMINER_CMD="nohup nice -n 20 /usr/local/bin/cgminer --config /etc/cgminer.conf"
+MINERGATE_CMD="nohup chrt-f 90 /usr/local/bin/miner_gate_arm > /dev/null 2>&1"
+CGMINER_CMD="nohup /usr/local/bin/cgminer --config /etc/cgminer.conf"
 
 
 

@@ -26,12 +26,12 @@ typedef enum {
   ASIC_VOLTAGE_COUNT 
 } DC2DC_VOLTAGE;
 
-
+//#define VTRIM_MIN 0xFFCF // dont go lower then 0x661 or asics start failing
 #define VTRIM_MIN 0x0FFc5  // 0.635
 #define VTRIM_MEDIUM 0x0ffdd //
 #define VTRIM_MAX 0x10008  // 0.810
 
-#define VTRIM_TO_VOLTAGE_MILLI(XX)    ((63500 + (XX-VTRIM_MIN)*(266))/100)  
+#define VTRIM_TO_VOLTAGE_MILLI(XX)    ((63500 + (XX-0x0FFc5)*(266))/100)  
 
 /*
 #define VOLTAGE_ENUM_TO_MILIVOLTS(ENUM, VALUE)                                 \
@@ -47,6 +47,8 @@ typedef enum {
 void dc2dc_disable_dc2dc(int loop, int *err);
 void dc2dc_enable_dc2dc(int loop, int *err);
 void dc2dc_init();
+void dc2dc_init_loop(int loop);
+
 int update_dc2dc_current_temp_measurments(int loop);
 
 // in takes 0.2second for voltage to be stable.

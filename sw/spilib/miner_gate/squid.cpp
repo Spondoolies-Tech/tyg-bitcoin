@@ -402,6 +402,7 @@ void squid_wait_hammer_reads() {
       reset_hammer_queue();
       break;
     }
+	usleep(40);
   }
 
   return;

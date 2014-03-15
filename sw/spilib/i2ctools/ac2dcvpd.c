@@ -19,7 +19,7 @@
 
 
 using namespace std;
-pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int usage(char * app ,int exCode ,const char * errMsg = NULL)
 {
@@ -104,9 +104,15 @@ int main(int argc, char *argv[])
 
      i2c_init();
 
+     ac2dc_init();
+
+
      ac2dc_vpd_info_t vpd = {}; // allocte, and initializero
-    
+
+
+
   rc  = ac2dc_get_vpd(&vpd);
+
 
   if (0 == rc)
   {

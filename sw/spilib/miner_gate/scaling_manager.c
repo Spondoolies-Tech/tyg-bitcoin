@@ -57,7 +57,7 @@ int test_asic(int addr) {
 
 void pause_all_mining_engines() {
   int err;
-  passert(vm.asics_shut_down_powersave == 0);
+  //passert(vm.asics_shut_down_powersave == 0);
   int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
   set_fan_level(0);
   while(some_asics_busy != 0) {
@@ -245,7 +245,7 @@ void print_scaling() {
           (vm.loop[hi.l].asic_count) ? vm.loop[hi.l].asic_temp_sum/vm.loop[hi.l].asic_count : 0,
           vm.loop[hi.l].crit_temp,
           vm.loop[hi.l].asic_hz_sum*15/1000,
-          vm.loop[hi.l].unused_frequecy
+          vm.loop[hi.l].overheating_asics
           );
 
         total_watt+=dc2dc->dc_power_watts_16s;
@@ -253,23 +253,21 @@ void print_scaling() {
     }
     
     if (!hi.a->asic_present) {
-      fprintf(f, "|xxxxxxxxxxxxxxxxxxxxxxxxx");           
+      fprintf(f, "|xxxxxxxxxxxxxxxxxxxxxxxxxxx");           
       continue;
     }
 
-    total_hash_power += hi.a->freq_wanted*15+220;            
+    total_hash_power += hi.a->freq_hw*15+220;            
     theoretical_hash_power += hi.a->freq_thermal_limit*15+220;
 
     total_asics++;
 
-    fprintf(f, GREEN "|%2x:%s%3dc%s%s %s%3dhz%s(%3d/%2d) %s%x" RESET, 
+    fprintf(f, GREEN "|%2x:%s%3dc%s %s%3dhz%s(%3d/%3d) %s%x" RESET, 
       hi.addr,
-      (hi.a->asic_temp>=ASIC_TEMP_107)?((hi.a->asic_temp>=ASIC_TEMP_113)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
-      (hi.a->asic_temp_raising)?(RED "^" RESET):(BLUE "v" RESET),
-
+      (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE-1)?((hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
     corner_to_collor(hi.a->corner),hi.a->freq_wanted*15+210,GREEN,
        hi.a->freq_thermal_limit*15+210,
-       hi.a->freq_bist_limit - hi.a->freq_thermal_limit, 
+       hi.a->freq_bist_limit*15+210, 
        (vm.hammer[hi.addr].working_engines!=0x7FFF)?GREEN_BOLD:GREEN, vm.hammer[hi.addr].working_engines);
   }
   // print last loop

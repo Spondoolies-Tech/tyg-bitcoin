@@ -10,7 +10,7 @@ void asic_up(HAMMER *a);
 
 // Called each second.
 void change_dc2dc_voltage_if_needed();
-void asic_scaling_once_second(int force);
+void do_bist_fix_loops(int force);
 void pause_asics_if_needed();
 void asic_frequency_update(int verbal = 0);
 void resume_asics_if_needed();
