@@ -87,7 +87,7 @@ static void sighandler(int sig)
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
     dc2dc_disable_dc2dc(l, &err); 
   }
-  kill_fan();
+  set_fan_level(40);
   psyslog("Here comes unexpected death!\n");
   exit(0);
 }
@@ -516,7 +516,7 @@ int main(int argc, char *argv[]) {
   psyslog("init_pwm\n");
   init_pwm();
   psyslog("set_fan_level\n");
-  set_fan_level(0);
+  set_fan_level(50);
   //exit(0);
   reset_sw_rt_queue();
   leds_init();
