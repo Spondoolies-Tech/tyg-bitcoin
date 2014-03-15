@@ -189,7 +189,11 @@ sw_upgrade()
 cron()
 {
 	cp -a ${CUR_DIR}/../add-ons/S47cron etc/init.d
+	cp -a ${CUR_DIR}/../add-ons/S13misc etc/init.d
 	cp ${CUR_DIR}/../../../../minepeon/etc/cron.d/5min/RECORDHashrate etc/cron.d
+
+	# Should be deleted as it is symlinked to /tmp/rrd in runtime.
+	rm -rf var/www/rrd
 
 	# Run every minute
 	echo '* * * * * /usr/bin/php /etc/cron.d/RECORDHashrate' > etc/cron.d/crontabs/root
