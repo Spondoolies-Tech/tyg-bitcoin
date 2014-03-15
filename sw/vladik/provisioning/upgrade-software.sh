@@ -13,6 +13,8 @@
 __prog_name=`basename $0`
 
 
+SHAR=spon.shar
+
 
 # Return code (errors). Start frm 200 to leave curl error code intact.
 #success=0
@@ -22,12 +24,13 @@ not_upgradable=202
 no_board_id=203
 mount_fail=204
 no_uimage=205
-download_fail=206
+untar_fail=206
 bad_signature=207
+shar_missing=208
 
 
 url=
-shar=
+tar=
 bootfrom=
 board_id=
 software_version=
@@ -67,7 +70,7 @@ parse_args()
 		case $1 in
 		-h|--help)              usage; exit 0; shift ;;
 		--url)			url=$2;
-					shar=`basename ${url}`
+					tar=`basename ${url}`
 					shift 2 ;;
 		--)                     shift; break 2 ;;  # exit loop
 		* )                     echo "unknown parameter $1"; return 1 ;;
@@ -113,7 +116,7 @@ get_software_version()
 }
 
 
-download_shar()
+download_software()
 {
 	cd /tmp
 	download-file.sh --url=${url}						\
@@ -122,10 +125,21 @@ download_shar()
 }
 
 
+untar()
+{
+	tar xf ${tar} 2>/dev/null ||
+		{ echo "${tar}: Cannot untar."; exit ${untar_fail}; }
+	( [ -f ${SHAR} ] && [ -f ${SHAR}.sign ] ) ||
+		{ echo "Either ${SHAR} or ${SHAR}.sign is missing."; exit ${shar_missing}; }
+
+	# No need in .TAR file anymore.
+	rm -f ${tar}
+}
+
 verify_shar()
 {
-	verify-digest.sh --file=${shar} --public=${SPON_PUBLIC_KEY} ||
-		{ echo "${shar}: bad signature"; exit ${bad_signature}; }
+	verify-digest.sh --file=${SHAR} --public=${SPON_PUBLIC_KEY} ||
+		{ echo "${SHAR}: bad signature"; exit ${bad_signature}; }
 }
 
 
@@ -134,7 +148,7 @@ run_shar()
 	export CURRENT_VERSION="${software_version}"
 	export MEDIA=${bootfrom}
 	# This is VERY dangerous. But anyway we do it.
-	sh ${shar}
+	sh ${SHAR}
 }
 
 is_upgradeable()
@@ -156,7 +170,8 @@ main()
 		get_board_id
 		mount_boot_partition
 		get_software_version
-		download_shar
+		download_software
+		untar
 		verify_shar
 		run_shar
 	else

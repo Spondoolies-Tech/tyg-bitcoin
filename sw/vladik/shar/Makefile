@@ -1,6 +1,7 @@
 SHAR_NAME			:= 'Spondoolies Software'
 SHAR				:= spon.shar
-SHAR_LATEST			:= spon-latest.shar
+TAR_FILE			:= spon.tar
+TAR_LATEST_FILE			:= spon-latest.tar
 SCRIPT				:= ./sw-upgrade.sh
 
 MAKESELF_FLAGS			:= --nocomp
@@ -17,9 +18,13 @@ all:				shar
 shar:				data/uImage data/spondoolies.dtb
 	makeself $(MAKESELF_FLAGS) data $(SHAR) "$(SHAR_NAME)" $(SCRIPT)
 	../provisioning/sign-digest.sh --file=$(SHAR) --private=$(PRIVATE_KEY)
+	tar cf $(TAR_FILE) $(SHAR) $(SHAR).sign
+	$(RM) -f $(SHAR) $(SHAR).sign
 
 .PHONY:	latest
 latest:
-	makeself $(MAKESELF_FLAGS) latest $(SHAR_LATEST) "$(SHAR_NAME)" $(SCRIPT)
-	../provisioning/sign-digest.sh --file=$(SHAR_LATEST) --private=$(PRIVATE_KEY)
+	makeself $(MAKESELF_FLAGS) latest $(SHAR) "$(SHAR_NAME)" $(SCRIPT)
+	../provisioning/sign-digest.sh --file=$(SHAR) --private=$(PRIVATE_KEY)
+	tar cf $(TAR_LATEST_FILE) $(SHAR) $(SHAR).sign
+	$(RM) -f $(SHAR) $(SHAR).sign
 	
