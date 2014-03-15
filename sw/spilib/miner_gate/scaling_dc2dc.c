@@ -86,8 +86,6 @@ HAMMER *find_asic_to_down(int l) {
   return NULL;
 }
 
-
-
 int asic_can_up(HAMMER *a, int force) {
   if (!a ||
        !a->asic_present /*||
@@ -100,7 +98,7 @@ int asic_can_up(HAMMER *a, int force) {
     return false;
   }
 
-  
+ 
   if ((now - a->last_freq_change_time) < TRY_ASIC_FREQ_INCREASE_PERIOD_SECS)
   {
      return false;
@@ -109,25 +107,34 @@ int asic_can_up(HAMMER *a, int force) {
   if (force) {
     return 1;
   }
-  
-  if ((vm.loop[a->loop_address].dc2dc.dc_temp > DC2DC_TEMP_GREEN_LINE) || 
+ 
+  if ((vm.loop[a->loop_address].dc2dc.dc_temp > DC2DC_TEMP_GREEN_LINE) ||
       (vm.ac2dc_power >= AC2DC_POWER_LIMIT))
    {
     return 0;
   }
 
+  if (vm.loop[a->loop_address].dc2dc.dc_current_16s + 4 > 
+      vm.loop[a->loop_address].dc2dc.dc_current_limit_16s)
+      return 0;
+
   return 1;
 }
-
-
 void asic_up(HAMMER *a) {
    if(a->freq_wanted < ASIC_FREQ_MAX) {
      ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->freq_wanted+1);
      a->freq_wanted = wanted_freq;
-     //set_pll(a->address, wanted_freq);        
+     //set_pll(a->address, wanted_freq);       
      a->last_freq_change_time = now;
-     vm.pll_changed=1;
    }
+   vm.loop[a->loop_address].dc2dc.dc_current_16s += 4;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] += 4;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] += 4;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] += 4;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] += 4;
+   vm.ac2dc_power++;
+   vm.pll_changed=1;
+
 }
 
 
@@ -136,21 +143,40 @@ int asic_can_down(HAMMER *a) {
 }
 
 
+
 void asic_down_completly(HAMMER *a) {
    //passert(vm.engines_disabled == 1);
+    int fdiff = 3 * ( a->freq_wanted - MINIMAL_ASIC_FREQ );
    ASIC_FREQ wanted_freq = MINIMAL_ASIC_FREQ;
    a->freq_wanted = wanted_freq;
-   //set_pll(a->address, wanted_freq);        
+   //set_pll(a->address, wanted_freq);       
    a->last_freq_change_time = now;
    a->agressivly_scale_up = 1;
+
+   vm.loop[a->loop_address].dc2dc.dc_current_16s -= fdiff;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] -= fdiff;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] -= fdiff;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] -= fdiff;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] -= fdiff;
    vm.pll_changed=1;
+   
 }
 
 
 void asic_up_fast(HAMMER *a) {
    //passert(vm.engines_disabled == 1);
    ASIC_FREQ wanted_freq = a->freq_thermal_limit;
+   int fdiff = 4 * ( a->freq_thermal_limit - a->freq_wanted);
    a->freq_wanted=a->freq_thermal_limit;
+
+   vm.loop[a->loop_address].dc2dc.dc_current_16s += fdiff;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] += fdiff;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] += fdiff;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] += fdiff;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] += fdiff;
+   vm.ac2dc_power+=fdiff/8;
+
+   
    //set_pll(a->address, wanted_freq);        
    a->last_freq_change_time = now;    
    vm.pll_changed=1;
@@ -165,6 +191,13 @@ void asic_down(HAMMER *a, int down) {
     passert(a->freq_wanted >= MINIMAL_ASIC_FREQ);
     //set_pll(a->address, wanted_freq);        
    a->last_freq_change_time = now;      
+   
+   vm.loop[a->loop_address].dc2dc.dc_current_16s -= 3;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] -= 3;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] -= 3;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] -= 3;
+   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] -= 3;
+
    vm.pll_changed=1;
 }
 
@@ -283,7 +316,7 @@ void maybe_change_freqs_nrt() {
   
    // Remove disabled loops and pdate statistics
    for (int l = 0 ; l < LOOP_COUNT ; l++) {
-     if (vm.loop[l].dc2dc.dc_current_16s > vm.loop[l].dc2dc.dc_current_limit_16s) {
+     if (vm.loop[l].dc2dc.dc_current_16s >= vm.loop[l].dc2dc.dc_current_limit_16s) {
        critical_downscale=1;
      }
   
@@ -441,11 +474,12 @@ void asic_frequency_update_nrt(int verbal) {
            }
          }
       // try upscale 1 asic in loop
+      }
 
-      
-        
       if (vm.loop[l].dc2dc.dc_current_16s > vm.loop[l].dc2dc.dc_current_limit_16s) {
-         printf("Downscaling for DC2DC 0x%x\n",l );
+         printf("Downscaling for DC2DC 0x%x - already done?\n",l );
+#if 1       
+#if 1
          if (loop_can_down(l)) {
            loop_down(l);
            do_bist_please = 1;
@@ -460,19 +494,31 @@ void asic_frequency_update_nrt(int verbal) {
               }
             }
          }
-       } else if (vm.loop[l].dc2dc.dc_current_16s > vm.loop[l].dc2dc.dc_current_limit_16s - 25) {
+#else
+         HAMMER *h = find_asic_to_down(l);
+         if (h) {
+              h->freq_thermal_limit = h->freq_thermal_limit - 1;
+              asic_down_completly(h);
+              changed++;
+         }
+#endif  
+#endif
+
+       }
+      else if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 10) {
          if (time_from_last_call > 4) {
            if ((counter%(LOOP_COUNT/2)) == 0) {
               HAMMER* hh = find_asic_to_up(l, 0);
               if (hh) {
+                printf("Upping %x\n", hh->address);
                   asic_up(hh);
                   changed++;
               }
            }
          }
        }
-      }
-    }
+
+          }
     
     if (vm.ac2dc_power >= AC2DC_POWER_LIMIT)  {
         int l = rand()%LOOP_COUNT;
