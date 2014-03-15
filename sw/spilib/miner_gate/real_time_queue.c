@@ -21,7 +21,7 @@
 #include "real_time_queue.h"
 
 // How long we wait for winn? 666 is 1 second, 66 in 100ms, 22 in 33ms
-#define MAX_PACKETS_IN_RT_QUEUE 150
+#define MAX_PACKETS_IN_RT_QUEUE 75
 // hash table
 RT_JOB rt_queue[0x100] = { 0 }; // must be of that size because address is 0xXX
 int rt_queue_sw_write;
@@ -60,7 +60,7 @@ RT_JOB *add_to_sw_rt_queue(const RT_JOB *work) {
   passert((rt_queue_sw_write - rt_queue_hw_done) % 0x100 <=
           MAX_PACKETS_IN_RT_QUEUE);
   passert(rt_queue_size <= MAX_PACKETS_IN_RT_QUEUE);
-
+  
   return work_in_queue;
 }
 

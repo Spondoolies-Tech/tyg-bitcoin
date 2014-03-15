@@ -26,12 +26,12 @@ typedef enum {
   ASIC_VOLTAGE_COUNT 
 } DC2DC_VOLTAGE;
 
-
+//#define VTRIM_MIN 0xFFCF // dont go lower then 0x661 or asics start failing
 #define VTRIM_MIN 0x0FFc5  // 0.635
 #define VTRIM_MEDIUM 0x0ffdd //
 #define VTRIM_MAX 0x10008  // 0.810
 
-#define VTRIM_TO_VOLTAGE_MILLI(XX)    ((63500 + (XX-VTRIM_MIN)*(266))/100)  
+#define VTRIM_TO_VOLTAGE_MILLI(XX)    ((63500 + (XX-0x0FFc5)*(266))/100)  
 
 /*
 #define VOLTAGE_ENUM_TO_MILIVOLTS(ENUM, VALUE)                                 \
@@ -42,14 +42,13 @@ typedef enum {
     VALUE = xxx[ENUM];                                                         \
   }
 */
-  int get_dc2dc_error(int loop);
-
+  
 void dc2dc_disable_dc2dc(int loop, int *err);
 void dc2dc_enable_dc2dc(int loop, int *err);
 void dc2dc_init();
 void dc2dc_init_loop(int loop);
 
-int update_dc2dc_current_temp_measurments(int loop);
+int update_dc2dc_current_temp_measurments(int loop, int* overcurrent_err);
 
 // in takes 0.2second for voltage to be stable.
 // Remember to wait after you exit this function
@@ -60,8 +59,5 @@ void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err);
 // Returns value like 810, 765 etc`
 int dc2dc_get_voltage(int loop, int *err);
 int dc2dc_get_temp(int loop, int *err);
-
-// return AMPERS
-int dc2dc_get_current_16s_of_amper(int loop, int *err);
 
 #endif

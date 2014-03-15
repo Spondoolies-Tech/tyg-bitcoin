@@ -103,7 +103,7 @@ int enable_good_engines_all_asics_ok() {
     int killed_pll=0;
     
     while ((reg = read_reg_broadcast(ADDR_BR_PLL_NOT_READY)) != 0) {
-      if (i++ > 500) {
+      if (i++ > 100) {
         psyslog(RED "PLL %x stuck, killing ASIC\n" RESET, reg);
         //return 0;
         int addr = BROADCAST_READ_ADDR(reg);

@@ -245,7 +245,7 @@ void print_scaling() {
           (vm.loop[hi.l].asic_count) ? vm.loop[hi.l].asic_temp_sum/vm.loop[hi.l].asic_count : 0,
           vm.loop[hi.l].crit_temp,
           vm.loop[hi.l].asic_hz_sum*15/1000,
-          vm.loop[hi.l].unused_frequecy
+          vm.loop[hi.l].overheating_asics
           );
 
         total_watt+=dc2dc->dc_power_watts_16s;
@@ -257,7 +257,7 @@ void print_scaling() {
       continue;
     }
 
-    total_hash_power += hi.a->freq_wanted*15+220;            
+    total_hash_power += hi.a->freq_hw*15+220;            
     theoretical_hash_power += hi.a->freq_thermal_limit*15+220;
 
     total_asics++;
