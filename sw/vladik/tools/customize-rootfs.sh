@@ -12,6 +12,7 @@ TFTP_SERVER_IP=1.1.1.1
 MY_IP=1.1.1.2
 
 DIRS_TO_ADD='usr/local/bin usr/local/lib lib/modules lib/firmware'
+DIRS_TO_ADD=${DIRS_TO_ADD}' etc/cron.d/crontabs'
 DIRS_TO_ADD=${DIRS_TO_ADD}" ${MP_SD_BOOT} ${MP_MMC_BOOT} ${MP_MMC_CONF} ${MP_NFS}"
 TO_REMOVE='etc/init.d/S??urandom usr/lib/pkgconfig'
 TO_REMOVE=${TO_REMOVE}' sbin/fsck.xfs sbin/xfs_repair usr/sbin/xfs*'
@@ -184,6 +185,16 @@ sw_upgrade()
 	done
 }
 
+
+cron()
+{
+	cp -a ${CUR_DIR}/../add-ons/S47cron etc/init.d
+	cp ${CUR_DIR}/../../../../minepeon/etc/cron.d/5min/RECORDHashrate etc/cron.d
+
+	# Run every minute
+	echo '* * * * * /usr/bin/php /etc/cron.d/RECORDHashrate' > etc/cron.d/crontabs/root
+}
+
 # Ugly hack to add php-rrd to the image.
 rrd()
 {
@@ -208,6 +219,7 @@ main()
 	web_server
 	mounts
 	sw_upgrade
+	cron
 	rrd
 }
 
