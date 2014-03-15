@@ -57,9 +57,9 @@ usage()
 parse_args()
 {
 	opts="help,url:"
-
 	temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
 	[ $? -ne 0 ] && usage
+
 	eval set -- "$temp"
 
 	while :
@@ -68,7 +68,7 @@ parse_args()
 		-h|--help)              usage; exit 0; shift ;;
 		--url)			url=$2;
 					shar=`basename ${url}`
-					shift 2 ; break;;
+					shift 2 ;;
 		--)                     shift; break 2 ;;  # exit loop
 		* )                     echo "unknown parameter $1"; return 1 ;;
 	esac
@@ -82,14 +82,8 @@ detect_boot_source()
 {
 	# bootfrom=<BOOTSOURCE> is always the last element of kernel
 	# command line so may get it this way.
-
-	# on 10.0.0.20, 13/03/2014, this returns: console=ttyO0,115200n8 ip=::::::none::
-	# so we cannot get bootsource with this command
-	#grep -q bootfrom /proc/cmdline &&
-	#	bootfrom=`sed 's/.*bootfrom=//' /proc/cmdline` ||
-
-	#instead, lets look for uImage under /mnt. 
-	bootfrom=`find /mnt -name uImage | head -1 | sed 's/-.*//;s/^.*\///'` ||
+	grep -q bootfrom /proc/cmdline &&
+		bootfrom=`sed 's/.*bootfrom=//' /proc/cmdline` ||
 			{ echo 'Cannot detect boot source.'; exit ${no_bootsource}; }
 }
 
