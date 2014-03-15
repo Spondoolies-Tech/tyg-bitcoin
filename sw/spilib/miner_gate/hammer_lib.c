@@ -49,6 +49,7 @@ void hammer_iter_init(hammer_iter *e) {
 
 static int pll_set_addr = 0;
 
+
 int hammer_iter_next_present(hammer_iter *e) {
   int found = 0;
   
@@ -805,8 +806,8 @@ void update_vm_with_currents_and_temperatures() {
   
   int e = get_dc2dc_error(loop); 
   if (e) {
-    passert(0);
     psyslog("DC2DC ERROR STAGE0! %d\n", loop);
+    passert(0);
     vm.loop[loop].dc2dc.kill_me_i_am_bad = 1;
   }
 
@@ -882,7 +883,6 @@ void once_33_msec_tasks() {
 
 
  //squid_wait_hammer_reads();
-  int next_pll;
 
   
   if (!vm.asics_shut_down_powersave) {
@@ -893,31 +893,41 @@ void once_33_msec_tasks() {
     // PLL set should be one ahead of pll get.
     //pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
      // PLL set should be one ahead of pll get.
-     
-     pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
-     int next_pll =  (pll_set_addr+1)%HAMMERS_COUNT;
+
+     // move PLL
+     //pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
      
      if(vm.hammer[measure_temp_addr].asic_present) {
        set_temp_reading( measure_temp_addr, &intr_reg); 
      }
-    
-    if (vm.hammer[next_pll].asic_present && 
-        (vm.hammer[next_pll].freq_wanted != vm.hammer[next_pll].freq_hw)) {
-      disable_engines_asic(next_pll);
-      //printf("once_33_msec_tasks set pll %x", pll_set_addr);
-      //printf("Set pll %x %d to %d\n",next_pll,vm.hammer[next_pll].freq_hw,vm.hammer[next_pll].freq_wanted);
-      set_pll(next_pll, vm.hammer[next_pll].freq_wanted);
-      vm.hammer[next_pll].pll_waiting_reply = true;
-    }
-    
-    
+ 
      if (vm.hammer[pll_set_addr].asic_present && 
          vm.hammer[pll_set_addr].pll_waiting_reply) {
        enable_engines_asic(vm.hammer[pll_set_addr].address, vm.hammer[pll_set_addr].working_engines);
        vm.hammer[pll_set_addr].pll_waiting_reply = false;
-       //printf("Enable engines:%x %x \n",vm.hammer[pll_set_addr].address,vm.hammer[pll_set_addr].working_engines);
+       printf("Enable engines:%x %x \n",vm.hammer[pll_set_addr].address,vm.hammer[pll_set_addr].working_engines);
      }
     
+      // find next PLL
+      pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
+      for (int i = 0 ; i < 20 ; i++) {
+        if (!vm.hammer[pll_set_addr].asic_present ||
+         (vm.hammer[pll_set_addr].freq_wanted == vm.hammer[pll_set_addr].freq_hw)) {
+          pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
+        }
+      }
+
+      // prepare next PLL - start pll change
+      if (vm.hammer[pll_set_addr].asic_present && 
+          (vm.hammer[pll_set_addr].freq_wanted != vm.hammer[pll_set_addr].freq_hw)) {
+        disable_engines_asic(pll_set_addr);
+        //printf("once_33_msec_tasks set pll %x", pll_set_addr);
+        //printf("Set pll %x %d to %d\n",next_pll,vm.hammer[next_pll].freq_hw,vm.hammer[next_pll].freq_wanted);
+        set_pll(pll_set_addr, vm.hammer[pll_set_addr].freq_wanted);
+        vm.hammer[pll_set_addr].pll_waiting_reply = true;
+      }
+      
+   
 
 
 
@@ -980,6 +990,8 @@ void push_job_to_hw() {
       vm.cur_leading_zeroes = work.leading_zeroes;
       write_reg_broadcast(ADDR_WIN_LEADING_0, vm.cur_leading_zeroes);
     }
+    write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB_IF_Q_FULL);
+    //flush_spi_write();
     actual_work = add_to_sw_rt_queue(&work);
     // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
     // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
@@ -1005,7 +1017,8 @@ void once_1500_usec_tasks() {
   static uint32_t idle=0;
   counter++;
 
- 
+  squid_wait_hammer_reads();
+
   if (rand()%22==0) {  
     idle = read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE);
     
@@ -1019,7 +1032,7 @@ void once_1500_usec_tasks() {
       vm.busy_probs++;
     }
   }
-  
+
   if (!vm.asics_shut_down_powersave) {
     push_job_to_hw();
     
@@ -1060,10 +1073,10 @@ void *i2c_state_machine(void *p) {
       counter++;
       // Once every 1 seconds
       if ((counter%(40)) == 0) {  
-        struct timeval tv;
-        start_stopper(&tv);
+        //struct timeval tv;
+        //start_stopper(&tv);
         maybe_change_freqs();
-        end_stopper(&tv,"MAYBE");        
+        //end_stopper(&tv,"MAYBE");        
         print_scaling();
       }
       

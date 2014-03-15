@@ -60,7 +60,7 @@ RT_JOB *add_to_sw_rt_queue(const RT_JOB *work) {
   passert((rt_queue_sw_write - rt_queue_hw_done) % 0x100 <=
           MAX_PACKETS_IN_RT_QUEUE);
   passert(rt_queue_size <= MAX_PACKETS_IN_RT_QUEUE);
-
+  
   return work_in_queue;
 }
 

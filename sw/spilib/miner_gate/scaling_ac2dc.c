@@ -74,10 +74,18 @@ void loop_up(int l) {
    //printf("3\n");
   for (int h = l*HAMMERS_PER_LOOP; h< l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
     if (vm.hammer[h].asic_present) {
-      if (vm.hammer[h].freq_thermal_limit < ASIC_FREQ_MAX-2) 
+      
+      
+      if (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-1) 
         {
-          vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_thermal_limit+2;
+          // if the limit is bist limit, then let asic grow a bit more
+          // if its termal, dont change it.
+          if (vm.hammer[h].freq_bist_limit == vm.hammer[h].freq_thermal_limit) {
+            vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_bist_limit+1; 
+          }
           vm.hammer[h].agressivly_scale_up = true;
+        } else {
+
         }
       }
     }
@@ -138,6 +146,7 @@ void set_working_voltage_discover_top_speeds() {
   // All remember BIST they failed!
   for (int h =0; h < HAMMERS_COUNT ; h++) {
     if (vm.hammer[h].asic_present) {
+       vm.hammer[h].freq_hw = vm.hammer[h].freq_hw - 1;
        vm.hammer[h].freq_wanted = vm.hammer[h].freq_wanted - 1;
        vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_thermal_limit - 1;
        vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_bist_limit -1;      
@@ -187,7 +196,7 @@ void ac2dc_scaling_one_minute() {
 
 
       if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 20 &&  
-        (free_current >= 1*16 )) {
+        (free_current >= 3*16 )) {
       // scale up
         printf(CYAN "LOOP UP:%d\n" RESET, l);
         if (loop_can_up(l)) {

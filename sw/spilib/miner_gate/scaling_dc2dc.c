@@ -121,11 +121,12 @@ int asic_can_up(HAMMER *a, int force) {
 
 
 void asic_up(HAMMER *a) {
-   passert(a->freq_wanted <= ASIC_FREQ_MAX);
-   ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->freq_wanted+1);
-   a->freq_wanted = wanted_freq;
-   //set_pll(a->address, wanted_freq);        
-   a->last_freq_change_time = now;
+   if(a->freq_wanted < ASIC_FREQ_MAX) {
+     ASIC_FREQ wanted_freq = (ASIC_FREQ)(a->freq_wanted+1);
+     a->freq_wanted = wanted_freq;
+     //set_pll(a->address, wanted_freq);        
+     a->last_freq_change_time = now;
+   }
 }
 
 
@@ -147,11 +148,7 @@ void asic_down_completly(HAMMER *a) {
 void asic_up_fast(HAMMER *a) {
    //passert(vm.engines_disabled == 1);
    ASIC_FREQ wanted_freq = a->freq_thermal_limit;
-   if (a->freq_thermal_limit - a->freq_wanted > 5) {
-      a->freq_wanted=a->freq_wanted+5;
-   } else {
-     a->freq_wanted=a->freq_thermal_limit;
-   }
+   a->freq_wanted=a->freq_thermal_limit;
    //set_pll(a->address, wanted_freq);        
    a->last_freq_change_time = now;      
 }
@@ -299,7 +296,7 @@ void maybe_change_freqs() {
            if (h->asic_temp >= MAX_ASIC_TEMPERATURE && 
                h->freq_wanted > MINIMAL_ASIC_FREQ &&
                (now - h->last_down_freq_change_time) > 20) {
-             printf("Running critical BIST for ASIC TEMP on %x\n", h->freq_wanted);
+             //printf("Running critical BIST for ASIC TEMP on %x\n", h->freq_wanted);
              critical_downscale=1;
            }
            vm.loop[l].asic_count++;
@@ -320,7 +317,8 @@ void maybe_change_freqs() {
   
    //return;
    counter++;
-   if (((counter%7) == 0) ||
+   // Run every XX seconds
+   if (((counter%15) == 0) ||
        proccess_bist_results ||
        critical_downscale ||
        (vm.ac2dc_power > AC2DC_POWER_LIMIT)) {
@@ -331,7 +329,7 @@ void maybe_change_freqs() {
        // Dont run for next 7 seconds.
    }
   
-    if (counter%(60) == 59) {
+    if (counter%(60*5) == 59) {
       printf("counter=%d\n",counter);
       ac2dc_scaling_one_minute();
     }
@@ -389,6 +387,7 @@ void asic_frequency_update(int verbal) {
           vm.loop[h->loop_address].asics_failing_bist=1;
           int failed_engines_mask = passed ^ ALL_ENGINES_BITMASK;
           cnt++;
+          do_bist_please = 1;
           // It's not only thermaly punished, it's failing bist
           h->agressivly_scale_up = false;          
           //printf("ASIC bist work: %x %x:%x %x:%x\n",h->address,h->freq_hw,h->freq_wanted,h->working_engines,h->passed_last_bist_engines);
@@ -410,6 +409,9 @@ void asic_frequency_update(int verbal) {
         } 
 
 
+
+
+
         if (h->asic_temp >= MAX_ASIC_TEMPERATURE ) {
           if(h->freq_wanted > ASIC_FREQ_225) {
              // let it cool off
@@ -419,16 +421,17 @@ void asic_frequency_update(int verbal) {
              h->last_down_freq_change_time = now;
              asic_down_completly(h);
            }
-         } else if (h->agressivly_scale_up
-                    && asic_can_up(h,0)
-                    && (upped_fast<2) 
-                    && (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 16*2)
-                    ) {
-              upped_fast++;
-              asic_up_fast(h);
-              changed++;
+         } else if (h->agressivly_scale_up && asic_can_up(h,0) && (upped_fast==0)) {
+            if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 16*3) {
+                upped_fast++;
+                printf(MAGENTA "UPPER FAST WITH %d", h->address);
+                asic_up_fast(h);
+                changed++;
+           } else {
+               printf(MAGENTA "UPPER NORMAL WITH %d", h->address);
+               asic_up(h);
+           }
          }
-      }
       // try upscale 1 asic in loop
 
       
@@ -461,7 +464,7 @@ void asic_frequency_update(int verbal) {
          }
        }
       }
-
+    }
     
     if (vm.ac2dc_power >= AC2DC_POWER_LIMIT)  {
         int l = rand()%LOOP_COUNT;
