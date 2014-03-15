@@ -310,6 +310,9 @@ typedef struct {
   // Stoped all work
   uint8_t stopped_all_work;
 
+  // bollean flag to change PLLS
+  int pll_changed;
+
   // jobs right one after another
   int cosecutive_jobs;
 

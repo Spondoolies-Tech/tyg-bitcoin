@@ -884,23 +884,20 @@ void once_33_msec_tasks_rt() {
 
     // printf("-"); 
     measure_temp_addr = (measure_temp_addr+1)%HAMMERS_COUNT;
-   
-    // PLL set should be one ahead of pll get.
-    //pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
-     // PLL set should be one ahead of pll get.
 
-     // move PLL
-     //pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
-     
+      
+
      if(vm.hammer[measure_temp_addr].asic_present) {
        set_temp_reading_rt( measure_temp_addr, &intr_reg); 
      }
- 
+     
+#if 0     
+     // Finalise last PLL setting
      if (vm.hammer[pll_set_addr].asic_present && 
          vm.hammer[pll_set_addr].pll_waiting_reply) {
        enable_engines_asic(vm.hammer[pll_set_addr].address, vm.hammer[pll_set_addr].working_engines);
        vm.hammer[pll_set_addr].pll_waiting_reply = false;
-       printf("Enable engines:%x %x \n",vm.hammer[pll_set_addr].address,vm.hammer[pll_set_addr].working_engines);
+       printf("Pll:%x \n",vm.hammer[pll_set_addr].address);
      }
     
       // find next PLL
@@ -912,6 +909,7 @@ void once_33_msec_tasks_rt() {
         }
       }
 
+
       // prepare next PLL - start pll change
       if (vm.hammer[pll_set_addr].asic_present && 
           (vm.hammer[pll_set_addr].freq_wanted != vm.hammer[pll_set_addr].freq_hw)) {
@@ -921,10 +919,25 @@ void once_33_msec_tasks_rt() {
         set_pll(pll_set_addr, vm.hammer[pll_set_addr].freq_wanted);
         vm.hammer[pll_set_addr].pll_waiting_reply = true;
       }
-      
-   
+#else  // Change ALL PLLS at once
+      struct timeval tv;
+      if (vm.pll_changed) {
+        start_stopper(&tv);
+        disable_engines_all_asics();
+        // Start PLL
+        for (int i = 0 ; i < HAMMERS_COUNT; i++) {
+          if (vm.hammer[i].asic_present &&
+              (vm.hammer[i].freq_wanted != vm.hammer[i].freq_hw)) {
+             set_pll(pll_set_addr, vm.hammer[i].freq_wanted);
+             vm.hammer[i].freq_hw = vm.hammer[i].freq_wanted;
+          }
+        }
+        enable_good_engines_all_asics_ok();
+        end_stopper(&tv,"PLL change");        
+        vm.pll_changed=0;
+      }
 
-
+#endif
 
 
     /*
@@ -1012,7 +1025,7 @@ void once_1500_usec_tasks_rt() {
   static uint32_t idle=0;
   counter++;
 
-  squid_wait_hammer_reads();
+  //squid_wait_hammer_reads();
 
   if (rand()%22==0) {  
     idle = read_reg_broadcast(ADDR_BR_CONDUCTOR_IDLE);

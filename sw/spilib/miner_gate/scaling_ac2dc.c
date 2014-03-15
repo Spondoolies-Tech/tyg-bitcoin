@@ -81,7 +81,7 @@ void loop_up(int l) {
           // if the limit is bist limit, then let asic grow a bit more
           // if its termal, dont change it.
           if (vm.hammer[h].freq_bist_limit == vm.hammer[h].freq_thermal_limit) {
-            vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_bist_limit+1; 
+            vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_bist_limit+2; 
           }
           vm.hammer[h].agressivly_scale_up = true;
         } else {
@@ -191,12 +191,8 @@ void ac2dc_scaling_one_minute() {
             loop_down(l);
             
           }
-       } 
- 
-
-
-      if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 20 &&  
-        (free_current >= 3*16 )) {
+       } else if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 20 &&  
+        (free_current >= 16 )) {
       // scale up
         printf(CYAN "LOOP UP:%d\n" RESET, l);
         if (loop_can_up(l)) {

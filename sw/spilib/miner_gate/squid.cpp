@@ -304,7 +304,7 @@ int wait_rx_queue_ready() {
   // printf("Q STATUS:%x \n", q_status);
   while ((++loops < 100) &&
          ((q_status & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) == 0)) {
-    usleep(1);
+    usleep(20);
     q_status = read_spi(ADDR_SQUID_STATUS);
   }
   return ((q_status & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) != 0);

@@ -126,6 +126,7 @@ void asic_up(HAMMER *a) {
      a->freq_wanted = wanted_freq;
      //set_pll(a->address, wanted_freq);        
      a->last_freq_change_time = now;
+     vm.pll_changed=1;
    }
 }
 
@@ -142,6 +143,7 @@ void asic_down_completly(HAMMER *a) {
    //set_pll(a->address, wanted_freq);        
    a->last_freq_change_time = now;
    a->agressivly_scale_up = 1;
+   vm.pll_changed=1;
 }
 
 
@@ -150,7 +152,8 @@ void asic_up_fast(HAMMER *a) {
    ASIC_FREQ wanted_freq = a->freq_thermal_limit;
    a->freq_wanted=a->freq_thermal_limit;
    //set_pll(a->address, wanted_freq);        
-   a->last_freq_change_time = now;      
+   a->last_freq_change_time = now;    
+   vm.pll_changed=1;
 }
 
 
@@ -158,10 +161,11 @@ void asic_down(HAMMER *a, int down) {
    //passert(vm.engines_disabled == 1);
    //printf(RED "xASIC DOWNSCALE %x!\n", a->address);
     
-     a->freq_wanted  = (ASIC_FREQ)(a->freq_wanted-down);
+    a->freq_wanted  = (ASIC_FREQ)(a->freq_wanted-down);
     passert(a->freq_wanted >= MINIMAL_ASIC_FREQ);
     //set_pll(a->address, wanted_freq);        
    a->last_freq_change_time = now;      
+   vm.pll_changed=1;
 }
 
 
@@ -373,9 +377,10 @@ void asic_frequency_update_nrt(int verbal) {
       if (!vm.loop[l].enabled_loop) {
         continue;
       }
-     
+      int upped_fast = 0;     
+      
       for (int a = 0 ; a < HAMMERS_PER_LOOP; a++) {
-        int upped_fast = 0;
+
         HAMMER *h = &vm.hammer[l*HAMMERS_PER_LOOP+a];
         if (!h->asic_present) {
           continue;
@@ -400,6 +405,9 @@ void asic_frequency_update_nrt(int verbal) {
               asic_down(h); 
               printf("Down with ASIC  %x %x:%x\n",h->address,h->freq_hw,h->freq_wanted);            
               changed++;
+            } else {
+              // remind thread!
+              vm.pll_changed = 1;
             }
           } else {
             printf("Cant down ASIC %x %x:%x",h->address,h->freq_hw,h->freq_wanted);
@@ -422,9 +430,9 @@ void asic_frequency_update_nrt(int verbal) {
              asic_down_completly(h);
            }
          } else if (h->agressivly_scale_up && asic_can_up(h,0) && (upped_fast==0)) {
-            if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 16*2) {
+            if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 16*1) {
                 upped_fast++;
-                printf(MAGENTA "UPPER FAST WITH %d", h->address);
+                printf(MAGENTA "UPPER FAST WITH %d\n", h->address);
                 asic_up_fast(h);
                 changed++;
            } else {
