@@ -112,7 +112,7 @@ int loop_iter_next_enabled(loop_iter *e) {
   return 1;
 }
 
-void stop_all_work() {
+void stop_all_work_rt() {
   // wait to finish real time queue requests
   write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
   write_reg_broadcast(ADDR_COMMAND, BIT_CMD_END_JOB);
@@ -277,7 +277,7 @@ void print_state() {
 
 // Queues work to actual HW
 // returns 1 if found nonce
-void push_to_hw_queue(RT_JOB *work) {
+void push_to_hw_queue_rt(RT_JOB *work) {
   // ASSAF - JOBPUSH
   
   static int j = 0;
@@ -558,7 +558,7 @@ BIST_VECTOR bist_tests[TOTAL_BISTS] =
 
 
 // returns 1 on success
-int do_bist_ok(int long_bist) {
+int do_bist_ok_rt(int long_bist) {
   // Choose random bist.
   static int bist_id = 2;
   int next_bist;
@@ -677,7 +677,7 @@ pthread_mutex_lock(&i2c_mutex);
 */
 
 
-void once_second_tasks() {
+void once_second_tasks_rt() {
   struct timeval tv;
   static int counter = 0;
   //start_stopper(&tv);
@@ -757,7 +757,7 @@ void once_second_tasks() {
     if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING ||
         do_bist_please) {
       do_bist_please = 0;
-      do_bist_fix_loops(0);
+      do_bist_fix_loops_rt(0);
     }
 
     // parse_int_register("ADDR_INTR_SOURCE",
@@ -786,7 +786,7 @@ void once_second_tasks() {
 
 // 40 times per second
 // RUN FROM DIFFERENT THREAD
-void update_vm_with_currents_and_temperatures() {
+void update_vm_with_currents_and_temperatures_nrt() {
   static int counter = 0;
   counter++;
   int err;
@@ -801,14 +801,13 @@ void update_vm_with_currents_and_temperatures() {
 
   // Update DC2DC
   if (vm.loop[loop].enabled_loop) {
-    update_dc2dc_current_temp_measurments(loop); 
-  }
-  
-  int e = get_dc2dc_error(loop); 
-  if (e) {
-    psyslog("DC2DC ERROR STAGE0! %d\n", loop);
-    passert(0);
-    vm.loop[loop].dc2dc.kill_me_i_am_bad = 1;
+    int overcurrent = 0;
+    update_dc2dc_current_temp_measurments(loop, &overcurrent); 
+    if (overcurrent) {
+      psyslog("DC2DC ERROR STAGE0! %d\n", loop);
+      passert(0);
+      vm.loop[loop].dc2dc.kill_me_i_am_bad = 1;
+    }
   }
 
   // Wait for asics to shut
@@ -830,19 +829,15 @@ void update_vm_with_currents_and_temperatures() {
 
 
 
-void check_for_dc2dc_errors() {
-  
-}
 
 
-
-void set_temp_reading(int measure_temp_addr, uint32_t* intr) {
+void set_temp_reading_rt(int measure_temp_addr, uint32_t* intr) {
     //flush_spi_write();
     write_reg_device(measure_temp_addr, ADDR_COMMAND, BIT_CMD_TS_RESET_1 | BIT_CMD_TS_RESET_0);
     push_hammer_read(measure_temp_addr, ADDR_INTR_RAW, intr);
 }
 
-void proccess_temp_reading(HAMMER *a, int intr) {
+void proccess_temp_reading_rt(HAMMER *a, int intr) {
      //printf("intr=%x\n", intr);
 
      if (!(intr & BIT_INTR_0_OVER)) {
@@ -866,7 +861,7 @@ void proccess_temp_reading(HAMMER *a, int intr) {
 
 // 30 times a second - poll win and 1 temperature 
 // and set 1 pll
-void once_33_msec_tasks() {
+void once_33_msec_tasks_rt() {
   static int counter = 0;
   static int measure_temp_addr = 0;
 
@@ -878,7 +873,7 @@ void once_33_msec_tasks() {
 
 
   if (++counter % 30 == 0) {
-    once_second_tasks();
+    once_second_tasks_rt();
   } 
 
 
@@ -898,7 +893,7 @@ void once_33_msec_tasks() {
      //pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
      
      if(vm.hammer[measure_temp_addr].asic_present) {
-       set_temp_reading( measure_temp_addr, &intr_reg); 
+       set_temp_reading_rt( measure_temp_addr, &intr_reg); 
      }
  
      if (vm.hammer[pll_set_addr].asic_present && 
@@ -921,7 +916,7 @@ void once_33_msec_tasks() {
       if (vm.hammer[pll_set_addr].asic_present && 
           (vm.hammer[pll_set_addr].freq_wanted != vm.hammer[pll_set_addr].freq_hw)) {
         disable_engines_asic(pll_set_addr);
-        //printf("once_33_msec_tasks set pll %x", pll_set_addr);
+        //printf("once_33_msec_tasks_rt set pll %x", pll_set_addr);
         //printf("Set pll %x %d to %d\n",next_pll,vm.hammer[next_pll].freq_hw,vm.hammer[next_pll].freq_wanted);
         set_pll(pll_set_addr, vm.hammer[pll_set_addr].freq_wanted);
         vm.hammer[pll_set_addr].pll_waiting_reply = true;
@@ -969,7 +964,7 @@ void once_33_msec_tasks() {
       // Update temperature.
       if (vm.hammer[measure_temp_addr].asic_present) {
         // will be NULL on first run, not a problem
-        proccess_temp_reading(&vm.hammer[measure_temp_addr], intr_reg);
+        proccess_temp_reading_rt(&vm.hammer[measure_temp_addr], intr_reg);
       } 
 
       // Try to read win reg out the function too...
@@ -979,7 +974,7 @@ void once_33_msec_tasks() {
 
 
 
-void push_job_to_hw() {
+void push_job_to_hw_rt() {
   RT_JOB work;
   RT_JOB *actual_work = NULL;
   int has_request = pull_work_req(&work);
@@ -995,7 +990,7 @@ void push_job_to_hw() {
     actual_work = add_to_sw_rt_queue(&work);
     // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
     // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
-    push_to_hw_queue(actual_work);
+    push_to_hw_queue_rt(actual_work);
     vm.last_second_jobs++;
     vm.last_alive_jobs++;
     if (vm.cosecutive_jobs < MAX_CONSECUTIVE_JOBS_TO_COUNT) {    
@@ -1011,7 +1006,7 @@ void push_job_to_hw() {
 
 
 // 666 times a second
-void once_1500_usec_tasks() {
+void once_1500_usec_tasks_rt() {
   static int counter = 0;
   //start_stopper(&tv);
   static uint32_t idle=0;
@@ -1034,14 +1029,14 @@ void once_1500_usec_tasks() {
   }
 
   if (!vm.asics_shut_down_powersave) {
-    push_job_to_hw();
+    push_job_to_hw_rt();
     
   }
 
 
   if (counter % 22 == 0) {
-    once_33_msec_tasks();
-    push_job_to_hw();
+    once_33_msec_tasks_rt();
+    push_job_to_hw_rt();
     
     // Push one more job!
   }
@@ -1053,10 +1048,10 @@ void once_1500_usec_tasks() {
 }
 
 
-void maybe_change_freqs();
+void maybe_change_freqs_nrt();
 
 // never returns - thread
-void *i2c_state_machine(void *p) {
+void *i2c_state_machine_nrt(void *p) {
  
   struct timeval tv;
   struct timeval last_job_pushed;
@@ -1075,12 +1070,12 @@ void *i2c_state_machine(void *p) {
       if ((counter%(40)) == 0) {  
         //struct timeval tv;
         //start_stopper(&tv);
-        maybe_change_freqs();
+        maybe_change_freqs_nrt();
         //end_stopper(&tv,"MAYBE");        
         print_scaling();
       }
       
-      update_vm_with_currents_and_temperatures();
+      update_vm_with_currents_and_temperatures_nrt();
 
 //      pthread_mutex_lock(&hammer_mutex);
 //      pthread_mutex_unlock(&hammer_mutex); 
@@ -1094,9 +1089,9 @@ void *i2c_state_machine(void *p) {
 
 
 // never returns - thread
-void *squid_regular_state_machine(void *p) {
+void *squid_regular_state_machine_rt(void *p) {
   int loop = 0;
-  psyslog("Starting squid_regular_state_machine!\n");
+  psyslog("Starting squid_regular_state_machine_rt!\n");
   flush_spi_write();
   //return NULL;
   // Do BIST before start
@@ -1136,7 +1131,7 @@ void *squid_regular_state_machine(void *p) {
       // new job every 1.5 msecs = 660 per second
       //hread_mutex_lock(&hammer_mutex);
       //start_stopper(&tv);
-      once_1500_usec_tasks();
+      once_1500_usec_tasks_rt();
       //end_stopper(&tv,"WHOOOOOOOOOOOOLE 1500 TIMER");
       //hread_mutex_unlock(&hammer_mutex);
 

@@ -45,7 +45,7 @@ void do_leakage_discovery_loop(int l) {
       enable_engines_asic(addr, ALL_ENGINES_BITMASK);     
       while (temp != 3) {
         
-        do_bist_ok(0);
+        do_bist_ok_rt(0);
         temp = read_asic_temperature(addr,ASIC_TEMP_83, ASIC_TEMP_89);
         printf("%x:%x ",addr,temp);
       }

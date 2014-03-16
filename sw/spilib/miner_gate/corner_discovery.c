@@ -76,9 +76,9 @@ void compute_corners() {
   int bist_ok;
   do {
     resume_asics_if_needed();
-    bist_ok = do_bist_ok(0);
+    bist_ok = do_bist_ok_rt(0);
     pause_asics_if_needed();
-    asic_frequency_update();
+    asic_frequency_update_nrt();
  } while (!bist_ok);
 
    while (hammer_iter_next_present(&hi)) {

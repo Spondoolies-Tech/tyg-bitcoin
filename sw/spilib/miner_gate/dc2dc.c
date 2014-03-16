@@ -52,14 +52,14 @@ void dc2dc_init_loop(int loop) {
       return;
     }
 
-    i2c_write_word(I2C_DC2DC, 0x35, 0xf028);
-    i2c_write_word(I2C_DC2DC, 0x36, 0xf018);
-    i2c_write_word(I2C_DC2DC, 0x38, 0x881f);
-    i2c_write_word(I2C_DC2DC, 0x46, 0xf846);
-    i2c_write_word(I2C_DC2DC, 0x4a, 0xf836);
-    i2c_write_byte(I2C_DC2DC, 0x47, 0x3C);
-    i2c_write_byte(I2C_DC2DC, 0xd7, 0x03);
-    i2c_write_byte(I2C_DC2DC, 0x02, 0x02);
+    i2c_write_word(I2C_DC2DC, 0x35, 0xf028); 	// VIN ON
+    i2c_write_word(I2C_DC2DC, 0x36, 0xf018); 	// VIN OFF(??)
+    i2c_write_word(I2C_DC2DC, 0x38, 0x881f); 	// Inductor DCR
+    i2c_write_word(I2C_DC2DC, 0x46, 0xf846); 	// OC Fault
+    i2c_write_word(I2C_DC2DC, 0x4a, 0xf836); 	// OC warn
+    i2c_write_byte(I2C_DC2DC, 0x47, 0x3C);		// OC fault response
+    i2c_write_byte(I2C_DC2DC, 0xd7, 0x03);		// PG limits
+    i2c_write_byte(I2C_DC2DC, 0x02, 0x02);		// ON/OFF conditions
     //i2c_write(I2C_DC2DC, 0x15);
     usleep(1000);
     i2c_write(I2C_DC2DC, 0x03);
@@ -197,53 +197,55 @@ void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
 }
 
 
-// Return 1 if needs urgent scaling
-int get_dc2dc_error(int loop) {
-  int err; 
-  int error_happened = 0;
+// returns AMPERS
+int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err ,int *err) {
+  // TODO - select loop!
+  // int err = 0;
+  passert(err != NULL);
+  //printf("%s:%d\n",__FILE__, __LINE__);
 
+  pthread_mutex_lock(&i2c_mutex);
+  *overcurrent_err = 0;
   static int warned = 0;
   int current = 0;
-  
- 
-  pthread_mutex_lock(&i2c_mutex);
-  dc2dc_select_i2c(loop, &err);
-  dc2dc_set_channel(0, &err);
-  error_happened |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
-  if (error_happened) {
-    psyslog(RED "DC2DC ERR0 %x\n" RESET,error_happened);
-    i2c_write(I2C_DC2DC,3,&err);
-  }
-  
-  dc2dc_set_channel(1, &err);
-  error_happened |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
-  if (error_happened) {
-    psyslog(RED "DC2DC ERR1 %x\n" RESET,error_happened);
-    i2c_write(I2C_DC2DC,3,&err);
-  }
-  dc2dc_set_channel(0x81,&err);
-  if (err) {
+  dc2dc_select_i2c(loop, err);
+  dc2dc_set_channel(0, err);
+  current += (i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
+  *overcurrent_err |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
+  dc2dc_set_channel(1, err);
+  current += (i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
+  *overcurrent_err |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
+  dc2dc_set_channel(0x81, err);
+  if (*err) {
     dc2dc_i2c_close();
     pthread_mutex_unlock(&i2c_mutex);
     return 0;
   }
   dc2dc_i2c_close();
-  pthread_mutex_unlock(&i2c_mutex);  
-  return error_happened;
+  pthread_mutex_unlock(&i2c_mutex);
+  return current;
 }
 
-
-// disengage from scale manager if not needed
 #ifdef MINERGATE
 // Return 1 if needs urgent scaling
-int update_dc2dc_current_temp_measurments(int loop) {
+int update_dc2dc_current_temp_measurments(int loop, int* overcurrent) {
   int err;
   int i = loop;
   if (vm.loop[i].enabled_loop) {
     vm.loop[i].dc2dc.dc_temp = dc2dc_get_temp(i, &err);
   
     if (!vm.asics_shut_down_powersave) {
-        int current = dc2dc_get_current_16s_of_amper(i, &err);
+        int current = dc2dc_get_current_16s_of_amper(i, overcurrent, &err);
+        if (*overcurrent != 0){
+        	psyslog("DC2DC OC ERROR in LOOP %d !!\n", loop);
+        	psyslog("... last 4 previous measures of DC2DC %d !!\n", loop);
+        	psyslog("...   %d\n", vm.loop[i].dc2dc.dc_current_16s_arr[0]);
+        	psyslog("...   %d\n", vm.loop[i].dc2dc.dc_current_16s_arr[1]);
+        	psyslog("...   %d\n", vm.loop[i].dc2dc.dc_current_16s_arr[2]);
+        	psyslog("...   %d\n", vm.loop[i].dc2dc.dc_current_16s_arr[3]);
+        	psyslog("...   current measure is %d\n", current);
+        }
+
         vm.loop[i].dc2dc.dc_current_16s_arr[vm.loop[i].dc2dc.dc_current_16s_arr_ptr]= current;
         vm.loop[i].dc2dc.dc_current_16s_arr_ptr=(vm.loop[i].dc2dc.dc_current_16s_arr_ptr+1)%4;
         // Remove noise
@@ -266,34 +268,6 @@ int update_dc2dc_current_temp_measurments(int loop) {
   return 0;
 }
 #endif
-
-
-// returns AMPERS
-int dc2dc_get_current_16s_of_amper(int loop, int *err) {
-  // TODO - select loop!
-  // int err = 0;
-  passert(err != NULL);
-  //printf("%s:%d\n",__FILE__, __LINE__);
-
-  pthread_mutex_lock(&i2c_mutex);
-
-  static int warned = 0;
-  int current = 0;
-  dc2dc_select_i2c(loop, err);
-  dc2dc_set_channel(0, err);
-  current += (i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
-  dc2dc_set_channel(1, err);
-  current += (i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
-  dc2dc_set_channel(0x81, err);
-  if (*err) {
-    dc2dc_i2c_close();
-    pthread_mutex_unlock(&i2c_mutex);
-    return 0;
-  }
-  dc2dc_i2c_close();
-  pthread_mutex_unlock(&i2c_mutex);
-  return current;
-}
 
 int dc2dc_get_voltage(int loop, int *err) {
   //*err = 0;

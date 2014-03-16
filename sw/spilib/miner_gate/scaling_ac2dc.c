@@ -93,7 +93,7 @@ void loop_up(int l) {
 
 
 
-int asic_frequency_update_fast() {    
+int asic_frequency_update_nrt_fast() {    
   pause_asics_if_needed();
   int one_ok = 0;
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
@@ -137,8 +137,8 @@ void set_working_voltage_discover_top_speeds() {
   enable_voltage_freq(ASIC_FREQ_225);
   do {
     resume_asics_if_needed();
-    do_bist_ok(0);
-    one_ok = asic_frequency_update_fast();
+    do_bist_ok_rt(0);
+    one_ok = asic_frequency_update_nrt_fast();
     n = n + 1;
  } while (one_ok);
 

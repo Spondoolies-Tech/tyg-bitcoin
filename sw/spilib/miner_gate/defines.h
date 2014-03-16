@@ -66,7 +66,7 @@
 #if ECONOMY == 1
 #define VTRIM_START 0x0FFbf
 #else
-#define VTRIM_START (VTRIM_661) //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
+#define VTRIM_START (VTRIM_661-2) //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
 #endif
 
 

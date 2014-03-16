@@ -600,10 +600,10 @@ int main(int argc, char *argv[]) {
 
   psyslog("Starting HW thread\n");
 
-  s = pthread_create(&main_thread, NULL, squid_regular_state_machine,
+  s = pthread_create(&main_thread, NULL, squid_regular_state_machine_rt,
                      (void *)NULL);
   passert(s == 0);
-  s = pthread_create(&dc2dc_thread, NULL, i2c_state_machine,
+  s = pthread_create(&dc2dc_thread, NULL, i2c_state_machine_nrt,
                      (void *)NULL);
   passert(s == 0);
 

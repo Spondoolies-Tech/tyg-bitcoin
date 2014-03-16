@@ -26,18 +26,17 @@ int hammer_iter_next_present(hammer_iter *e);
 void loop_iter_init(loop_iter *e);
 int loop_iter_next_enabled(loop_iter *e);
 
-void stop_all_work();
+void stop_all_work_rt();
 void resume_all_work();
 
-void check_for_dc2dc_errors();
 uint32_t read_reg_broadcast_test(uint8_t offset);
 extern int assert_serial_failures;
 int one_done_sw_rt_queue(RT_JOB *work);
 
-void *i2c_state_machine(void *p);
-void *squid_regular_state_machine(void *p);
+void *i2c_state_machine_nrt(void *p);
+void *squid_regular_state_machine_rt(void *p);
 int init_hammers();
-int do_bist_ok(int long_bist);
+int do_bist_ok_rt(int long_bist);
 uint32_t crc32(uint32_t crc, const void *buf, size_t size);
 void set_safe_voltage_and_frequency();
 void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t *p_value);
