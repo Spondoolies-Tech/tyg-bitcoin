@@ -215,7 +215,7 @@ int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err, uint8_t *temp
   *overcurrent_err |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
   dc2dc_set_channel(1, err);
   int cur2=(i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
-//  printf("%d: C0=%d, C1=%d\n", loop, current, cur2);
+  //printf("LOOP:%d: C0=%d, C1=%d\n", loop, current/16, cur2/16);
   current += cur2;
   *temp += i2c_read_word(I2C_DC2DC, 0x8e, err) /* *1000/512 */;
   *overcurrent_err |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
@@ -239,22 +239,22 @@ int update_dc2dc_current_temp_measurments(int loop, int* overcurrent) {
   if (vm.loop[i].enabled_loop) {
   
     if (!vm.asics_shut_down_powersave) {
-        int current = dc2dc_get_current_16s_of_amper(i, overcurrent,
-         &vm.loop[i].dc2dc.dc_temp , &err);
-
+        int current = dc2dc_get_current_16s_of_amper(i, overcurrent, &vm.loop[i].dc2dc.dc_temp , &err);
 
         if (*overcurrent != 0){
         	psyslog("DC2DC OC ERROR in LOOP %d !!\n", loop);
+/*
         	psyslog("... last 4 previous measures of DC2DC %d !!\n", loop);
         	psyslog("...   %d\n", vm.loop[i].dc2dc.dc_current_16s_arr[0]);
         	psyslog("...   %d\n", vm.loop[i].dc2dc.dc_current_16s_arr[1]);
         	psyslog("...   %d\n", vm.loop[i].dc2dc.dc_current_16s_arr[2]);
         	psyslog("...   %d\n", vm.loop[i].dc2dc.dc_current_16s_arr[3]);
+*/
         	psyslog("...   current measure is %d\n", current);
         }
 
-        vm.loop[i].dc2dc.dc_current_16s_arr[vm.loop[i].dc2dc.dc_current_16s_arr_ptr]= current;
-        vm.loop[i].dc2dc.dc_current_16s_arr_ptr=(vm.loop[i].dc2dc.dc_current_16s_arr_ptr+1)%4;
+//        vm.loop[i].dc2dc.dc_current_16s_arr[vm.loop[i].dc2dc.dc_current_16s_arr_ptr]= current;
+//        vm.loop[i].dc2dc.dc_current_16s_arr_ptr=(vm.loop[i].dc2dc.dc_current_16s_arr_ptr+1)%4;
         // Remove noise
         //printf("READ  %d %d\n",loop,current,current);
         vm.loop[i].dc2dc.dc_current_16s = current; /*

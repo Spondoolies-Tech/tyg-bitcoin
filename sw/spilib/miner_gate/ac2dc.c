@@ -273,9 +273,7 @@ int update_ac2dc_power_measurments() {
 #if 0//AC2DC_BUG == 0  
   vm.ac2dc_temp = ac2dc_get_temperature();
 #endif
-
   int power_guessed = (vm.dc2dc_total_power*1000/790)+60;// ac2dc_get_power()/1000; //TODOZ
-
   int power = power_guessed;
 #if AC2DC_BUG == 0  
   power = ac2dc_get_power()/1000;

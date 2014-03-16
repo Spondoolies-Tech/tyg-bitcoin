@@ -134,8 +134,10 @@ void discover_good_loops() {
       // printf("--00--\n");
       vm.loop[i].enabled_loop = 1;
       if (vm.thermal_test_mode) {
+        vm.loop[i].dc2dc.max_vtrim_currentwise = VTRIM_674;
         vm.loop_vtrim[i] = VTRIM_674;
       } else {
+        vm.loop[i].dc2dc.max_vtrim_currentwise = VTRIM_MAX;
         vm.loop_vtrim[i] = VTRIM_START;
       }
       vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
@@ -144,6 +146,7 @@ void discover_good_loops() {
     } else {
       // printf("--11--\n");
       vm.loop[i].enabled_loop = 0;
+      vm.loop[i].dc2dc.max_vtrim_currentwise = 0;
       vm.loop_vtrim[i] = 0;
       for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
         // printf("remove ASIC 0x%x\n", h);

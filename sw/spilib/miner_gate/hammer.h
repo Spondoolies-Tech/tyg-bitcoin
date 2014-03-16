@@ -258,14 +258,15 @@ typedef struct {
 // 24 dc2dc
 typedef struct {
   uint8_t dc_temp;
-  int dc_current_16s_arr_ptr;
-  int dc_current_16s_arr[4]; // do median - its noisy?
+  //int dc_current_16s_arr_ptr;
+  //int dc_current_16s_arr[4]; // do median - its noisy?
   int dc_current_16s; // in 1/16 of amper. 0 = bad reading
-  
   int dc_current_limit_16s;   
   int dc_power_watts_16s;  
   int last_voltage_change_time;
   int kill_me_i_am_bad;
+  
+  int max_vtrim_currentwise;
   // Guessing added current
 } DC2DC;
 

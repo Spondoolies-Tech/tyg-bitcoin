@@ -28,7 +28,6 @@
 #include <pthread.h>
 
 static int now;
-int do_bist_please = 0;
 static int proccess_bist_results = 0;
 
 
@@ -36,7 +35,6 @@ static int proccess_bist_results = 0;
 void do_bist() {
   //struct timeval tv;
   //start_stopper(&tv);
-  
   resume_asics_if_needed();
   do_bist_ok_rt(0);
   //end_stopper(&tv, "bist stopper");
@@ -128,10 +126,10 @@ void asic_up(HAMMER *a) {
      a->last_freq_change_time = now;
    }
    vm.loop[a->loop_address].dc2dc.dc_current_16s += 4;
-   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] += 4;
-   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] += 4;
-   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] += 4;
-   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] += 4;
+//   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] += 4;
+//   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] += 4;
+//   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] += 4;
+//   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] += 4;
    vm.ac2dc_power++;
    vm.pll_changed=1;
 
@@ -152,12 +150,13 @@ void asic_down_completly(HAMMER *a) {
    //set_pll(a->address, wanted_freq);       
    a->last_freq_change_time = now;
    a->agressivly_scale_up = 1;
-
+/*
    vm.loop[a->loop_address].dc2dc.dc_current_16s -= fdiff;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] -= fdiff;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] -= fdiff;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] -= fdiff;
-   vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] -= fdiff;
+*/
+
    vm.pll_changed=1;
    
 }
@@ -170,10 +169,12 @@ void asic_up_fast(HAMMER *a) {
    a->freq_wanted=a->freq_thermal_limit;
 
    vm.loop[a->loop_address].dc2dc.dc_current_16s += fdiff;
+   /*
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] += fdiff;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] += fdiff;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] += fdiff;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] += fdiff;
+   */
    vm.ac2dc_power+=fdiff/8;
 
    
@@ -193,11 +194,12 @@ void asic_down(HAMMER *a, int down) {
    a->last_freq_change_time = now;      
    
    vm.loop[a->loop_address].dc2dc.dc_current_16s -= 3;
+   /*
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[0] -= 3;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[1] -= 3;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[2] -= 3;
    vm.loop[a->loop_address].dc2dc.dc_current_16s_arr[3] -= 3;
-
+  */
    vm.pll_changed=1;
 }
 
@@ -318,6 +320,7 @@ void maybe_change_freqs_nrt() {
    for (int l = 0 ; l < LOOP_COUNT ; l++) {
      if (vm.loop[l].dc2dc.dc_current_16s >= vm.loop[l].dc2dc.dc_current_limit_16s) {
        critical_downscale=1;
+       printf("Yes! Current critical %d!\n", l);
      }
   
      
@@ -365,12 +368,6 @@ void maybe_change_freqs_nrt() {
        proccess_bist_results = 0;
        // Dont run for next 7 seconds.
    }
-  
-    if (counter%(60*5) == 59) {
-      printf("counter=%d\n",counter);
-      ac2dc_scaling_one_minute();
-    }
-
 }
 
 
@@ -413,7 +410,6 @@ void asic_frequency_update_nrt(int verbal) {
       int upped_fast = 0;     
       
       for (int a = 0 ; a < HAMMERS_PER_LOOP; a++) {
-
         HAMMER *h = &vm.hammer[l*HAMMERS_PER_LOOP+a];
         if (!h->asic_present) {
           continue;
@@ -425,7 +421,6 @@ void asic_frequency_update_nrt(int verbal) {
           vm.loop[h->loop_address].asics_failing_bist=1;
           int failed_engines_mask = passed ^ ALL_ENGINES_BITMASK;
           cnt++;
-          do_bist_please = 1;
           // It's not only thermaly punished, it's failing bist
           h->agressivly_scale_up = false;          
           //printf("ASIC bist work: %x %x:%x %x:%x\n",h->address,h->freq_hw,h->freq_wanted,h->working_engines,h->passed_last_bist_engines);
@@ -448,9 +443,6 @@ void asic_frequency_update_nrt(int verbal) {
      
            h->passed_last_bist_engines = ALL_ENGINES_BITMASK;
         } 
-
-
-
 
 
         if (h->asic_temp >= MAX_ASIC_TEMPERATURE ) {
@@ -476,36 +468,7 @@ void asic_frequency_update_nrt(int verbal) {
       // try upscale 1 asic in loop
       }
 
-      if (vm.loop[l].dc2dc.dc_current_16s > vm.loop[l].dc2dc.dc_current_limit_16s) {
-         printf("Downscaling for DC2DC 0x%x - already done?\n",l );
-#if 1       
-#if 1
-         if (loop_can_down(l)) {
-           loop_down(l);
-           do_bist_please = 1;
-           for (int h = l*HAMMERS_PER_LOOP; h < l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
-            if (vm.hammer[h].asic_present) {
-                int thermal_head = vm.hammer[h].freq_bist_limit - vm.hammer[h].freq_thermal_limit;
-                if (thermal_head >= 2) {
-                  vm.hammer[h].freq_thermal_limit=vm.hammer[h].freq_thermal_limit+2;
-                } else if (thermal_head == 1) {
-                  vm.hammer[h].freq_thermal_limit=vm.hammer[h].freq_thermal_limit+1;
-                }
-              }
-            }
-         }
-#else
-         HAMMER *h = find_asic_to_down(l);
-         if (h) {
-              h->freq_thermal_limit = h->freq_thermal_limit - 1;
-              asic_down_completly(h);
-              changed++;
-         }
-#endif  
-#endif
-
-       }
-      else if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 10) {
+      if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 10) {
          if (time_from_last_call > 4) {
            if ((counter%(LOOP_COUNT/2)) == 0) {
               HAMMER* hh = find_asic_to_up(l, 0);
