@@ -223,20 +223,21 @@ void print_scaling() {
     hi.a = &vm.hammer[addr];
     hi.l = addr/HAMMERS_PER_LOOP;
     hi.h = addr%HAMMERS_PER_LOOP;
-    if (hi.h == HAMMERS_PER_LOOP/2) {fprintf(f, "\n-----------------------------------------");}
+    if (hi.h == HAMMERS_PER_LOOP/2) {fprintf(f, "\n-------------------------------------------------");}
     if (hi.h == 0) {
       total_loops++;
       if (!vm.loop[hi.l].enabled_loop) {
-        fprintf(f, "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        fprintf(f, "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
       } else {    
         DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
 
         fprintf(f, GREEN 
-          "\n%2d|%4x|%3d|%2d|"  
+          "\n%2d|%4x(M:%4x)|%3d|%2d|"  
           "%s%3d%s/%3d|%s%3d%s|"   
           "%3d|%3d|%2d(%2d)" RESET, 
           hi.l, 
           vm.loop_vtrim[hi.l]&0xffff,
+          vm.loop[hi.l].dc2dc.max_vtrim_currentwise&0xffff,
           VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[hi.l]),
           dc2dc->dc_power_watts_16s/16,
           

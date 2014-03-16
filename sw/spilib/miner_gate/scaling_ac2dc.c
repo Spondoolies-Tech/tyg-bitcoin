@@ -27,6 +27,7 @@
 #include "corner_discovery.h"
 
 static int now; // cahce time
+extern int do_bist_please;
 
 int loop_can_down(int l) {
   if (l == -1)
@@ -43,12 +44,13 @@ void loop_down(int l) {
    printf("vtrim=%x\n",vm.loop_vtrim[l]);
    dc2dc_set_vtrim(l, vm.loop_vtrim[l]-1, &err);
    vm.loop[l].last_ac2dc_scaling_on_loop  = now;
-
+   do_bist_please = 1;
    for (int h = l*HAMMERS_PER_LOOP; h < l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
     if (vm.hammer[h].asic_present) {
+        // learn again
         vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit;
       }
-    }
+   }
    
 }
 
@@ -61,6 +63,7 @@ int loop_can_up(int l) {
   return  
     (vm.loop[l].enabled_loop &&
     (vm.loop_vtrim[l] < VTRIM_HIGH) &&
+    (vm.loop_vtrim[l] < vm.loop[l].dc2dc.max_vtrim_currentwise) &&
     ((now - vm.loop[l].last_ac2dc_scaling_on_loop) > AC2DC_SCALING_SAME_LOOP_PERIOD_SECS));
  
 }
@@ -75,20 +78,21 @@ void loop_up(int l) {
   for (int h = l*HAMMERS_PER_LOOP; h< l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
     if (vm.hammer[h].asic_present) {
       
-      
-      if (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-1) 
+      if (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-3) 
         {
           // if the limit is bist limit, then let asic grow a bit more
           // if its termal, dont change it.
           if (vm.hammer[h].freq_bist_limit == vm.hammer[h].freq_thermal_limit) {
-            vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_bist_limit+2; 
+            vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = 
+              (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-2)?(vm.hammer[h].freq_bist_limit+3):ASIC_FREQ_MAX; 
           }
-          vm.hammer[h].agressivly_scale_up = true;
+          //vm.hammer[h].agressivly_scale_up = true;
         } else {
 
         }
       }
     }
+    do_bist_please = 1;
 }
 
 
@@ -100,7 +104,7 @@ int asic_frequency_update_nrt_fast() {
     if (!vm.loop[l].enabled_loop) {
       continue;
     }
-    printf("DOING INIT BIST ON FREQ: %d\n", vm.hammer[l*HAMMERS_PER_LOOP].freq_wanted );
+    //printf("DOING INIT BIST ON FREQ: %d\n", vm.hammer[l*HAMMERS_PER_LOOP].freq_wanted );
     for (int a = 0 ; a < HAMMERS_PER_LOOP; a++) {
       HAMMER *h = &vm.hammer[l*HAMMERS_PER_LOOP+a];
       if (!h->asic_present) {
@@ -185,8 +189,8 @@ void ac2dc_scaling_one_minute() {
       
        // has unused freq - scale down.
        if (vm.loop[l].overheating_asics >= 6) {
-          printf(CYAN "LOOP DOWN:%d\n" RESET, l);
           if (loop_can_down(l)) {
+            printf(CYAN "LOOP DOWN:%d\n" RESET, l);            
             changed = 1;
             loop_down(l);
             
@@ -194,8 +198,8 @@ void ac2dc_scaling_one_minute() {
        } else if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 20 &&  
         (free_current >= 16 )) {
       // scale up
-        printf(CYAN "LOOP UP:%d\n" RESET, l);
-        if (loop_can_up(l)) {
+        if (loop_can_up(l)) {          
+          printf(CYAN "LOOP UP:%d\n" RESET, l);
           changed = 1;
           loop_up(l);
           vm.ac2dc_power += 5;

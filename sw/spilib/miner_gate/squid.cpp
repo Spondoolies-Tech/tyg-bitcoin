@@ -15,7 +15,6 @@
 #include <spond_debug.h>
 #include "hammer_lib.h"
 
-
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define BROADCAST_ADDR 0xffff
 
@@ -26,9 +25,9 @@ static uint32_t speed = 10000000;
 static uint16_t delay = 0;
 static int fd = 0;
 int assert_serial_failures = true;
-int enable_reg_debug;
 int spi_ioctls_read = 0;
 int spi_ioctls_write = 0;
+int   enable_reg_debug;
 
 #define SPI_CMD_READ 0x01
 #define SPI_CMD_WRITE 0x41
@@ -127,11 +126,9 @@ void write_spi_mult(uint8_t addr, int count, int values[]) {
     pabort("can't send spi message");
     passert(0);
   }
-  /*
   for (int j = 0 ; j < count ; j++) {
-  	printf("SPI[%x]<=%x\n", addr, values[j]);
+  	//printf("SPI[%x]<=%x\n", addr, values[j]);
   }
-  */
 }
 
 void write_spi(uint8_t addr, uint32_t data) {
@@ -202,7 +199,7 @@ void init_spi() {
     pabort("can't get max speed hz");
 
   /*
-  printf("SPI mode: %d\n", mode);
+  //printf("SPI mode: %d\n", mode);
   printf("bits per word: %d\n", bits);
   printf("max speed: %d Hz (%d KHz)\n", speed, speed/1000);
   */
@@ -237,11 +234,7 @@ int hammer_serial_stack[64] = { 0 };
 int hammer_serial_stack_size = 0;
 
 void push_hammer_serial_packet_to_hw(uint32_t d1, uint32_t d2) {
-  if(hammer_serial_stack_size >= 64) {
-	psyslog("hammer_serial_stack_size = %d\n",hammer_serial_stack_size);
-	passert(0);
-  }
-  //printf("hammer_serial_stack_size=%d\n",hammer_serial_stack_size);
+  passert(hammer_serial_stack_size < 64);
   hammer_serial_stack[hammer_serial_stack_size++] = d1;
   hammer_serial_stack[hammer_serial_stack_size++] = d2;
   if (hammer_serial_stack_size == 60) {
@@ -259,11 +252,11 @@ void flush_spi_write() {
 
 void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t *p_value) {
   QUEUED_REG_ELEMENT *e = &cmd_queue[current_cmd_queue_ptr++];
-  //printf("R:%x %x %x\n",current_cmd_queue_ptr,addr,offset);
+  //printf("%x %x %x %x\n",current_cmd_queue_ptr,e->addr,e->offset,e->value);
   passert(current_cmd_queue_ptr < MAX_FPGA_CMD_QUEUE);
-  passert(e->addr == 0);
-  passert(e->offset == 0);
-  passert(e->value == 0);
+  //passert(e->addr == 0);
+  //passert(e->offset == 0);
+  //passert(e->value == 0);
   e->addr = addr;
   e->offset = offset;
   e->p_value = p_value;	
@@ -290,8 +283,6 @@ void push_hammer_write(uint32_t addr, uint32_t offset, uint32_t value) {
  */
   uint32_t d1;
   uint32_t d2;
-  //printf("W:%x %x %x %x\n",current_cmd_queue_ptr,addr,offset, value);
-  
   create_serial_pkt(&d1, &d2, offset, 0, addr, value,
                     /*GENERAL_BITS_COMPLETION*/ 0);
   // printf("---> %x %x\n",d1,d2);
@@ -305,9 +296,9 @@ int wait_rx_queue_ready() {
   int loops = 0;
   uint32_t q_status = read_spi(ADDR_SQUID_STATUS);
   // printf("Q STATUS:%x \n", q_status);
-  while ((++loops < 1000) &&
+  while ((++loops < 100) &&
          ((q_status & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) == 0)) {
-    usleep(20);
+    usleep(1);
     q_status = read_spi(ADDR_SQUID_STATUS);
   }
   return ((q_status & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) != 0);
@@ -322,10 +313,12 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
     // TODO  - handle timeout?
     if (assert_serial_failures) {
       printf("FAILED TO READ 0x%x 0x%x\n", address, offset);
-	  passert(0);
+#ifdef DC2DC_CHECK_ON_ERROR
+//	  check_for_dc2dc_errors();
+#endif
       return 0;
     } else {
-      printf("SPI Rx queue timeout.\n");
+      printf("Rx queue timeout.\n");
       return 0;
     }
   }
@@ -339,8 +332,8 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
   if ((address != got_addr) || (offset != got_offset)) {
     // Data returned corrupted :(
     if (assert_serial_failures) {
-      printf("Data corruption: wanted address(%x)!=address(%x) or wanted offset(%x)!=offset(%x)\n", 
-	  		address, got_addr, offset, got_offset);
+      printf("Data corruption: READ:0x%x 0x%x / GOT:0x%x 0x%x \n", address,
+             offset, values[0], values[1]);
       passert(0, "29578");
     } else {
       printf("Data corruption: READ:0x%x 0x%x / GOT:0x%x 0x%x \n", address,
@@ -376,7 +369,7 @@ int fpga_queue_status() {
 }
 
 void reset_hammer_queue() {
-  memset(cmd_queue, 0, current_cmd_queue_ptr * sizeof(QUEUED_REG_ELEMENT));
+  //memset(cmd_queue, 0, current_cmd_queue_ptr * sizeof(QUEUED_REG_ELEMENT));
   current_cmd_queue_ptr = 0;
   current_cmd_hw_queue_ptr = 0;
 }
@@ -403,7 +396,6 @@ void squid_wait_hammer_reads() {
       reset_hammer_queue();
       break;
     }
-	usleep(40);
   }
 
   return;
