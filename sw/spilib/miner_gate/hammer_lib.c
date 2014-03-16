@@ -15,6 +15,7 @@
 #include "ac2dc.h"
 #include "hammer_lib.h"
 #include "asic_thermal.h"
+#include "board.h"
 
 #include <pthread.h>
 #include <spond_debug.h>
@@ -577,9 +578,9 @@ int do_bist_ok_rt(int long_bist) {
   poll_counter = 0;
 
 
-  // Give BIST job
-  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 100); 
-  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 300);
+  // Give BIST jobc
+  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 200); 
+  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 400);
   write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, bist_tests[bist_id].nonce_winner); // 0x1DAC2B7C
   write_reg_broadcast(ADDR_MID_STATE + 0, bist_tests[bist_id].midstate[0]);
   write_reg_broadcast(ADDR_MID_STATE + 1, bist_tests[bist_id].midstate[1]);
@@ -803,14 +804,18 @@ int update_vm_with_currents_and_temperatures_nrt() {
 
   // Update DC2DC
   if (vm.loop[loop].enabled_loop) {
-    int overcurrent = 0;
-    update_dc2dc_current_temp_measurments(loop, &overcurrent); 
+    int overcurrent = 0, oc_warning=0;
+    update_dc2dc_current_temp_measurments(loop, &overcurrent, &oc_warning); 
     critical_current = (vm.loop[loop].dc2dc.dc_current_16s > vm.loop[loop].dc2dc.dc_current_limit_16s);
-    if (critical_current) {
-      if (critical_current) {
-         printf(RED "CRITICAL CURRENT detected %d on loop %d\n" RESET,
-                    vm.loop[loop].dc2dc.dc_current_16s ,loop);  
-      }
+     if (oc_warning) {
+       printf(RED "OC WARNING!!! detected %d on loop %d\n" RESET,
+                  vm.loop[loop].dc2dc.dc_current_16s ,loop);  
+     }
+
+    
+    if (critical_current || oc_warning) {
+      printf(RED "CRITICAL CURRENT detected %d on loop %d\n" RESET,
+                  vm.loop[loop].dc2dc.dc_current_16s ,loop);  
   
       int l = loop;
 
@@ -888,6 +893,79 @@ void proccess_temp_reading_rt(HAMMER *a, int intr) {
 
 }
 
+// 30 times a second - poll win and 1 temperature 
+// and set 1 pll
+void once_33_msec_pll_rt() {
+#if 0
+       struct timeval tv;
+       if (vm.pll_changed != 0) {
+         printf("PLL change start counter=%d\n",0);
+         stop_all_work_rt();
+         start_stopper(&tv);
+         disable_engines_all_asics();
+         printf("PLL change middle\n");
+         // Start PLL
+         for (int i = 0 ; i < HAMMERS_COUNT; i++) {
+           if (vm.hammer[i].asic_present &&
+               (vm.hammer[i].freq_wanted != vm.hammer[i].freq_hw)) {
+              printf("PLL change %x\n",i);
+              set_pll(pll_set_addr, vm.hammer[i].freq_wanted);
+              vm.hammer[i].freq_hw = vm.hammer[i].freq_wanted;
+           }
+         }
+         printf("PLL change middle 2\n"); 
+         usleep(2000);
+         enable_good_engines_all_asics_ok();
+         resume_all_work();
+         end_stopper(&tv,"PLL change");        
+         vm.pll_changed=0;
+         squid_wait_hammer_reads();
+       }
+ 
+#else   
+//-- This is EVIL!!! 
+#if 0
+ // Finalise last PLL setting
+ if (vm.hammer[pll_set_addr].asic_present && 
+     vm.hammer[pll_set_addr].pll_waiting_reply) {
+   enable_engines_asic(vm.hammer[pll_set_addr].address, vm.hammer[pll_set_addr].working_engines);
+   vm.hammer[pll_set_addr].pll_waiting_reply = false;
+   printf("Pll done:%x \n",vm.hammer[pll_set_addr].address);
+ }
+
+  // find next PLL
+  pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
+  /*
+  for (int i = 0 ; i < 20 ; i++) {
+    if (!vm.hammer[pll_set_addr].asic_present ||
+     (vm.hammer[pll_set_addr].freq_wanted == vm.hammer[pll_set_addr].freq_hw)) {
+      pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
+    } else {
+      break;
+    }
+  }
+  */
+
+  // prepare next PLL - start pll change
+  if (vm.hammer[pll_set_addr].asic_present && 
+      (vm.hammer[pll_set_addr].freq_wanted != vm.hammer[pll_set_addr].freq_hw)) {
+    disable_engines_asic(pll_set_addr);
+    //doing_pll = 1;
+    //printf("once_33_msec_tasks_rt set pll %x", pll_set_addr);
+    //printf("Set pll %x %d to %d\n",next_pll,vm.hammer[next_pll].freq_hw,vm.hammer[next_pll].freq_wanted);
+    set_pll(pll_set_addr, vm.hammer[pll_set_addr].freq_wanted);
+    vm.hammer[pll_set_addr].pll_waiting_reply = true;
+  }
+
+#endif  
+#endif  // Change ALL PLLS at once
+  
+  // Handle previous READs/WRITEs
+  //squid_wait_hammer_reads();
+
+
+}
+
 
 void once_33_msec_temp_rt() {
   static uint32_t intr_reg=0;
@@ -906,9 +984,10 @@ void once_33_msec_temp_rt() {
     printf("Pll done:%x \n",vm.hammer[pll_set_addr].address);
   }
 
-   pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
+ 
 
    // find next PLL
+   pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
    /*
    
    for (int i = 0 ; i < 24 ; i++) {
@@ -932,6 +1011,12 @@ void once_33_msec_temp_rt() {
      vm.hammer[pll_set_addr].pll_waiting_reply = true;
    }
 
+
+
+
+
+
+  
   push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win_reg);
 
   
@@ -941,6 +1026,10 @@ void once_33_msec_temp_rt() {
   }
 
 
+
+
+
+  
 //-------------------------------
  squid_wait_hammer_reads();
 //-------------------------------
@@ -981,6 +1070,50 @@ void once_33_msec_win_rt() {
 
 
 }
+
+
+void once_33_msec_tasks_rt() {
+  static int counter = 0;
+
+
+ // static uint32_t pll_reg=0;  
+  if (++counter % 30 == 0) {
+    once_second_tasks_rt();
+  } 
+
+
+  
+  if (!vm.asics_shut_down_powersave) { 
+
+
+
+
+  
+    /*
+    if (measure_temp_addr == 0) {
+      // rotate temperature
+      temp_measure_temp = (ASIC_TEMP)(temp_measure_temp+1);
+      if (temp_measure_temp == ASIC_TEMP_107) {
+        temp_measure_temp = ASIC_TEMP_83;
+      }
+        // measure "temp_measure_temp"
+        write_reg_broadcast(ADDR_TS_SET_0, temp_measure_temp-1);
+        // Measure next temperature with it
+        write_reg_broadcast(ADDR_TS_SET_1, temp_measure_temp-1+4);
+        write_reg_broadcast(ADDR_COMMAND, BIT_CMD_TS_RESET_1 | BIT_CMD_TS_RESET_0);
+    }
+    */
+   
+ 
+  
+    
+
+      // Try to read win reg out the function too...
+      // push_hammer_read(BROADCAST_ADDR, ADDR_BR_WIN, &win_reg);
+  }
+}
+
+
 
 void push_job_to_hw_rt() {
   RT_JOB work;
@@ -1039,27 +1172,27 @@ void once_1650_usec_tasks_rt() {
   }
 
 
-  if (counter % 600 == 0) {
-    once_second_tasks_rt();
+  if (counter % 20 == 0) {
+    once_33_msec_tasks_rt();
     push_job_to_hw_rt();    
     // Push one more job!
   }
-/*
+
   if (counter % 20 == 5) {
     once_33_msec_pll_rt();
     push_job_to_hw_rt();        
   }
-*/
+
   if (counter % 20 == 10) {
     once_33_msec_temp_rt();
     push_job_to_hw_rt();
   }
-/*
+
   if (counter % 20 == 15) {
     once_33_msec_win_rt();
     push_job_to_hw_rt();        
   }
-*/
+
   // Move latest job to complete queue
 
  
@@ -1082,8 +1215,33 @@ void *i2c_state_machine_nrt(void *p) {
       update_vm_with_currents_and_temperatures_nrt();
     }
 
+    if ((counter % (48*5)) ==  0)  {
+      int err;
+      int mgmt_tmp = get_mng_board_temp();
+      int bottom_tmp = get_bottom_board_temp();
+      int top_tmp = get_top_board_temp();      
+      printf("MGMT TEMP = %d\n",mgmt_tmp);
+      printf("BOTTOM TEMP = %d\n",bottom_tmp);
+      printf("TOP TEMP = %d\n",top_tmp);
+      
+      if ((mgmt_tmp > 42) || (bottom_tmp > 80) || (top_tmp > 80)) {
+        for (int l = 0 ; l < LOOP_COUNT ; l++) {
+          dc2dc_disable_dc2dc(l, &err); 
+        }
+        set_light(LIGHT_YELLOW, 0);
+        set_light(LIGHT_GREEN, 0);
+        set_fan_level(100);
+        usleep(1000*1000*10);
+        exit(0);
+      }
+    }
+
+
     // Update AC2DC
     if ((counter % (48)) ==  0)  {
+       //printf("BOARD TEMP = %d\n", get_mng_board_temp());
+       //printf("BOTTOM TEMP = %d\n", get_bottom_board_temp());
+       //printf("TOP TEMP = %d\n", get_top_board_temp());       
        update_ac2dc_power_measurments();
     } 
 

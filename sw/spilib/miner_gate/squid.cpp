@@ -234,7 +234,11 @@ int hammer_serial_stack[64] = { 0 };
 int hammer_serial_stack_size = 0;
 
 void push_hammer_serial_packet_to_hw(uint32_t d1, uint32_t d2) {
-  passert(hammer_serial_stack_size < 64);
+  if(hammer_serial_stack_size >= 64) {
+	psyslog("hammer_serial_stack_size = %d\n",hammer_serial_stack_size);
+	passert(0);
+  }
+  //printf("hammer_serial_stack_size=%d\n",hammer_serial_stack_size);
   hammer_serial_stack[hammer_serial_stack_size++] = d1;
   hammer_serial_stack[hammer_serial_stack_size++] = d2;
   if (hammer_serial_stack_size == 60) {
@@ -296,7 +300,7 @@ int wait_rx_queue_ready() {
   int loops = 0;
   uint32_t q_status = read_spi(ADDR_SQUID_STATUS);
   // printf("Q STATUS:%x \n", q_status);
-  while ((++loops < 100) &&
+  while ((++loops < 500) &&
          ((q_status & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) == 0)) {
     usleep(1);
     q_status = read_spi(ADDR_SQUID_STATUS);
@@ -396,6 +400,7 @@ void squid_wait_hammer_reads() {
       reset_hammer_queue();
       break;
     }
+	//usleep(40);
   }
 
   return;

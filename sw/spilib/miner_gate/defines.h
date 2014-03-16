@@ -45,7 +45,7 @@
 
 
 #define DC2DC_TEMP_GREEN_LINE         120
-#define DC2DC_INITIAL_CURRENT_16S (58 * 16) 
+#define DC2DC_INITIAL_CURRENT_16S (62 * 16) 
 
 
 
@@ -66,7 +66,7 @@
 #if ECONOMY == 1
 #define VTRIM_START 0x0FFbf
 #else
-#define VTRIM_START (VTRIM_664) //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
+#define VTRIM_START (VTRIM_661) //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
 #endif
 
 

@@ -50,7 +50,7 @@ void dc2dc_init_loop(int loop);
 
 int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err, uint8_t *temp ,int *err);
 
-int update_dc2dc_current_temp_measurments(int loop, int* overcurrent_err);
+int update_dc2dc_current_temp_measurments(int loop, int* overcurrent_err,  int* overcurrent_warning);
 
 // in takes 0.2second for voltage to be stable.
 // Remember to wait after you exit this function

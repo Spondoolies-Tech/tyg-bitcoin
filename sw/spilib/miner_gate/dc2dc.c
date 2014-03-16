@@ -55,13 +55,14 @@ void dc2dc_init_loop(int loop) {
     i2c_write_word(I2C_DC2DC, 0x35, 0xf028); 	// VIN ON
     i2c_write_word(I2C_DC2DC, 0x36, 0xf018); 	// VIN OFF(??)
     i2c_write_word(I2C_DC2DC, 0x38, 0x881f); 	// Inductor DCR
-    i2c_write_word(I2C_DC2DC, 0x46, 0xf846); 	// OC Fault
-    i2c_write_word(I2C_DC2DC, 0x4a, 0xf836); 	// OC warn
+    i2c_write_word(I2C_DC2DC, 0x46, 0xf848); 	// OC Fault
+    i2c_write_word(I2C_DC2DC, 0x4a, 0xf844); 	// OC warn
     i2c_write_byte(I2C_DC2DC, 0x47, 0x3C);		// OC fault response
     i2c_write_byte(I2C_DC2DC, 0xd7, 0x03);		// PG limits
     i2c_write_byte(I2C_DC2DC, 0x02, 0x02);		// ON/OFF conditions
+
     //i2c_write(I2C_DC2DC, 0x15);
-    usleep(1000);
+    //usleep(1000);
     i2c_write(I2C_DC2DC, 0x03);
 #ifndef __MBTEST__
     psyslog("OK INIT DC2DC\n");
@@ -198,7 +199,7 @@ void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
 
 
 // returns AMPERS
-int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err, uint8_t *temp ,int *err) {
+int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err, int* overcurrent_warning ,uint8_t *temp ,int *err) {
   // TODO - select loop!
   // int err = 0;
   passert(err != NULL);
@@ -212,13 +213,23 @@ int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err, uint8_t *temp
   dc2dc_set_channel(0, err);
   *temp = i2c_read_word(I2C_DC2DC, 0x8e, err) /* *1000/512 */;
   current += (i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
-  *overcurrent_err |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
+  int problems = i2c_read_word(I2C_DC2DC, 0x7b);
+  *overcurrent_err |= (problems & 0x80);
+  *overcurrent_warning |= (problems & 0x20);
+  if (problems) {
+    i2c_write(I2C_DC2DC, 0x03);
+  }
   dc2dc_set_channel(1, err);
   int cur2=(i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
   //printf("LOOP:%d: C0=%d, C1=%d\n", loop, current/16, cur2/16);
   current += cur2;
   *temp += i2c_read_word(I2C_DC2DC, 0x8e, err) /* *1000/512 */;
-  *overcurrent_err |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
+  problems = i2c_read_word(I2C_DC2DC, 0x7b);  
+  *overcurrent_err |= (problems & 0x80);
+  *overcurrent_warning |= (problems & 0x20);  
+  if (problems) {
+    i2c_write(I2C_DC2DC, 0x03);
+  }
   dc2dc_set_channel(0x81, err);
   *temp = *temp/2;
   if (*err) {
@@ -233,13 +244,13 @@ int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err, uint8_t *temp
 
 #ifdef MINERGATE
 // Return 1 if needs urgent scaling
-int update_dc2dc_current_temp_measurments(int loop, int* overcurrent) {
+int update_dc2dc_current_temp_measurments(int loop, int* overcurrent, int* overcurrent_warning) {
   int err;
   int i = loop;
   if (vm.loop[i].enabled_loop) {
   
     if (!vm.asics_shut_down_powersave) {
-        int current = dc2dc_get_current_16s_of_amper(i, overcurrent, &vm.loop[i].dc2dc.dc_temp , &err);
+        int current = dc2dc_get_current_16s_of_amper(i, overcurrent, overcurrent_warning , &vm.loop[i].dc2dc.dc_temp , &err);
 
         if (*overcurrent != 0){
         	psyslog("DC2DC OC ERROR in LOOP %d !!\n", loop);
