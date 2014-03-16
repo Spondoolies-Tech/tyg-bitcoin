@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
    if ((counter%((1000/jobs_period))) == 0) {
       global_rate+=rate;
       global_rate_cnt++;
-      printf(MAGENTA "HASH RATE=%dGH (TOTAL=%dGH)\n" RESET,rate*4,(global_rate/global_rate_cnt)*4);
+      printf(MAGENTA "HASH RATE=%dGH (TOTAL=%fGH)\n" RESET,rate*4,((4.0*(float)global_rate)/(float)global_rate_cnt));
       rate=0;
    }
  }

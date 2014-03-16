@@ -87,17 +87,20 @@ static void sighandler(int sig)
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
     dc2dc_disable_dc2dc(l, &err); 
   }
-  kill_fan();
+  set_fan_level(40);
   psyslog("Here comes unexpected death!\n");
   exit(0);
 }
 
 
-void print_adapter() {
+void print_adapter(FILE *f ) {
   minergate_adapter *a = adapters[0];
   if (a) {
-    psyslog("Adapter queues: rsp=%d, req=%d\n", a->work_minergate_rsp.size(),
+    fprintf(f, "Adapter queues: rsp=%d, req=%d\n", 
+            a->work_minergate_rsp.size(),
            a->work_minergate_req.size());
+  } else {
+    fprintf(f, "No Adapter\n");
   }
 }
 
@@ -132,7 +135,7 @@ void push_work_rsp(RT_JOB *work) {
   r.work_id_in_sw = work->work_id_in_sw;
   r.res = 0;
   adapter->work_minergate_rsp.push(r);
-  passert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE * 2);
+  //passert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE * 2);
   pthread_mutex_unlock(&network_hw_mutex);
 }
 
@@ -516,7 +519,7 @@ int main(int argc, char *argv[]) {
   psyslog("init_pwm\n");
   init_pwm();
   psyslog("set_fan_level\n");
-  set_fan_level(0);
+  set_fan_level(50);
   //exit(0);
   reset_sw_rt_queue();
   leds_init();

@@ -12,6 +12,9 @@
 
 __prog_name=`basename $0`
 
+export PATH=$PATH:/usr/local/bin
+
+SHAR=spon.shar
 
 
 # Return code (errors). Start frm 200 to leave curl error code intact.
@@ -22,12 +25,13 @@ not_upgradable=202
 no_board_id=203
 mount_fail=204
 no_uimage=205
-download_fail=206
+untar_fail=206
 bad_signature=207
+shar_missing=208
 
 
 url=
-shar=
+tar=
 bootfrom=
 board_id=
 software_version=
@@ -57,9 +61,9 @@ usage()
 parse_args()
 {
 	opts="help,url:"
-
 	temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
 	[ $? -ne 0 ] && usage
+
 	eval set -- "$temp"
 
 	while :
@@ -67,8 +71,8 @@ parse_args()
 		case $1 in
 		-h|--help)              usage; exit 0; shift ;;
 		--url)			url=$2;
-					shar=`basename ${url}`
-					shift 2 ; break;;
+					tar=`basename ${url}`
+					shift 2 ;;
 		--)                     shift; break 2 ;;  # exit loop
 		* )                     echo "unknown parameter $1"; return 1 ;;
 	esac
@@ -82,14 +86,8 @@ detect_boot_source()
 {
 	# bootfrom=<BOOTSOURCE> is always the last element of kernel
 	# command line so may get it this way.
-
-	# on 10.0.0.20, 13/03/2014, this returns: console=ttyO0,115200n8 ip=::::::none::
-	# so we cannot get bootsource with this command
-	#grep -q bootfrom /proc/cmdline &&
-	#	bootfrom=`sed 's/.*bootfrom=//' /proc/cmdline` ||
-
-	#instead, lets look for uImage under /mnt. 
-	bootfrom=`find /mnt -name uImage | head -1 | sed 's/-.*//;s/^.*\///'` ||
+	grep -q bootfrom /proc/cmdline &&
+		bootfrom=`sed 's/.*bootfrom=//' /proc/cmdline` ||
 			{ echo 'Cannot detect boot source.'; exit ${no_bootsource}; }
 }
 
@@ -119,7 +117,7 @@ get_software_version()
 }
 
 
-download_shar()
+download_software()
 {
 	cd /tmp
 	download-file.sh --url=${url}						\
@@ -128,10 +126,21 @@ download_shar()
 }
 
 
+untar()
+{
+	tar xf ${tar} 2>/dev/null ||
+		{ echo "${tar}: Cannot untar."; exit ${untar_fail}; }
+	( [ -f ${SHAR} ] && [ -f ${SHAR}.sign ] ) ||
+		{ echo "Either ${SHAR} or ${SHAR}.sign is missing."; exit ${shar_missing}; }
+
+	# No need in .TAR file anymore.
+	rm -f ${tar}
+}
+
 verify_shar()
 {
-	verify-digest.sh --file=${shar} --public=${SPON_PUBLIC_KEY} ||
-		{ echo "${shar}: bad signature"; exit ${bad_signature}; }
+	verify-digest.sh --file=${SHAR} --public=${SPON_PUBLIC_KEY} ||
+		{ echo "${SHAR}: bad signature"; exit ${bad_signature}; }
 }
 
 
@@ -140,7 +149,7 @@ run_shar()
 	export CURRENT_VERSION="${software_version}"
 	export MEDIA=${bootfrom}
 	# This is VERY dangerous. But anyway we do it.
-	sh ${shar}
+	sh ${SHAR}
 }
 
 is_upgradeable()
@@ -162,7 +171,8 @@ main()
 		get_board_id
 		mount_boot_partition
 		get_software_version
-		download_shar
+		download_software
+		untar
 		verify_shar
 		run_shar
 	else

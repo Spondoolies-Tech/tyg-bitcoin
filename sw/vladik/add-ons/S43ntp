@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# NTP client
+#
+# Written by Vladik Goytin.
+
+. /etc/common-defs
+
+ntp_start()
+{
+	/usr/sbin/ntpd -p ${NTP_SERVER}
+}
+
+
+ntp_stop()
+{
+	pkill ntpd
+}
+
+case "$1" in
+start)
+	ntp_start
+	;;
+stop)
+	ntp_stop
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+

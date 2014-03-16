@@ -198,7 +198,7 @@ void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
 
 
 // returns AMPERS
-int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err ,int *err) {
+int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err, uint8_t *temp ,int *err) {
   // TODO - select loop!
   // int err = 0;
   passert(err != NULL);
@@ -210,12 +210,17 @@ int dc2dc_get_current_16s_of_amper(int loop, int* overcurrent_err ,int *err) {
   int current = 0;
   dc2dc_select_i2c(loop, err);
   dc2dc_set_channel(0, err);
+  *temp = i2c_read_word(I2C_DC2DC, 0x8e, err) /* *1000/512 */;
   current += (i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
   *overcurrent_err |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
   dc2dc_set_channel(1, err);
-  current += (i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
+  int cur2=(i2c_read_word(I2C_DC2DC, 0x8c) & 0x07FF);
+//  printf("%d: C0=%d, C1=%d\n", loop, current, cur2);
+  current += cur2;
+  *temp += i2c_read_word(I2C_DC2DC, 0x8e, err) /* *1000/512 */;
   *overcurrent_err |= (i2c_read_word(I2C_DC2DC, 0x7b) & 0x80);
   dc2dc_set_channel(0x81, err);
+  *temp = *temp/2;
   if (*err) {
     dc2dc_i2c_close();
     pthread_mutex_unlock(&i2c_mutex);
@@ -232,10 +237,12 @@ int update_dc2dc_current_temp_measurments(int loop, int* overcurrent) {
   int err;
   int i = loop;
   if (vm.loop[i].enabled_loop) {
-    vm.loop[i].dc2dc.dc_temp = dc2dc_get_temp(i, &err);
   
     if (!vm.asics_shut_down_powersave) {
-        int current = dc2dc_get_current_16s_of_amper(i, overcurrent, &err);
+        int current = dc2dc_get_current_16s_of_amper(i, overcurrent,
+         &vm.loop[i].dc2dc.dc_temp , &err);
+
+
         if (*overcurrent != 0){
         	psyslog("DC2DC OC ERROR in LOOP %d !!\n", loop);
         	psyslog("... last 4 previous measures of DC2DC %d !!\n", loop);
@@ -250,11 +257,11 @@ int update_dc2dc_current_temp_measurments(int loop, int* overcurrent) {
         vm.loop[i].dc2dc.dc_current_16s_arr_ptr=(vm.loop[i].dc2dc.dc_current_16s_arr_ptr+1)%4;
         // Remove noise
         //printf("READ  %d %d\n",loop,current,current);
-        vm.loop[i].dc2dc.dc_current_16s = 
+        vm.loop[i].dc2dc.dc_current_16s = current; /*
           (vm.loop[i].dc2dc.dc_current_16s_arr[0] + 
            vm.loop[i].dc2dc.dc_current_16s_arr[1] +
            vm.loop[i].dc2dc.dc_current_16s_arr[2] +
-           vm.loop[i].dc2dc.dc_current_16s_arr[3]) >> 2;
+           vm.loop[i].dc2dc.dc_current_16s_arr[3]) >> 2;*/
           
         vm.loop[i].dc2dc.dc_power_watts_16s = 
         vm.loop[i].dc2dc.dc_current_16s*VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[i])/1000;
@@ -291,7 +298,7 @@ int dc2dc_get_voltage(int loop, int *err) {
 
 int dc2dc_get_temp(int loop, int *err) {
   // returns max temperature of the 2 sensors
-#if 0  
+#if 0
   passert(err != NULL);
   int temp1;
   //printf("%s:%d\n",__FILE__, __LINE__);

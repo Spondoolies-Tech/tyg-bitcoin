@@ -9,7 +9,7 @@
 // System parameters
 #define ASIC_TEMPERATURE_TO_SET_FANS_HIGH   ASIC_TEMP_89
 // Above this not allowed
-#define MAX_ASIC_TEMPERATURE ASIC_TEMP_125
+#define MAX_ASIC_TEMPERATURE ASIC_TEMP_113
 
 #define ASIC_TO_SET_FANS_HIGH_COUNT   50
 #define ASIC_TO_SET_FANS_LOW_COUNT    20
@@ -28,14 +28,14 @@
 
 // In seconds
 #define BIST_PERIOD_SECS_RAMPUP            1
-#define BIST_PERIOD_SECS                   15 
+#define BIST_PERIOD_SECS                   5 
 #define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 2
 
 
 
 #define AC2DC_TEMP_GREEN_LINE 110
 #define AC2DC_CURRENT_TRUSTWORTHY (10)
-#define AC2DC_POWER_LIMIT  (1250)
+#define AC2DC_POWER_LIMIT  (1220)
 #define AC2DC_UPSCALE_TIME_SECS   60  //2 2 minutes wait before upscaling AC2DC 
 
 #define AC2DC_CURRENT_JUMP_16S        (16)
@@ -45,7 +45,7 @@
 
 
 #define DC2DC_TEMP_GREEN_LINE         120
-#define DC2DC_INITIAL_CURRENT_16S (60 * 16) 
+#define DC2DC_INITIAL_CURRENT_16S (58 * 16) 
 
 
 
@@ -66,7 +66,7 @@
 #if ECONOMY == 1
 #define VTRIM_START 0x0FFbf
 #else
-#define VTRIM_START (VTRIM_661-2) //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
+#define VTRIM_START (VTRIM_661) //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
 #endif
 
 

@@ -73,7 +73,12 @@ void set_pll(int addr, ASIC_FREQ freq) {
   write_reg_device(addr, ADDR_DLL_OFFSET_CFG_HIGH, 0x0082C381);
   passert(freq < ASIC_FREQ_MAX);
   passert(freq >= ASIC_FREQ_225);
-  pll_frequency_settings *ppfs = &pfs[freq];
+  pll_frequency_settings *ppfs;
+ // if (freq > ASIC_FREQ_225) {
+ //   ppfs = &pfs[freq-1];
+ // } else {
+  ppfs = &pfs[freq];
+ // }
   uint32_t pll_config = 0;
   uint32_t M = ppfs->m_mult;
   uint32_t P = ppfs->p_div;
@@ -103,7 +108,7 @@ int enable_good_engines_all_asics_ok() {
     int killed_pll=0;
     
     while ((reg = read_reg_broadcast(ADDR_BR_PLL_NOT_READY)) != 0) {
-      if (i++ > 500) {
+      if (i++ > 100) {
         psyslog(RED "PLL %x stuck, killing ASIC\n" RESET, reg);
         //return 0;
         int addr = BROADCAST_READ_ADDR(reg);

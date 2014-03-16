@@ -52,6 +52,8 @@ do_upgrade()
 			mv uImage.old uImage;					\
 			mv spondoolies.dtb.old spondoolies.dtb;			\
 			exit 223; }
+
+	sync
 }
 
 

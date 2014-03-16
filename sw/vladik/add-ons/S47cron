@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# Cron services.
+#
+# Written by Vladik Goytin.
+
+cron_start()
+{
+	/usr/sbin/crond
+}
+
+
+cron_stop()
+{
+	pkill crond
+}
+
+case "$1" in
+start)
+	cron_start
+	;;
+stop)
+	cron_stop
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+

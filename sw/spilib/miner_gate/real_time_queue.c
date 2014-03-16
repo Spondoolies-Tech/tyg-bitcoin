@@ -46,34 +46,31 @@ RT_JOB *add_to_sw_rt_queue(const RT_JOB *work) {
     one_done_sw_rt_queue(&old_w);
     push_work_rsp(&old_w);
   }
-  passert(rt_queue[rt_queue_sw_write].work_state == WORK_STATE_FREE);
+  //passert(rt_queue[rt_queue_sw_write].work_state == WORK_STATE_FREE);
   RT_JOB *work_in_queue = &rt_queue[rt_queue_sw_write];
   *work_in_queue = *work;
-  passert(rt_queue_sw_write < 0x100);
+  //passert(rt_queue_sw_write < 0x100);
   work_in_queue->work_id_in_hw = rt_queue_sw_write;
   work_in_queue->work_state = WORK_STATE_HAS_JOB;
   // to make sure...
-  passert(work_in_queue->winner_nonce == 0);
+  //passert(work_in_queue->winner_nonce == 0);
   work_in_queue->work_id_in_hw = rt_queue_sw_write;
   rt_queue_sw_write = (rt_queue_sw_write + 1) % 0x100;
   rt_queue_size++;
-  passert((rt_queue_sw_write - rt_queue_hw_done) % 0x100 <=
-          MAX_PACKETS_IN_RT_QUEUE);
-  passert(rt_queue_size <= MAX_PACKETS_IN_RT_QUEUE);
-  
+  //passert((rt_queue_sw_write - rt_queue_hw_done) % 0x100 <= MAX_PACKETS_IN_RT_QUEUE);
+  //passert(rt_queue_size <= MAX_PACKETS_IN_RT_QUEUE);
   return work_in_queue;
 }
 
 int one_done_sw_rt_queue(RT_JOB *work) {
   if (rt_queue_size) {
     *work = rt_queue[rt_queue_hw_done];
-    passert(rt_queue[rt_queue_hw_done].work_state == WORK_STATE_HAS_JOB);
+    //passert(rt_queue[rt_queue_hw_done].work_state == WORK_STATE_HAS_JOB);
     rt_queue[rt_queue_hw_done].work_state = WORK_STATE_FREE;
     rt_queue_hw_done = (rt_queue_hw_done + 1) % 0x100;
     rt_queue_size--;
-    passert((rt_queue_sw_write - rt_queue_hw_done) % 0x100 <=
-            MAX_PACKETS_IN_RT_QUEUE);
-    passert(rt_queue_size <= MAX_PACKETS_IN_RT_QUEUE);
+    //passert((rt_queue_sw_write - rt_queue_hw_done) % 0x100 <= MAX_PACKETS_IN_RT_QUEUE);
+    //passert(rt_queue_size <= MAX_PACKETS_IN_RT_QUEUE);
     return 1;
   }
   return 0;

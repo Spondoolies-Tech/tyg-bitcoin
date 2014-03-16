@@ -241,6 +241,7 @@ void push_hammer_serial_packet_to_hw(uint32_t d1, uint32_t d2) {
 	psyslog("hammer_serial_stack_size = %d\n",hammer_serial_stack_size);
 	passert(0);
   }
+  //printf("hammer_serial_stack_size=%d\n",hammer_serial_stack_size);
   hammer_serial_stack[hammer_serial_stack_size++] = d1;
   hammer_serial_stack[hammer_serial_stack_size++] = d2;
   if (hammer_serial_stack_size == 60) {
@@ -258,7 +259,7 @@ void flush_spi_write() {
 
 void push_hammer_read(uint32_t addr, uint32_t offset, uint32_t *p_value) {
   QUEUED_REG_ELEMENT *e = &cmd_queue[current_cmd_queue_ptr++];
-  //printf("%x %x %x %x\n",current_cmd_queue_ptr,e->addr,e->offset,e->value);
+  //printf("R:%x %x %x\n",current_cmd_queue_ptr,addr,offset);
   passert(current_cmd_queue_ptr < MAX_FPGA_CMD_QUEUE);
   passert(e->addr == 0);
   passert(e->offset == 0);
@@ -289,6 +290,8 @@ void push_hammer_write(uint32_t addr, uint32_t offset, uint32_t value) {
  */
   uint32_t d1;
   uint32_t d2;
+  //printf("W:%x %x %x %x\n",current_cmd_queue_ptr,addr,offset, value);
+  
   create_serial_pkt(&d1, &d2, offset, 0, addr, value,
                     /*GENERAL_BITS_COMPLETION*/ 0);
   // printf("---> %x %x\n",d1,d2);
@@ -302,9 +305,9 @@ int wait_rx_queue_ready() {
   int loops = 0;
   uint32_t q_status = read_spi(ADDR_SQUID_STATUS);
   // printf("Q STATUS:%x \n", q_status);
-  while ((++loops < 100) &&
+  while ((++loops < 1000) &&
          ((q_status & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) == 0)) {
-    usleep(1);
+    usleep(20);
     q_status = read_spi(ADDR_SQUID_STATUS);
   }
   return ((q_status & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY) != 0);

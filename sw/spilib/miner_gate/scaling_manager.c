@@ -59,7 +59,7 @@ void pause_all_mining_engines() {
   int err;
   //passert(vm.asics_shut_down_powersave == 0);
   int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
-  set_fan_level(0);
+  set_fan_level(50);
   while(some_asics_busy != 0) {
     int addr = BROADCAST_READ_ADDR(some_asics_busy);
     psyslog(RED "some_asics_busy %x\n" RESET, some_asics_busy);
@@ -191,6 +191,7 @@ extern int rt_queue_size;
 extern int rt_queue_sw_write;
 extern int rt_queue_hw_done;
 
+void print_adapter(FILE *f ) ;
 
 void print_scaling() {
   int err;
@@ -203,7 +204,8 @@ void print_scaling() {
 
   //hammer_iter_init(&hi);
   int total_hash_power=0;
-  int theoretical_hash_power=0;  
+  int theoretical_hash_power=0; 
+  int wanted_hash_power=0;
   int total_loops=0;
   int total_asics=0;
   int expected_rate=0;
@@ -257,8 +259,9 @@ void print_scaling() {
       continue;
     }
 
-    total_hash_power += hi.a->freq_hw*15+220;            
-    theoretical_hash_power += hi.a->freq_thermal_limit*15+220;
+    total_hash_power += hi.a->freq_hw*15+210;  
+    wanted_hash_power += hi.a->freq_wanted*15+210;
+    theoretical_hash_power += hi.a->freq_thermal_limit*15+210;
 
     total_asics++;
 
@@ -272,22 +275,26 @@ void print_scaling() {
   }
   // print last loop
   // print total hash power
-  fprintf(f, RESET "\n[H:%dGh/%dGh,W:%d,L:%d,A:%d,ER:%d,EP:%d]\n",
-  (total_hash_power*15)/1000,
-  theoretical_hash_power*15/1000,
-  total_watt/16,
-  total_loops,
-  total_asics,
-  (total_hash_power*15*192)/1000/total_asics,
-  (vm.ac2dc_power-70)/total_asics*192+70
+  fprintf(f, RESET "\n[H:HW:%dGh/Th:%dGh/W:%dGh,W:%d,L:%d,A:%d,ER:%d,EP:%d]\n",
+                (total_hash_power*15)/1000,
+                theoretical_hash_power*15/1000,
+                wanted_hash_power*15/1000,
+                total_watt/16,
+                total_loops,
+                total_asics,
+                (total_hash_power*15*192)/1000/total_asics,
+                (vm.ac2dc_power-70)/total_asics*192+70
   );
 
    fprintf(f, "Pushed %d jobs , in queue %d jobs!\n",
              vm.last_second_jobs, rt_queue_size);
    vm.last_second_jobs = 0;
-    fprintf(f, "wins:%d, leading-zeroes:%d idle:%d/%d\n", vm.solved_jobs_total,
+    fprintf(f, "wins:%d, leading-zeroes:%d idle:%d/%d :)\n", vm.solved_jobs_total,
            vm.cur_leading_zeroes, vm.idle_probs, vm.busy_probs);
-    
+    print_adapter(f);
+  //   fprintf("Adapter queues: rsp=%d, req=%d\n", 
+  //          a->work_minergate_rsp.size(),
+  //         a->work_minergate_req.size());
 
   fclose(f);
 }
