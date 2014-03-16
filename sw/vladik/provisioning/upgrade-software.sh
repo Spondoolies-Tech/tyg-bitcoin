@@ -12,7 +12,7 @@
 
 __prog_name=`basename $0`
 
-export PATH=$PATH:/sur/local/bin
+export PATH=$PATH:/usr/local/bin
 
 SHAR=spon.shar
 
