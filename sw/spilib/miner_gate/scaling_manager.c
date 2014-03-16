@@ -191,6 +191,7 @@ extern int rt_queue_size;
 extern int rt_queue_sw_write;
 extern int rt_queue_hw_done;
 
+void print_adapter(FILE *f ) ;
 
 void print_scaling() {
   int err;
@@ -258,9 +259,9 @@ void print_scaling() {
       continue;
     }
 
-    total_hash_power += hi.a->freq_hw*15+220;  
-    wanted_hash_power += hi.a->freq_wanted*15+220;
-    theoretical_hash_power += hi.a->freq_thermal_limit*15+220;
+    total_hash_power += hi.a->freq_hw*15+210;  
+    wanted_hash_power += hi.a->freq_wanted*15+210;
+    theoretical_hash_power += hi.a->freq_thermal_limit*15+210;
 
     total_asics++;
 
@@ -288,9 +289,12 @@ void print_scaling() {
    fprintf(f, "Pushed %d jobs , in queue %d jobs!\n",
              vm.last_second_jobs, rt_queue_size);
    vm.last_second_jobs = 0;
-    fprintf(f, "wins:%d, leading-zeroes:%d idle:%d/%d\n", vm.solved_jobs_total,
+    fprintf(f, "wins:%d, leading-zeroes:%d idle:%d/%d :)\n", vm.solved_jobs_total,
            vm.cur_leading_zeroes, vm.idle_probs, vm.busy_probs);
-    
+    print_adapter(f);
+  //   fprintf("Adapter queues: rsp=%d, req=%d\n", 
+  //          a->work_minergate_rsp.size(),
+  //         a->work_minergate_req.size());
 
   fclose(f);
 }

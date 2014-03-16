@@ -351,6 +351,6 @@ typedef struct {
 extern MINER_BOX vm;
 
 
-#define JOB_PUSH_PERIOD_US (1500)
+#define JOB_PUSH_PERIOD_US (1650)
 
 #endif
