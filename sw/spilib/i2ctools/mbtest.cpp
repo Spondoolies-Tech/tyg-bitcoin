@@ -48,131 +48,6 @@ int usage(char * app ,int exCode ,const char * errMsg = NULL)
 }
 
 
-int foo(int topOrBottom ) {
-	 int err;
-	 i2c_init();
-	 uint8_t chr;
-
-	 int I2C_MY_MAIN_BOARD_PIN = (topOrBottom == TOP_BOARD)?PRIMARY_I2C_SWITCH_TOP_MAIN_PIN : PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN;
-	 i2c_write(PRIMARY_I2C_SWITCH, I2C_MY_MAIN_BOARD_PIN, &err);
-	 i2c_write(I2C_DC2DC_SWITCH_GROUP1 , MAIN_BOARD_I2C_SWITCH_EEPROM_PIN , &err);
-
-	 //const char buff[45]{};
-
-	 //const unsigned char * buff = "1234567890123456789012345678901234";
-
-	 //my_i2c_set_address(MAIN_BOARD_I2C_EEPROM_DEV_ADDR,&err);
-
-
-	 //__i2c_write_block_data(MAIN_BOARD_VPD_ADDR_START,43,buff );
-
-	 for (int i = 0; i < MAIN_BOARD_VPD_ADDR_END ; i++) {
-
-//		 i2c_waddr_write_byte( MAIN_BOARD_I2C_EEPROM_DEV_ADDR ,(uint16_t)(0x00FF & i) , 65 );
-
-		 i2c_write_byte(MAIN_BOARD_I2C_EEPROM_DEV_ADDR,i,0x65,&err );
-		 usleep(200);
-//		 i2c_write_word(MAIN_BOARD_I2C_EEPROM_DEV_ADDR,i,0x0000,&err );
-		 usleep(3000);
-	 }
-
-  i2c_write(PRIMARY_I2C_SWITCH, 0x00);
-   pthread_mutex_unlock(&i2c_mutex);
-
-	return 0;
-}
-
-int bar(int topOrBottom ) {
-	 int err;
-	 i2c_init();
-	 uint8_t chr;
-	 uint16_t wchr;
-	 int I2C_MY_MAIN_BOARD_PIN = (topOrBottom == TOP_BOARD)?PRIMARY_I2C_SWITCH_TOP_MAIN_PIN : PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN;
-	 i2c_write(PRIMARY_I2C_SWITCH, I2C_MY_MAIN_BOARD_PIN, &err);
-	 i2c_write(I2C_DC2DC_SWITCH_GROUP1 , MAIN_BOARD_I2C_SWITCH_EEPROM_PIN , &err);
-
-	 for (int i = 0; i < MAIN_BOARD_VPD_ADDR_END ; i++) {
-		 //chr = i2c_waddr_read_byte(MAIN_BOARD_I2C_EEPROM_DEV_ADDR , (uint16_t)(0x00FF & i), &err);
-		 chr = i2c_read_byte(MAIN_BOARD_I2C_EEPROM_DEV_ADDR ,  i, &err);
-		 printf(" 0x%X - 0x%X (%c)\n" , i , chr , chr);
-		 usleep(3000);
-
-//		 wchr = i2c_read_word(MAIN_BOARD_I2C_EEPROM_DEV_ADDR ,  i, &err);
-//		 printf(" 0x%X - 0x%X (%c)\n" , i , chr , chr);
-//		 usleep(3000);
-
-	 }
-
-   i2c_write(PRIMARY_I2C_SWITCH, 0x00);
-    pthread_mutex_unlock(&i2c_mutex);
-
-	return 0;
-}
-
-int mainboard_get_vpd(int topOrBottom ,  mainboard_vpd_info_t *pVpd) {
-	int rc = 0;
-	int err = 0;
-
-	if (NULL == pVpd) {
-		psyslog("call ac2dc_get_vpd performed without allocating sturcture first\n");
-		return 1;
-	}
-
-  	 pthread_mutex_lock(&i2c_mutex);
-
-	 i2c_init();
-
-	 int I2C_MY_MAIN_BOARD_PIN = (topOrBottom == TOP_BOARD)?PRIMARY_I2C_SWITCH_TOP_MAIN_PIN : PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN;
-
-	 i2c_write(PRIMARY_I2C_SWITCH, I2C_MY_MAIN_BOARD_PIN, &err);
-
-	 if (err) {
-		 fprintf(stderr, "Failed writing to I2C address 0x%X (err %d)",PRIMARY_I2C_SWITCH, err);
-
-		 pthread_mutex_unlock(&i2c_mutex);
-		 return err;
-	 }
-
-
-	 i2c_write(I2C_DC2DC_SWITCH_GROUP1 , MAIN_BOARD_I2C_SWITCH_EEPROM_PIN , &err);
-
-	 if (err) {
-		 fprintf(stderr, "Failed writing to I2C address 0x%X (err %d)",I2C_DC2DC_SWITCH_GROUP1, err);
-		 pthread_mutex_unlock(&i2c_mutex);
-		 return err;
-	 }
-
-	 for (int i = 0; i < MAIN_BOARD_VPD_PNR_ADDR_LENGTH ; i++) {
-		 pVpd->pnr[i] = i2c_waddr_read_byte(MAIN_BOARD_I2C_EEPROM_DEV_ADDR , (uint16_t)(0x00FF & (MAIN_BOARD_VPD_PNR_ADDR_START + i)), &err);
-		 if (err)
-			 goto get_eeprom_err;
-	 }
-
-	  for (int i = 0; i < MAIN_BOARD_VPD_PNRREV_ADDR_LENGTH; i++) {
-		pVpd->revision[i] = i2c_waddr_read_byte(MAIN_BOARD_I2C_EEPROM_DEV_ADDR , (uint16_t)(0x00FF & (MAIN_BOARD_VPD_PNRREV_ADDR_START + i)), &err);
-		if (err)
-		  goto get_eeprom_err;
-	  }
-
-	  for (int i = 0; i < MAIN_BOARD_VPD_SERIAL_ADDR_LENGTH; i++) {
-		pVpd->serial[i] = i2c_waddr_read_byte(MAIN_BOARD_I2C_EEPROM_DEV_ADDR , (uint16_t)(0x00FF & (MAIN_BOARD_VPD_SERIAL_ADDR_START + i)), &err);
-		if (err)
-		  goto get_eeprom_err;
-	  }
-
-
-get_eeprom_err:
-
-  if (err) {
-    fprintf(stderr, RED            "Failed reading AC2DC eeprom (err %d)\n" RESET, err);
-    rc =  err;
-  }
-    i2c_write(PRIMARY_I2C_SWITCH, 0x00);
-     pthread_mutex_unlock(&i2c_mutex);
-
-	return rc;
-}
-
 int EnableLoops() {
 	int rc = 0;
 	for (int i = FIRSTLOOP ; i <= LASTLOOP; i++) {
@@ -193,7 +68,8 @@ int GetLoopCurrent() {
 	for (int i = FIRSTLOOP ; i <= LASTLOOP; i++) {
 		int err = 0;
 		int loopcur = -1;
-		loopcur = dc2dc_get_current_16s_of_amper(i, &err , &err);
+		uint8_t looptemp = 0;
+		loopcur = dc2dc_get_current_16s_of_amper(i, &err ,&looptemp, &err);
 		if (0 != err) {
 			rc = rc | (1 << i) ; // setting bitmap for error!
 			fprintf(stdout, "LOOP %2d CURRENT MEASURE FAIL\n", i);
