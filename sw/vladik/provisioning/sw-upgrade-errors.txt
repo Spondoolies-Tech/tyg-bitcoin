@@ -15,8 +15,9 @@ Code	Displayed string					Comment
 203	Cannot read Board ID.
 204	Cannot mount /mnt/${bootfrom}-boot.			bootfrom=sd|mmc
 205	Cannot find /mnt/${bootfrom}-boot/uImage.		bootfrom=sd|mmc
-206	<does not exist>
-207	${shar}: bad signature					shar=.SHAR file
+206	${tar}: Cannot untar.					tar=.TAR file
+207	spon.shar: bad signature
+208	Either spon.shar or spon.shar.sign is missing.
 
 						.SHAR errors
 						------------

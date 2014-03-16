@@ -205,6 +205,11 @@ rrd()
 	xzcat ${CUR_DIR}/../rrd/php-rrd.tar.xz | tar -xf -
 }
 
+ntp()
+{
+	cp -a ${CUR_DIR}/../add-ons/S43ntp etc/init.d
+}
+
 main()
 {
 	set -e
@@ -224,6 +229,7 @@ main()
 	mounts
 	sw_upgrade
 	cron
+	ntp
 	rrd
 }
 

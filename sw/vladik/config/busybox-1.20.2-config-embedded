@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Busybox version: 1.20.2
-# Sat Mar 15 20:12:47 2014
+# Sat Mar 15 21:36:02 2014
 #
 CONFIG_HAVE_DOT_CONFIG=y
 
@@ -805,7 +805,7 @@ CONFIG_NETSTAT=y
 # CONFIG_FEATURE_NETSTAT_WIDE is not set
 # CONFIG_FEATURE_NETSTAT_PRG is not set
 # CONFIG_NSLOOKUP is not set
-# CONFIG_NTPD is not set
+CONFIG_NTPD=y
 # CONFIG_FEATURE_NTPD_SERVER is not set
 # CONFIG_PSCAN is not set
 CONFIG_ROUTE=y

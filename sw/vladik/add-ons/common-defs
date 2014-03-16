@@ -7,6 +7,9 @@ ROOTPATH_FILE=/tmp/rootpath
 # EEPROM device access
 EEPROM_DEVICE=/sys/bus/i2c/devices/0-0050/eeprom
 
+# NTP server
+NTP_SERVER=pool.ntp.org
+
 # Spondoolies public key.
 SPON_PUBLIC_KEY=/etc/spondoolies-pub.pem
 

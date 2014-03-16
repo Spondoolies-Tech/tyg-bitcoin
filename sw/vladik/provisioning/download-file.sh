@@ -1,9 +1,6 @@
 #!/bin/sh
 
-# Download a file and its signed digital digest.
-#
-# If URL https://mydomain.com/thefile should be downloaded
-# it takes also https://mydomain.com/thefile.sign
+# Download a file
 #
 # Written by Vladik Goytin
 
@@ -17,7 +14,7 @@ query=
 usage()
 {
 	cat<<-EOF
-	Download a file and its signed digital digest.
+	Download a file
 	Written by Vladik Goytin
 
 	Usage: ${__prog_name} --help | --url=<URL> [--query=<GET query>]
@@ -29,8 +26,6 @@ usage()
 	Examples:
 	 	${__prog_name} --url=https://mydomain.com/thefile --query="par1=val1&par2=val2"
 	 		-- download file from URL https://mydomain.com/thefile
-	 		   along with its signed digest
-	 		   https://mydomain.com/thefile.sign
 	EOF
 }
 
@@ -63,8 +58,7 @@ parse_args()
 
 download_file()
 {
-	curl --fail --silent --output ${file} "${url}${query}"		\
-		--output ${file}.sign ${url}.sign
+	curl --fail --silent --output ${file} "${url}${query}"
 }
 
 main()
