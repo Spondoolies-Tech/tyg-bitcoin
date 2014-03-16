@@ -436,7 +436,7 @@ void asic_frequency_update_nrt(int verbal) {
               h->freq_thermal_limit = (ASIC_FREQ)(h->freq_wanted-1);
               h->freq_bist_limit = (ASIC_FREQ)(h->freq_wanted-1);
               asic_down(h); 
-              printf("Down with ASIC  %x %x:%x\n",h->address,h->freq_hw,h->freq_wanted);            
+              //printf("Down with ASIC  %x %x:%x\n",h->address,h->freq_hw,h->freq_wanted);            
               changed++;
             } else {
               // remind thread!

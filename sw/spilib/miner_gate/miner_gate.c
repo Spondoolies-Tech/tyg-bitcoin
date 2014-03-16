@@ -93,11 +93,14 @@ static void sighandler(int sig)
 }
 
 
-void print_adapter() {
+void print_adapter(FILE *f ) {
   minergate_adapter *a = adapters[0];
   if (a) {
-    psyslog("Adapter queues: rsp=%d, req=%d\n", a->work_minergate_rsp.size(),
+    fprintf(f, "Adapter queues: rsp=%d, req=%d\n", 
+            a->work_minergate_rsp.size(),
            a->work_minergate_req.size());
+  } else {
+    fprintf(f, "No Adapter\n");
   }
 }
 
@@ -132,7 +135,7 @@ void push_work_rsp(RT_JOB *work) {
   r.work_id_in_sw = work->work_id_in_sw;
   r.res = 0;
   adapter->work_minergate_rsp.push(r);
-  passert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE * 2);
+  //passert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE * 2);
   pthread_mutex_unlock(&network_hw_mutex);
 }
 

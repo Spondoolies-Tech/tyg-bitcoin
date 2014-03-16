@@ -13,7 +13,7 @@
 //#include "queue.h"
 //#include "spond_debug.h"
 
-#define MINERGATE_PROTOCOL_VERSION 1
+#define MINERGATE_PROTOCOL_VERSION 2
 #define MINERGATE_SOCKET_FILE "/tmp/connection_pipe"
 
 typedef enum {
@@ -35,9 +35,9 @@ typedef struct {
   uint8_t res3;
 } minergate_do_job_req;
 
-#define MAX_REQUESTS 80
-#define MAX_RESPONDS 200
-#define MINERGATE_TOTAL_QUEUE 400
+#define MAX_REQUESTS 200
+#define MAX_RESPONDS 400
+#define MINERGATE_TOTAL_QUEUE 1000
 
 typedef struct {
   uint32_t work_id_in_sw;

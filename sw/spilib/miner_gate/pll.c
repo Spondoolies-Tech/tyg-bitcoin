@@ -73,7 +73,12 @@ void set_pll(int addr, ASIC_FREQ freq) {
   write_reg_device(addr, ADDR_DLL_OFFSET_CFG_HIGH, 0x0082C381);
   passert(freq < ASIC_FREQ_MAX);
   passert(freq >= ASIC_FREQ_225);
-  pll_frequency_settings *ppfs = &pfs[freq];
+  pll_frequency_settings *ppfs;
+ // if (freq > ASIC_FREQ_225) {
+ //   ppfs = &pfs[freq-1];
+ // } else {
+  ppfs = &pfs[freq];
+ // }
   uint32_t pll_config = 0;
   uint32_t M = ppfs->m_mult;
   uint32_t P = ppfs->p_div;

@@ -45,7 +45,7 @@
 
 
 #define DC2DC_TEMP_GREEN_LINE         120
-#define DC2DC_INITIAL_CURRENT_16S (60 * 16) 
+#define DC2DC_INITIAL_CURRENT_16S (58 * 16) 
 
 
 
