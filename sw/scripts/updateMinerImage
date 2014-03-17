@@ -45,6 +45,9 @@ fi
 sshpass -e ssh root@$MINER mount /mnt/mmc-boot
 sshpass -e scp $IMAGE root@$MINER:/mnt/mmc-boot/
 sshpass -e ssh root@$MINER umount /mnt/mmc-boot
+sleep 3
+sshpass -e ssh root@$MINER reboot
+
 
 
 
