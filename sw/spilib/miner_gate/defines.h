@@ -27,10 +27,12 @@
 #define MIN_COSECUTIVE_JOBS_FOR_DC2DC_MEASUREMENT MIN_COSECUTIVE_JOBS_FOR_SCALING
 
 // In seconds
-#define BIST_PERIOD_SECS_RAMPUP            1
-#define BIST_PERIOD_SECS                   5 
+#define BIST_PERIOD_SECS                   10 
 #define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 2
 
+#define MAX_BOTTOM_TEMP 100
+#define MAX_TOP_TEMP 100
+#define MAX_MGMT_TEMP 50
 
 
 #define AC2DC_TEMP_GREEN_LINE 110
@@ -66,7 +68,7 @@
 #if ECONOMY == 1
 #define VTRIM_START 0x0FFbf
 #else
-#define VTRIM_START (VTRIM_661) //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
+#define VTRIM_START (VTRIM_666) //0x0FFd0//VTRIM_MIN//(0x0FFd0+10)//VTRIM_MIN //(0x0FFd2-7)//(0x0FFd2-0xf)
 #endif
 
 

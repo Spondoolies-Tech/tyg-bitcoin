@@ -106,13 +106,12 @@ int asic_can_up(HAMMER *a, int force) {
     return 1;
   }
  
-  if ((vm.loop[a->loop_address].dc2dc.dc_temp > DC2DC_TEMP_GREEN_LINE) ||
-      (vm.ac2dc_power >= AC2DC_POWER_LIMIT))
+  if (vm.ac2dc_power >= AC2DC_POWER_LIMIT)
    {
     return 0;
   }
 
-  if (vm.loop[a->loop_address].dc2dc.dc_current_16s + 4 > 
+  if (vm.loop[a->loop_address].dc2dc.dc_current_16s > 
       vm.loop[a->loop_address].dc2dc.dc_current_limit_16s)
       return 0;
 
@@ -448,8 +447,8 @@ void asic_frequency_update_nrt(int verbal) {
         if (h->asic_temp >= MAX_ASIC_TEMPERATURE ) {
           if(h->freq_wanted > ASIC_FREQ_225) {
              // let it cool off
-             printf("TOO HOT:%x\n",h->address);
-             h->freq_thermal_limit = h->freq_thermal_limit - 1;
+             //printf("TOO HOT:%x\n",h->address);
+             h->freq_thermal_limit = (ASIC_FREQ)(h->freq_thermal_limit - 1);
              vm.loop[h->loop_address].crit_temp++;
              h->last_down_freq_change_time = now;
              asic_down_completly(h);
@@ -457,11 +456,11 @@ void asic_frequency_update_nrt(int verbal) {
          } else if (h->agressivly_scale_up && asic_can_up(h,0) && (upped_fast==0)) {
             if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 16*1) {
                 upped_fast++;
-                printf(MAGENTA "UPPER FAST WITH %d\n", h->address);
+                //printf(MAGENTA "UPPER FAST WITH %d\n", h->address);
                 asic_up_fast(h);
                 changed++;
            } else {
-               printf(MAGENTA "UPPER NORMAL WITH %d", h->address);
+               //printf(MAGENTA "UPPER NORMAL WITH %d", h->address);
                asic_up(h);
            }
          }
@@ -473,7 +472,7 @@ void asic_frequency_update_nrt(int verbal) {
            if ((counter%(LOOP_COUNT/2)) == 0) {
               HAMMER* hh = find_asic_to_up(l, 0);
               if (hh) {
-                printf("Upping %x\n", hh->address);
+                //printf("Upping %x\n", hh->address);
                   asic_up(hh);
                   changed++;
               }
@@ -496,7 +495,7 @@ void asic_frequency_update_nrt(int verbal) {
       }
       
        last_call = now;
-       printf(MAGENTA "freq changed %d\n" MAGENTA, changed);
+       //printf(MAGENTA "freq changed %d\n" MAGENTA, changed);
      //end_stopper(&tv, "go over bad stopper");
      //resume_asics_if_needed();
 #if 0

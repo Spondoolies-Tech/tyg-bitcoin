@@ -807,12 +807,6 @@ int update_vm_with_currents_and_temperatures_nrt() {
     int overcurrent = 0, oc_warning=0;
     update_dc2dc_current_temp_measurments(loop, &overcurrent, &oc_warning); 
     critical_current = (vm.loop[loop].dc2dc.dc_current_16s > vm.loop[loop].dc2dc.dc_current_limit_16s);
-     if (oc_warning) {
-       printf(RED "OC WARNING!!! detected %d on loop %d\n" RESET,
-                  vm.loop[loop].dc2dc.dc_current_16s ,loop);  
-     }
-
-    
     if (critical_current || oc_warning) {
       printf(RED "CRITICAL CURRENT detected %d on loop %d\n" RESET,
                   vm.loop[loop].dc2dc.dc_current_16s ,loop);  
@@ -981,7 +975,7 @@ void once_33_msec_temp_rt() {
       vm.hammer[pll_set_addr].pll_waiting_reply) {
     enable_engines_asic(vm.hammer[pll_set_addr].address, vm.hammer[pll_set_addr].working_engines);
     vm.hammer[pll_set_addr].pll_waiting_reply = false;
-    printf("Pll done:%x \n",vm.hammer[pll_set_addr].address);
+    //printf("Pll done:%x \n",vm.hammer[pll_set_addr].address);
   }
 
  
@@ -1145,6 +1139,19 @@ void push_job_to_hw_rt() {
 }
 
 
+
+void ping_watchdog() {
+    FILE *f = fopen("/var/run/dont_reboot", "w");
+    if (!f) {
+      psyslog("Failed to create watchdog file\n");
+      return;
+    }
+    fprintf(f, "1\n");
+    fclose(f);
+}
+
+
+
 // 666 times a second
 void once_1650_usec_tasks_rt() {
   static int counter = 0;
@@ -1215,46 +1222,77 @@ void *i2c_state_machine_nrt(void *p) {
       update_vm_with_currents_and_temperatures_nrt();
     }
 
-    if ((counter % (48*5)) ==  0)  {
-      int err;
-      int mgmt_tmp = get_mng_board_temp();
-      int bottom_tmp = get_bottom_board_temp();
-      int top_tmp = get_top_board_temp();      
-      printf("MGMT TEMP = %d\n",mgmt_tmp);
-      printf("BOTTOM TEMP = %d\n",bottom_tmp);
-      printf("TOP TEMP = %d\n",top_tmp);
-      
-      if ((mgmt_tmp > 42) || (bottom_tmp > 80) || (top_tmp > 80)) {
-        for (int l = 0 ; l < LOOP_COUNT ; l++) {
-          dc2dc_disable_dc2dc(l, &err); 
+  
+    // Update AC2DC once every second
+    if ((counter % (48)) ==  0)  {
+      //printf("BOARD TEMP = %d\n", get_mng_board_temp());
+      //printf("BOTTOM TEMP = %d\n", get_bottom_board_temp());
+      //printf("TOP TEMP = %d\n", get_top_board_temp());       
+      update_ac2dc_power_measurments();
+      maybe_change_freqs_nrt();
+      print_scaling();
+
+
+
+      if ((counter % (48*5)) ==  0)  {
+        int err;
+        int mgmt_tmp = get_mng_board_temp();
+        int bottom_tmp = get_bottom_board_temp();
+        int top_tmp = get_top_board_temp();      
+        printf("MGMT TEMP = %d\n",mgmt_tmp);
+        printf("BOTTOM TEMP = %d\n",bottom_tmp);
+        printf("TOP TEMP = %d\n",top_tmp);
+        
+        if ((mgmt_tmp > MAX_MGMT_TEMP) || (bottom_tmp > MAX_BOTTOM_TEMP) || (top_tmp > MAX_TOP_TEMP)) {
+          psyslog("Critical temperature - exit!\n");
+          for (int l = 0 ; l < LOOP_COUNT ; l++) {
+            dc2dc_disable_dc2dc(l, &err); 
+          }
+          set_light(LIGHT_YELLOW, 0);
+          set_light(LIGHT_GREEN, 0);
+          set_fan_level(100);
+          usleep(1000*1000*20);
+          exit(0);
         }
-        set_light(LIGHT_YELLOW, 0);
-        set_light(LIGHT_GREEN, 0);
-        set_fan_level(100);
-        usleep(1000*1000*10);
-        exit(0);
+      }
+      
+
+
+      // Every 10 seconds save "mining" status
+      if ((counter % (48*10)) ==  0)  {
+        if (vm.cosecutive_jobs > 0) {
+          ping_watchdog();
+        }
+      } 
+        
+
+      // Once every minute
+      if (counter%(48*60) == 0) {
+        static int addr = 0;
+        // bring up one asic thermal limit one minute in case winter came.
+        addr = (addr+1)%HAMMERS_COUNT;
+        if (vm.hammer[addr].asic_present && 
+          (vm.hammer[addr].freq_thermal_limit < vm.hammer[addr].freq_bist_limit) &&
+           vm.hammer[addr].asic_temp < (MAX_ASIC_TEMPERATURE-1)) {
+          vm.hammer[addr].freq_thermal_limit = (vm.hammer[addr].freq_thermal_limit+1);
+        }
+        ac2dc_scaling_one_minute();
+
+
+        // once an hour - increase max vtrim on one loop
+        if (counter%(48*60*60) == 0) { 
+          static int loop = 0;
+          loop = (loop+1)%LOOP_COUNT;
+          if (vm.loop[loop].dc2dc.max_vtrim_currentwise < VTRIM_MAX) {
+            vm.loop[loop].dc2dc.max_vtrim_currentwise = vm.loop[loop].dc2dc.max_vtrim_currentwise+1;
+          } 
+        }
       }
     }
 
+  
 
-    // Update AC2DC
-    if ((counter % (48)) ==  0)  {
-       //printf("BOARD TEMP = %d\n", get_mng_board_temp());
-       //printf("BOTTOM TEMP = %d\n", get_bottom_board_temp());
-       //printf("TOP TEMP = %d\n", get_top_board_temp());       
-       update_ac2dc_power_measurments();
-    } 
-
-
-    if (counter%(48*60) == 5) {
-      printf("counter=%d\n",counter);
-      ac2dc_scaling_one_minute();
-    }
-
-    if (counter%(48) == 0) {
-      maybe_change_freqs_nrt();
-      print_scaling();      
-    }
+  
     usleep(1000000/48);
   }
 }

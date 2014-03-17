@@ -6,10 +6,31 @@
 
 MINERGATE_CMD="nohup chrt -f 90 /usr/local/bin/miner_gate_arm > /dev/null 2>&1"
 CGMINER_CMD="nohup /usr/local/bin/cgminer --config /etc/cgminer.conf"
-
-
+WATCHDOG_FILE="/var/run/dont_reboot"
 
 export PATH=$PATH:/usr/local/bin:/bin
+
+
+
+
+forever_mining_watchdog()
+{
+	while true
+	do
+		#sleep for 5 minutes
+		sleep 300
+		if [ -f $WATCHDOG_FILE ]
+		then
+			  echo "Removed watchdog file."
+			  rm $WATCHDOG_FILE
+		else
+			  echo "Not mining, reboot!"
+			  reboot
+		fi
+		
+	done
+	
+}
 
 
 
@@ -19,6 +40,8 @@ miner_gate_arm_watchdog () {
 	sleep 4
 	$CGMINER_CMD &
 	echo $! > /var/run/cgminer_arm.pid
+	forever_mining_watchdog &
+	echo $! > /var/run/fmw.pid
 
 	while true; do
 		pidm=`cat /var/run/miner_gate_arm.pid`
@@ -61,12 +84,15 @@ stop_mg() {
 			pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
 			pid2=`cat /var/run/cgminer_arm.pid`
 			pid3=`cat /var/run/miner_gate_arm.pid`
+			pid4=`cat /var/run/fmw.pid`
 			kill $pid1
+			kill $pid4
 			kill $pid2
 			kill $pid3
 			rm /var/run/miner_gate_arm_watchdog.pid
 			rm /var/run/miner_gate_arm.pid
 			rm /var/run/cgminer_arm.pid
+			rm /var/run/fmw.pid
 		fi
 }
 

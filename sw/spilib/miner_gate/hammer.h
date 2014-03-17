@@ -240,7 +240,6 @@ typedef struct {
   ASIC_FREQ freq_thermal_limit; 
   ASIC_FREQ freq_bist_limit;   
   
-  int try_higher;
   int agressivly_scale_up;
   int last_freq_change_time; // time() when we increased ASIC frequency
   int last_down_freq_change_time;

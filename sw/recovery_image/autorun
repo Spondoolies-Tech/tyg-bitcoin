@@ -1,0 +1,4 @@
+#!/bin/sh
+cp /mnt/sd-boot/unbrick /tmp/
+/tmp/unbrick &
+

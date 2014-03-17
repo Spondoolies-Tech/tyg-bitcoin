@@ -75,20 +75,14 @@ void loop_up(int l) {
    //printf("3\n");
   for (int h = l*HAMMERS_PER_LOOP; h< l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
     if (vm.hammer[h].asic_present) {
-      
-      if (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-3) 
-        {
           // if the limit is bist limit, then let asic grow a bit more
           // if its termal, dont change it.
           if (vm.hammer[h].freq_bist_limit == vm.hammer[h].freq_thermal_limit) {
             vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = 
               (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-2)?(vm.hammer[h].freq_bist_limit+2):ASIC_FREQ_MAX; 
           }
-          //vm.hammer[h].agressivly_scale_up = true;
-        } else {
-
-        }
-      }
+          vm.hammer[h].agressivly_scale_up = true;
+        } 
     }
 }
 
@@ -173,15 +167,13 @@ void ac2dc_scaling_one_minute() {
     if ((!vm.asics_shut_down_powersave) && (vm.loop[l].enabled_loop) &&
          (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING)) {
     
-      int temperature_high = (vm.loop[l].asic_temp_sum / vm.loop[l].asic_count >= 113);
-      int too_hot_for_frequency = (vm.loop[l].overheating_asics > 10);
-      int fully_utilized = (vm.loop[l].overheating_asics == 0); // h->freq_thermal_limit - h->freq
-      int free_current = (vm.loop[l].dc2dc.dc_current_limit_16s - vm.loop[l].dc2dc.dc_current_16s);
+     // int temperature_high = (vm.loop[l].asic_temp_sum / vm.loop[l].asic_count >= 113);
+     // int fully_utilized = (vm.loop[l].overheating_asics == 0); // h->freq_thermal_limit - h->freq
       int tmp_scaled=0;
      
      
       //printf(CYAN "ac2dc %d %d %d!\n" RESET, l, vm.loop[l].overheating_asics, free_current);
-      printf(CYAN "%d free_current:%d vm.loop[l].overheating_asics:%d \n" RESET, l, free_current, vm.loop[l].overheating_asics);
+      printf(CYAN "%d vm.loop[l].overheating_asics:%d \n" RESET, l, vm.loop[l].overheating_asics);
 
       
        // has unused freq - scale down.
@@ -192,17 +184,13 @@ void ac2dc_scaling_one_minute() {
             loop_down(l);
             
           }
-       } else if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 20 &&  
-        (free_current >= 16 )) {
+       } else if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 5) {
       // scale up
         if (loop_can_up(l)) {          
           printf(CYAN "LOOP UP:%d\n" RESET, l);
           changed = 1;
           loop_up(l);
           vm.ac2dc_power += 5;
-          for (int i = 0; i < HAMMERS_PER_LOOP; i++) {
-            vm.hammer[i+l*HAMMERS_PER_LOOP].try_higher = 1;
-          }
         }
       }
       
