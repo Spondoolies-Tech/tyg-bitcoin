@@ -33,8 +33,8 @@ shar_missing=208
 url=
 tar=
 bootfrom=
-board_id=
-software_version=
+board_id=`cat /etc/board_ver`
+software_version=`cat /etc/fw_ver`
 
 
 usage()
@@ -168,9 +168,9 @@ main()
 	is_upgradeable
 	if [ $? -eq 0 ]
 	then
-		get_board_id
+		#get_board_id
 		mount_boot_partition
-		get_software_version
+		#get_software_version
 		download_software
 		untar
 		verify_shar
