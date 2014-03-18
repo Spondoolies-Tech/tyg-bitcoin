@@ -63,6 +63,7 @@ do_upgrade()
 latest_version()
 {
 	echo 'The latest version already installed. No need to upgrade.'
+	return 1
 }
 
 main()

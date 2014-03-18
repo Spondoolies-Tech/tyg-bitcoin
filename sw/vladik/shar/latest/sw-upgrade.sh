@@ -10,6 +10,7 @@ latest_version()
 main()
 {
 	latest_version
+	return 1
 }
 
 main $@

@@ -58,7 +58,7 @@ parse_args()
 
 download_file()
 {
-	curl --fail --silent --output ${file} "${url}${query}"
+	curl --fail --silent --output ${file} -L "${url}${query}"
 }
 
 main()
