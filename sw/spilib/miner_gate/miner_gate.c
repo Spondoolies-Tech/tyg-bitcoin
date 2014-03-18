@@ -43,7 +43,7 @@
 
 #include <signal.h>
 
-
+int stop_all = 0;
 using namespace std;
 pthread_mutex_t network_hw_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct sigaction termhandler, inthandler;
@@ -81,14 +81,18 @@ static void sighandler(int sig)
   /* Restore signal handlers so we can still quit if kill_work fails */
   sigaction(SIGTERM, &termhandler, NULL);
   sigaction(SIGINT, &inthandler, NULL);
+  // let all threads stop
+  psyslog("Here comes death, killing DC2DC\n");
+  stop_all = 1;
+  usleep(100000);
   set_light(LIGHT_YELLOW, 0);
   set_light(LIGHT_GREEN, 0);   
   disable_engines_all_asics();
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
     dc2dc_disable_dc2dc(l, &err); 
   }
-  set_fan_level(40);
-  psyslog("Here comes unexpected death!\n");
+  set_fan_level(30);
+  psyslog("Bye bye\n");
   exit(0);
 }
 

@@ -179,7 +179,10 @@ void ac2dc_scaling_one_minute() {
        // has unused freq - scale down.
        if (vm.loop[l].overheating_asics >= 6) {
           if (loop_can_down(l)) {
-            printf(CYAN "LOOP DOWN:%d\n" RESET, l);            
+            printf(CYAN "LOOP DOWN:%d\n" RESET, l);   
+            if (vm.loop_vtrim[l] > VTRIM_MIN) {       
+              vm.loop[l].dc2dc.max_vtrim_currentwise = vm.loop_vtrim[l]-1;
+            }
             changed = 1;
             loop_down(l);
             

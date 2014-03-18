@@ -176,7 +176,6 @@ void asic_up_fast(HAMMER *a) {
    */
    vm.ac2dc_power+=fdiff/8;
 
-   
    //set_pll(a->address, wanted_freq);        
    a->last_freq_change_time = now;    
    vm.pll_changed=1;
@@ -362,15 +361,13 @@ void maybe_change_freqs_nrt() {
        proccess_bist_results ||
        critical_downscale ||
        (vm.ac2dc_power > AC2DC_POWER_LIMIT)) {
-       printf(MAGENTA "Running FREQ update\n" RESET);
+       //printf(MAGENTA "Running FREQ update\n" RESET);
        //!!!  HERE WE DO FREQUENCY UPDATES!!!
        asic_frequency_update_nrt();
        proccess_bist_results = 0;
        // Dont run for next 7 seconds.
    }
 }
-
-
 
 
 
@@ -454,7 +451,9 @@ void asic_frequency_update_nrt(int verbal) {
              h->last_down_freq_change_time = now;
              asic_down_completly(h);
            }
-         } else if (h->agressivly_scale_up && asic_can_up(h,0) && (upped_fast==0)) {
+         } else if (h->agressivly_scale_up && asic_can_up(h,0) && 
+                   (upped_fast==0)
+                   ) {
             if (vm.loop[l].dc2dc.dc_current_16s < vm.loop[l].dc2dc.dc_current_limit_16s - 16*1) {
                 upped_fast++;
                 //printf(MAGENTA "UPPER FAST WITH %d\n", h->address);

@@ -99,7 +99,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/writeboxvpd.sh usr/local/bin
 	#cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate/miner_gate_arm usr/local/bin
-	cp ${CUR_DIR}/../../spilib/miner_gate/mg_version etc
+	cp ${CUR_DIR}/../../spilib/miner_gate/mg_version ./
 	cp ${CUR_DIR}/../add-ons/board_ver ./
 	cp ${CUR_DIR}/../add-ons/fw_ver ./
 	cp ${CUR_DIR}/../../../../cg-miner-git/cgminer/cgminer usr/local/bin

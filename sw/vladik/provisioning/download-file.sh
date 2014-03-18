@@ -58,7 +58,7 @@ parse_args()
 
 download_file()
 {
-	curl --fail --silent --output ${file} -L "${url}${query}"
+	curl --fail --connect-timeout 20 --output ${file} -L "${url}${query}"
 }
 
 main()

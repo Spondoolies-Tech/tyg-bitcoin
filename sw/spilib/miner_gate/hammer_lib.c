@@ -27,7 +27,7 @@
 #include "pll.h"
 
 int do_bist_please = 0;
-
+extern int stop_all;
 extern pthread_mutex_t network_hw_mutex;
 pthread_mutex_t hammer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -1151,6 +1151,21 @@ void ping_watchdog() {
 }
 
 
+void save_rate_temp(int temp) {
+    FILE *f = fopen("/var/log/mg_rate_temp", "w");
+    if (!f) {
+      psyslog("Failed to create rate_temp file\n");
+      return;
+    }
+    if (vm.cosecutive_jobs) {
+      fprintf(f, "%d %d\n", vm.total_mhash, temp);
+    } else {
+      fprintf(f, "%d %d\n", 0, temp);
+    }
+    fclose(f);
+}
+
+
 
 // 666 times a second
 void once_1650_usec_tasks_rt() {
@@ -1216,6 +1231,12 @@ void *i2c_state_machine_nrt(void *p) {
   int counter = 0;
   for (;;) {
     counter++;
+
+    if (stop_all) {
+      psyslog("NRT thread out\n");
+      return;
+    }
+    
     // Takes DC2DC 10 minutes to settle
     if (((time(NULL) - vm.start_mine_time) < (60*10))
          || ((counter%2)==0)) {
@@ -1233,7 +1254,7 @@ void *i2c_state_machine_nrt(void *p) {
       print_scaling();
 
 
-
+      // every 5 seconds update temp
       if ((counter % (48*5)) ==  0)  {
         int err;
         int mgmt_tmp = get_mng_board_temp();
@@ -1242,7 +1263,7 @@ void *i2c_state_machine_nrt(void *p) {
         printf("MGMT TEMP = %d\n",mgmt_tmp);
         printf("BOTTOM TEMP = %d\n",bottom_tmp);
         printf("TOP TEMP = %d\n",top_tmp);
-        
+        save_rate_temp(bottom_tmp);
         if ((mgmt_tmp > MAX_MGMT_TEMP) || (bottom_tmp > MAX_BOTTOM_TEMP) || (top_tmp > MAX_TOP_TEMP)) {
           psyslog("Critical temperature - exit!\n");
           for (int l = 0 ; l < LOOP_COUNT ; l++) {
@@ -1258,7 +1279,7 @@ void *i2c_state_machine_nrt(void *p) {
       
 
 
-      // Every 10 seconds save "mining" status
+      // Every 10 seconds save "mining" status and rate
       if ((counter % (48*10)) ==  0)  {
         if (vm.cosecutive_jobs > 0) {
           ping_watchdog();
@@ -1338,6 +1359,10 @@ void *squid_regular_state_machine_rt(void *p) {
     //struct timeval * tv2;
 
     if (usec >= JOB_PUSH_PERIOD_US) { 
+      if (stop_all) {
+        psyslog("RT thread out\n");
+        return;
+      }
       // new job every 1.5 msecs = 660 per second
       //hread_mutex_lock(&hammer_mutex);
       //start_stopper(&tv);
