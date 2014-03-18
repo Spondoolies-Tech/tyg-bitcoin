@@ -27,7 +27,7 @@
 #include "pll.h"
 
 int do_bist_please = 0;
-extern int stop_all;
+
 extern pthread_mutex_t network_hw_mutex;
 pthread_mutex_t hammer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -666,7 +666,7 @@ int has_work_req();
 
 void one_minute_tasks() {
   // Give them chance to raise over 3 hours if system got colder
-  psyslog("Last minute rate: %d", (vm.solved_difficulty_total*4/60))
+  //psyslog("Last minute rate: %d", (vm.solved_difficulty_total*4/60))
   vm.solved_difficulty_total = 0;
 }
 
@@ -1146,7 +1146,7 @@ void ping_watchdog() {
       psyslog("Failed to create watchdog file\n");
       return;
     }
-    fprintf(f, "1\n");
+    fprintf(f, "%d\n", vm.total_mhash);
     fclose(f);
 }
 
@@ -1216,12 +1216,6 @@ void *i2c_state_machine_nrt(void *p) {
   int counter = 0;
   for (;;) {
     counter++;
-
-    if (stop_all) {
-      psyslog("NRT thread out\n");
-      return;
-    }
-    
     // Takes DC2DC 10 minutes to settle
     if (((time(NULL) - vm.start_mine_time) < (60*10))
          || ((counter%2)==0)) {
@@ -1235,23 +1229,21 @@ void *i2c_state_machine_nrt(void *p) {
       //printf("BOTTOM TEMP = %d\n", get_bottom_board_temp());
       //printf("TOP TEMP = %d\n", get_top_board_temp());       
       update_ac2dc_power_measurments();
-
       maybe_change_freqs_nrt();
-      if (vm.cosecutive_jobs > 0) {
-        print_scaling();
-      }
-      //save_rate_temp(bottom_tmp);
+      print_scaling();
 
 
-/*
+
       if ((counter % (48*5)) ==  0)  {
         int err;
+        /*
         int mgmt_tmp = get_mng_board_temp();
         int bottom_tmp = get_bottom_board_temp();
         int top_tmp = get_top_board_temp();      
         printf("MGMT TEMP = %d\n",mgmt_tmp);
         printf("BOTTOM TEMP = %d\n",bottom_tmp);
         printf("TOP TEMP = %d\n",top_tmp);
+        
         if ((mgmt_tmp > MAX_MGMT_TEMP) || (bottom_tmp > MAX_BOTTOM_TEMP) || (top_tmp > MAX_TOP_TEMP)) {
           psyslog("Critical temperature - exit!\n");
           for (int l = 0 ; l < LOOP_COUNT ; l++) {
@@ -1263,26 +1255,22 @@ void *i2c_state_machine_nrt(void *p) {
           usleep(1000*1000*20);
           exit(0);
         }
+        */
       }
-      */
+      
 
 
       // Every 10 seconds save "mining" status
       if ((counter % (48*10)) ==  0)  {
-        //
-        /*
         if (vm.cosecutive_jobs > 0) {
           ping_watchdog();
         }
-        */
       } 
         
 
       // Once every minute
-      /*
       if (counter%(48*60) == 0) {
         static int addr = 0;
-         
         // bring up one asic thermal limit one minute in case winter came.
         addr = (addr+1)%HAMMERS_COUNT;
         if (vm.hammer[addr].asic_present && 
@@ -1302,7 +1290,6 @@ void *i2c_state_machine_nrt(void *p) {
           } 
         }
       }
-      */
     }
 
   
@@ -1353,10 +1340,6 @@ void *squid_regular_state_machine_rt(void *p) {
     //struct timeval * tv2;
 
     if (usec >= JOB_PUSH_PERIOD_US) { 
-      if (stop_all) {
-        psyslog("RT thread out\n");
-        return;
-      }
       // new job every 1.5 msecs = 660 per second
       //hread_mutex_lock(&hammer_mutex);
       //start_stopper(&tv);

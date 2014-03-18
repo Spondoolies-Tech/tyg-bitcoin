@@ -338,8 +338,10 @@ uint32_t _read_reg_actual(uint32_t address, uint32_t offset) {
     if (assert_serial_failures) {
       printf("Data corruption: READ:0x%x 0x%x / GOT:0x%x 0x%x \n", address,
              offset, values[0], values[1]);
-      exit(0);
+      passert(0, "29578");
     } else {
+      printf("Data corruption: READ:0x%x 0x%x / GOT:0x%x 0x%x \n", address,
+             offset, values[0], values[1]);
       return 0;
     }
   }
