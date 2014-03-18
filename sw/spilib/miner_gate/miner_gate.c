@@ -298,7 +298,7 @@ void *connection_handler_thread(void *adptr) {
       }
       adapter->next_rsp->rsp_count = rsp_count;
       //int mhashes_done = (vm.total_mhash/1000)*(usec/1000);
-      adapter->next_rsp->gh_div_10_rate = vm.total_mhash/10000;  
+      adapter->next_rsp->gh_div_10_rate = vm.total_mhash>>13;  
       
       //printf("adapter->next_rsp->gh_div_10_rate=%d vm.total_mhash=%d\n"
        // ,adapter->next_rsp->gh_div_10_rate, vm.total_mhash);

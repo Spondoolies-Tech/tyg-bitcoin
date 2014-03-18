@@ -1151,21 +1151,6 @@ void ping_watchdog() {
 }
 
 
-void save_rate_temp(int temp) {
-    FILE *f = fopen("/var/log/mg_rate_temp", "w");
-    if (!f) {
-      psyslog("Failed to create rate_temp file\n");
-      return;
-    }
-    if (vm.cosecutive_jobs) {
-      fprintf(f, "%d %d\n", vm.total_mhash, temp);
-    } else {
-      fprintf(f, "%d %d\n", 0, temp);
-    }
-    fclose(f);
-}
-
-
 
 // 666 times a second
 void once_1650_usec_tasks_rt() {
@@ -1250,11 +1235,15 @@ void *i2c_state_machine_nrt(void *p) {
       //printf("BOTTOM TEMP = %d\n", get_bottom_board_temp());
       //printf("TOP TEMP = %d\n", get_top_board_temp());       
       update_ac2dc_power_measurments();
+
       maybe_change_freqs_nrt();
-      print_scaling();
+      if (vm.cosecutive_jobs > 0) {
+        print_scaling();
+      }
+      //save_rate_temp(bottom_tmp);
 
 
-      // every 5 seconds update temp
+/*
       if ((counter % (48*5)) ==  0)  {
         int err;
         int mgmt_tmp = get_mng_board_temp();
@@ -1263,7 +1252,6 @@ void *i2c_state_machine_nrt(void *p) {
         printf("MGMT TEMP = %d\n",mgmt_tmp);
         printf("BOTTOM TEMP = %d\n",bottom_tmp);
         printf("TOP TEMP = %d\n",top_tmp);
-        save_rate_temp(bottom_tmp);
         if ((mgmt_tmp > MAX_MGMT_TEMP) || (bottom_tmp > MAX_BOTTOM_TEMP) || (top_tmp > MAX_TOP_TEMP)) {
           psyslog("Critical temperature - exit!\n");
           for (int l = 0 ; l < LOOP_COUNT ; l++) {
@@ -1276,20 +1264,25 @@ void *i2c_state_machine_nrt(void *p) {
           exit(0);
         }
       }
-      
+      */
 
 
-      // Every 10 seconds save "mining" status and rate
+      // Every 10 seconds save "mining" status
       if ((counter % (48*10)) ==  0)  {
+        //
+        /*
         if (vm.cosecutive_jobs > 0) {
           ping_watchdog();
         }
+        */
       } 
         
 
       // Once every minute
+      /*
       if (counter%(48*60) == 0) {
         static int addr = 0;
+         
         // bring up one asic thermal limit one minute in case winter came.
         addr = (addr+1)%HAMMERS_COUNT;
         if (vm.hammer[addr].asic_present && 
@@ -1309,6 +1302,7 @@ void *i2c_state_machine_nrt(void *p) {
           } 
         }
       }
+      */
     }
 
   
