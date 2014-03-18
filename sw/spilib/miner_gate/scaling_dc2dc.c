@@ -319,7 +319,7 @@ void maybe_change_freqs_nrt() {
    for (int l = 0 ; l < LOOP_COUNT ; l++) {
      if (vm.loop[l].dc2dc.dc_current_16s >= vm.loop[l].dc2dc.dc_current_limit_16s) {
        critical_downscale=1;
-       printf("Yes! Current critical %d!\n", l);
+       //printf("Yes! Current critical %d!\n", l);
      }
   
      
@@ -349,6 +349,7 @@ void maybe_change_freqs_nrt() {
        
        vm.dc2dc_total_power += vm.loop[l].dc2dc.dc_power_watts_16s;
        vm.total_mhash += vm.loop[l].asic_hz_sum*ENGINES_PER_ASIC;
+       
      }
    }
    vm.dc2dc_total_power/=16;
