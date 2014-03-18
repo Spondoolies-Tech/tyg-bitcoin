@@ -33,8 +33,8 @@ shar_missing=208
 url=
 tar=
 bootfrom=
-board_id=`cat /etc/board_ver`
-software_version=`cat /etc/fw_ver`
+board_id=`cat /board_ver`
+software_version=`cat /fw_ver`
 
 
 usage()
