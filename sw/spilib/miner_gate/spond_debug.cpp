@@ -9,6 +9,9 @@
 #include <spond_debug.h>
 
 #define SIZE 100
+#ifdef MINERGATE
+void exit_nicely();
+#endif
 void _pabort(const char *s) {
   int j, nptrs;
   void *buffer[SIZE];
@@ -24,7 +27,11 @@ void _pabort(const char *s) {
   for (j = 0; j < nptrs; j++) {
     psyslog(" %s\n", strings[j]);
   }
-  abort();
+#ifdef MINERGATE  
+  exit_nicely();
+#else
+  exit(0);
+#endif
 }
 
 void _passert(int cond, const char *s) {

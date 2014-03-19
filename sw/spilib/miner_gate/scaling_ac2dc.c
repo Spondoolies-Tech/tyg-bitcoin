@@ -44,9 +44,10 @@ void loop_down(int l) {
    dc2dc_set_vtrim(l, vm.loop_vtrim[l]-1, &err);
    vm.loop[l].last_ac2dc_scaling_on_loop  = now;
    for (int h = l*HAMMERS_PER_LOOP; h < l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
-    if (vm.hammer[h].asic_present) {
-        // learn again
-        vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit;
+      if (vm.hammer[h].asic_present) {
+          // learn again
+          vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit;
+          //vm.hammer[h].freq_hw = vm.hammer[h].freq_hw+1; // To reforce pll setting
       }
    }
    
@@ -81,6 +82,7 @@ void loop_up(int l) {
             vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = 
               (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-2)?(vm.hammer[h].freq_bist_limit+2):ASIC_FREQ_MAX; 
           }
+          //vm.hammer[h].freq_hw = vm.hammer[h].freq_hw+1; // To reforce pll setting
           vm.hammer[h].agressivly_scale_up = true;
         } 
     }
@@ -114,7 +116,7 @@ int asic_frequency_update_nrt_fast() {
           h->freq_thermal_limit = h->freq_wanted;
           h->freq_bist_limit = h->freq_wanted;    
           set_pll(h->address, h->freq_wanted);  
-           h->passed_last_bist_engines = ALL_ENGINES_BITMASK;
+          h->passed_last_bist_engines = ALL_ENGINES_BITMASK;
       } else {      
 
         h->passed_last_bist_engines = ALL_ENGINES_BITMASK;

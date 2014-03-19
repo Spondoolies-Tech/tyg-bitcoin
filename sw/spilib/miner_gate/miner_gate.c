@@ -73,14 +73,12 @@ public:
 } minergate_adapter;
 
 minergate_adapter *adapters[0x100] = { 0 };
+int kill_app = 0;
 
-
-static void sighandler(int sig)
-{
-  int err;
-  /* Restore signal handlers so we can still quit if kill_work fails */
-  sigaction(SIGTERM, &termhandler, NULL);
-  sigaction(SIGINT, &inthandler, NULL);
+void exit_nicely() {
+   int err;
+  kill_app = 1;
+  usleep(1000*1000);
   set_light(LIGHT_YELLOW, 0);
   set_light(LIGHT_GREEN, 0);   
   disable_engines_all_asics();
@@ -89,7 +87,18 @@ static void sighandler(int sig)
   }
   set_fan_level(40);
   psyslog("Here comes unexpected death!\n");
-  exit(0);
+  exit(0);  
+}
+
+
+
+static void sighandler(int sig)
+{
+ 
+  /* Restore signal handlers so we can still quit if kill_work fails */  
+  sigaction(SIGTERM, &termhandler, NULL);
+  sigaction(SIGINT, &inthandler, NULL);
+  exit_nicely();
 }
 
 
