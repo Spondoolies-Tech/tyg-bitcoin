@@ -1257,9 +1257,9 @@ void *i2c_state_machine_nrt(void *p) {
       if ((counter % (48*12)) ==  0)  {
         int err;
         
-        int mgmt_tmp = get_mng_board_temp();
-        int bottom_tmp = get_bottom_board_temp();
-        int top_tmp = get_top_board_temp();      
+        mgmt_tmp = get_mng_board_temp();
+        bottom_tmp = get_bottom_board_temp();
+        top_tmp = get_top_board_temp();      
         printf("MGMT TEMP = %d\n",mgmt_tmp);
         printf("BOTTOM TEMP = %d\n",bottom_tmp);
         printf("TOP TEMP = %d\n",top_tmp);
