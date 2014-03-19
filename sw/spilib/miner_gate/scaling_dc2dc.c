@@ -317,9 +317,14 @@ void maybe_change_freqs_nrt() {
   
    // Remove disabled loops and pdate statistics
    for (int l = 0 ; l < LOOP_COUNT ; l++) {
+     if (!vm.loop[l].enabled_loop) {
+        continue;
+     }
+
+     
      if (vm.loop[l].dc2dc.dc_current_16s >= vm.loop[l].dc2dc.dc_current_limit_16s) {
        critical_downscale=1;
-       printf("Yes! Current critical %d!\n", l);
+       printf("Current critical %d!\n", l);
      }
   
      

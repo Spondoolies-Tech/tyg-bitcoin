@@ -59,7 +59,7 @@ void pause_all_mining_engines() {
   int err;
   //passert(vm.asics_shut_down_powersave == 0);
   int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
-  set_fan_level(50);
+  set_fan_level(0);
   while(some_asics_busy != 0) {
     int addr = BROADCAST_READ_ADDR(some_asics_busy);
     psyslog(RED "some_asics_busy %x\n" RESET, some_asics_busy);
@@ -76,7 +76,7 @@ void pause_all_mining_engines() {
 void unpause_all_mining_engines() {
   int err;
   psyslog("Got mining request, enable DC2DC!\n");
-  set_fan_level(100);  
+  set_fan_level(vm.max_fan_level);  
   vm.not_mining_counter = 0;
   enable_good_engines_all_asics_ok();
   psyslog("Got mining request, waking up done!\n");
@@ -97,7 +97,7 @@ int test_serial(int loopid) {
   int val1;
   int val2;
   // This psyslogs used in tests! Don`t remove!!
-  psyslog("Testing loop %d:\n", loopid);
+  //psyslog("Testing loop %d:\n", loopid);
   // For benny - TODO remove
   /*psyslog("FAKING IT :)\n");
   for (int j = 0 ; j < 1000 ; j++) {
@@ -113,7 +113,7 @@ int test_serial(int loopid) {
       // psyslog("ERR (%d) loop is too noisy: ADDR_SQUID_STATUS=%x,
       // ADDR_SQUID_SERIAL_READ=%x\n",i, val1, val2);
       // This psyslogs used in tests! Don`t remove!!
-      psyslog("NOISE\n");
+      psyslog("Loop NOISE\n");
       return 0;
     }
     usleep(10);
@@ -127,11 +127,11 @@ int test_serial(int loopid) {
   // printf("XTesting loop, version = %x\n", ver);
   if (BROADCAST_READ_DATA(ver) != 0x3c) {
     // printf("Failed: Got version: %x!\n", ver);
-    psyslog("BAD DATA (%x)\n",ver);
+    psyslog("Loop BAD DATA (%x)\n",ver);
     return 0;
   }
 
-  psyslog("OK\n");
+  //psyslog("OK\n");
   assert_serial_failures = true;
   return 1;
 }

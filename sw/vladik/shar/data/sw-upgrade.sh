@@ -27,6 +27,7 @@ print_msg_start()
 print_msg_end()
 {
 	echo ' done.'
+	echo "Please reboot the miner."
 }
 
 do_upgrade()

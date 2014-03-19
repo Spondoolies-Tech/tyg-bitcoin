@@ -9,18 +9,6 @@
 #include "squid.h"
 #include "pll.h"
 
-/*
-
-uint32_t vtrim_per_loop[] = { VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
-                               VTRIM_START,  VTRIM_START, VTRIM_START, VTRIM_START, 
-                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
-                               
-                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
-                                VTRIM_START,  VTRIM_START, VTRIM_START, VTRIM_START, 
-                               VTRIM_START, VTRIM_START, VTRIM_START, VTRIM_START, 
-                               };
-
-*/
 
 void enable_voltage_freq(ASIC_FREQ f) {
   int l, h, i = 0;
@@ -137,8 +125,8 @@ void discover_good_loops() {
         vm.loop[i].dc2dc.max_vtrim_currentwise = VTRIM_674;
         vm.loop_vtrim[i] = VTRIM_674;
       } else {
-        vm.loop[i].dc2dc.max_vtrim_currentwise = VTRIM_MAX;
-        vm.loop_vtrim[i] = VTRIM_START;
+        vm.loop[i].dc2dc.max_vtrim_currentwise = vm.vtrim_max;
+        vm.loop_vtrim[i] = vm.vtrim_start;
       }
       vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
       good_loops |= 1 << i;

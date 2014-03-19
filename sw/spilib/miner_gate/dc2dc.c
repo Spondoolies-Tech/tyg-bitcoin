@@ -64,9 +64,6 @@ void dc2dc_init_loop(int loop) {
     //i2c_write(I2C_DC2DC, 0x15);
     //usleep(1000);
     i2c_write(I2C_DC2DC, 0x03);
-#ifndef __MBTEST__
-    psyslog("OK INIT DC2DC\n");
-#endif
     dc2dc_i2c_close();
 }
 
@@ -172,7 +169,7 @@ static void dc2dc_select_i2c(int loop, int *err) { // 1 or 0
 
 void dc2dc_set_vtrim(int loop, uint32_t vtrim, int *err) {
 
-  passert(vtrim >= VTRIM_MIN && vtrim <= VTRIM_MAX);
+  passert(vtrim >= VTRIM_MIN && vtrim <= vm.vtrim_max);
 
 #ifndef __MBTEST__
 	  printf("Set VOLTAGE Loop %d Milli:%d Vtrim:%x\n",loop, VTRIM_TO_VOLTAGE_MILLI(vtrim),vtrim);

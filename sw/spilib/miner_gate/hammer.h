@@ -328,7 +328,10 @@ typedef struct {
   int dc2dc_total_power; 
   int total_mhash; 
   uint32_t ac2dc_temp;
-
+  int work_mode; // 0 = slow, 1 = normal, 2 = turbo
+  int max_fan_level;
+  int vtrim_start;
+  int vtrim_max;
 
   
   int last_second_jobs;

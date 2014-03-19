@@ -27,6 +27,7 @@
 #include "corner_discovery.h"
 
 static int now; // cahce time
+extern int kill_app;
 
 int loop_can_down(int l) {
   if (l == -1)
@@ -137,7 +138,7 @@ void set_working_voltage_discover_top_speeds() {
     do_bist_ok_rt(0);
     one_ok = asic_frequency_update_nrt_fast();
     n = n + 1;
- } while (one_ok);
+ } while (one_ok && (!kill_app));
 
 
   // All remember BIST they failed!

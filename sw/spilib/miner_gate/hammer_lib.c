@@ -1313,7 +1313,7 @@ void *i2c_state_machine_nrt(void *p) {
         if (counter%(48*60*60) == 0) { 
           static int loop = 0;
           loop = (loop+1)%LOOP_COUNT;
-          if (vm.loop[loop].dc2dc.max_vtrim_currentwise < VTRIM_MAX) {
+          if (vm.loop[loop].dc2dc.max_vtrim_currentwise < vm.vtrim_max) {
             vm.loop[loop].dc2dc.max_vtrim_currentwise = vm.loop[loop].dc2dc.max_vtrim_currentwise+1;
           } 
         }

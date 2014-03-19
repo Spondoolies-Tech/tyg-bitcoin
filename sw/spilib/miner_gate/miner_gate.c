@@ -85,11 +85,42 @@ void exit_nicely() {
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
     dc2dc_disable_dc2dc(l, &err); 
   }
-  set_fan_level(40);
+  set_fan_level(0);
   psyslog("Here comes unexpected death!\n");
   exit(0);  
 }
 
+int read_work_mode() {
+	
+	FILE* file = fopen ("/etc/mg_work_mode", "r");
+	int i = 0;
+	if (file <= 0) {
+		vm.work_mode = 2;
+	} else {
+  	fscanf (file, "%d", &vm.work_mode);	  
+    if (vm.work_mode < 0 || vm.work_mode > 2) {
+      vm.work_mode = 2;
+    }
+    fclose (file);
+	}
+
+  if (vm.work_mode == 0) {
+    vm.max_fan_level = FAN_QUIET;
+    vm.vtrim_start = VTRIM_START_QUIET;
+    vm.vtrim_max = VTRIM_MAX_QUIET;
+  } else if (vm.work_mode == 1) {
+    vm.max_fan_level = FAN_NORMAL;
+    vm.vtrim_start = VTRIM_START_NORMAL;
+    vm.vtrim_max = VTRIM_MAX_NORMAL;
+  } else if (vm.work_mode == 2) {
+    vm.max_fan_level = FAN_TURBO;
+    vm.vtrim_start = VTRIM_START_TURBO;
+    vm.vtrim_max = VTRIM_MAX_TURBO;
+  }
+  
+  printf("WORK MODE = %d\n", vm.work_mode);
+	
+}
 
 
 static void sighandler(int sig)
@@ -279,7 +310,6 @@ void *connection_handler_thread(void *adptr) {
       
       pthread_mutex_lock(&network_hw_mutex);
       vm.not_mining_counter = 0;
-      set_fan_level(100);
       if (vm.asics_shut_down_powersave) {
         unpause_all_mining_engines();
       }
@@ -515,6 +545,8 @@ int main(int argc, char *argv[]) {
   pthread_t dc2dc_thread;
   // pthread_t conn_pth;
   pid_t child;
+  psyslog("Read work mode\n");
+  read_work_mode();
   psyslog("reset_squid\n");
   reset_squid();
   psyslog("init_spi\n");
@@ -528,7 +560,7 @@ int main(int argc, char *argv[]) {
   psyslog("init_pwm\n");
   init_pwm();
   psyslog("set_fan_level\n");
-  set_fan_level(50);
+  set_fan_level(vm.max_fan_level);
   //exit(0);
   reset_sw_rt_queue();
   leds_init();
