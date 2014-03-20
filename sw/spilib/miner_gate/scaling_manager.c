@@ -266,7 +266,7 @@ void print_scaling() {
 
     total_asics++;
 
-    fprintf(f, GREEN "|%2x:%s%3dc%s %s%3dhz%s(%3d/%3d) %s%x" RESET, 
+    fprintf(f, GREEN "|%2x:%s%3dc%s H%s%3d%s/T%3d/B%3d %s%x" RESET, 
       hi.addr,
       (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE-1)?((hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
     corner_to_collor(hi.a->corner),hi.a->freq_wanted*15+210,GREEN,

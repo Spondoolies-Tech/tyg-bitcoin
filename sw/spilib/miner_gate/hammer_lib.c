@@ -560,6 +560,35 @@ BIST_VECTOR bist_tests[TOTAL_BISTS] =
 
 
 
+void push_job_to_hw_rt() {
+  RT_JOB work;
+  RT_JOB *actual_work = NULL;
+  int has_request = pull_work_req(&work);
+  if (has_request) {
+    // Update leading zeroes?
+    vm.not_mining_counter = 0;
+    if (work.leading_zeroes != vm.cur_leading_zeroes) {
+      vm.cur_leading_zeroes = work.leading_zeroes;
+      write_reg_broadcast(ADDR_WIN_LEADING_0, vm.cur_leading_zeroes);
+    }
+    //flush_spi_write();
+    actual_work = add_to_sw_rt_queue(&work);
+    // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
+    // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
+    push_to_hw_queue_rt(actual_work);
+    vm.last_second_jobs++;
+    vm.last_alive_jobs++;
+    if (vm.cosecutive_jobs < MAX_CONSECUTIVE_JOBS_TO_COUNT) {    
+      vm.cosecutive_jobs++;
+    }
+  } else {
+    if (vm.cosecutive_jobs > 0) {
+      vm.cosecutive_jobs--;
+    }
+  }
+
+}
+
 
 // returns 1 on success
 int do_bist_ok_rt(int long_bist) {
@@ -580,8 +609,8 @@ int do_bist_ok_rt(int long_bist) {
 
 
   // Give BIST jobc
-  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 4000); 
-  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 4300);
+  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 10000); 
+  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 10300);
   write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, bist_tests[bist_id].nonce_winner); // 0x1DAC2B7C
   write_reg_broadcast(ADDR_MID_STATE + 0, bist_tests[bist_id].midstate[0]);
   write_reg_broadcast(ADDR_MID_STATE + 1, bist_tests[bist_id].midstate[1]);
@@ -762,6 +791,8 @@ void once_second_tasks_rt() {
         do_bist_please) {
       do_bist_please = 0;
       do_bist_fix_loops_rt(0);
+      // push job right after bist!
+      push_job_to_hw_rt();
     }
 
     // parse_int_register("ADDR_INTR_SOURCE",
@@ -771,17 +802,6 @@ void once_second_tasks_rt() {
   } 
  //  end_stopper(&tv,"Whole one second task part 2");
  //  start_stopper(&tv);
-
-
-
-  if (counter % 10 == 0) {
-    ten_second_tasks(); 
-  }
-
-  
-  if (counter % 60 == 2) {
-    one_minute_tasks();
-  }
   ++counter;
   
  // end_stopper(&tv,"1SEC_RT");
@@ -1106,35 +1126,6 @@ void once_33_msec_tasks_rt() {
 }
 
 
-
-void push_job_to_hw_rt() {
-  RT_JOB work;
-  RT_JOB *actual_work = NULL;
-  int has_request = pull_work_req(&work);
-  if (has_request) {
-    // Update leading zeroes?
-    vm.not_mining_counter = 0;
-    if (work.leading_zeroes != vm.cur_leading_zeroes) {
-      vm.cur_leading_zeroes = work.leading_zeroes;
-      write_reg_broadcast(ADDR_WIN_LEADING_0, vm.cur_leading_zeroes);
-    }
-    //flush_spi_write();
-    actual_work = add_to_sw_rt_queue(&work);
-    // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
-    // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
-    push_to_hw_queue_rt(actual_work);
-    vm.last_second_jobs++;
-    vm.last_alive_jobs++;
-    if (vm.cosecutive_jobs < MAX_CONSECUTIVE_JOBS_TO_COUNT) {    
-      vm.cosecutive_jobs++;
-    }
-  } else {
-    if (vm.cosecutive_jobs > 0) {
-      vm.cosecutive_jobs--;
-    }
-  }
-
-}
 
 
 

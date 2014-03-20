@@ -148,9 +148,10 @@ void set_working_voltage_discover_top_speeds() {
 
        vm.hammer[h].freq_wanted = vm.hammer[h].freq_wanted - 1;
        if (vm.hammer[h].freq_wanted > vm.hammer[h].freq_thermal_limit) {
-         vm.hammer[h].freq_wanted = vm.hammer[h].freq_thermal_limit;
-         vm.hammer[h].freq_hw = vm.hammer[h].freq_thermal_limit-1; // to set pll
+         vm.hammer[h].freq_wanted = vm.hammer[h].freq_thermal_limit-1;
+         vm.hammer[h].freq_hw = vm.hammer[h].freq_thermal_limit; // to set pll
        }
+       vm.hammer[h].freq_hw = vm.hammer[h].freq_hw+1; 
       // vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_thermal_limit - 1;
        vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_bist_limit -1;      
     }
