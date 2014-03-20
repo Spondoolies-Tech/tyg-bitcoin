@@ -70,7 +70,7 @@ copy_all_spond_files() {
 	
 	cp ${CUR_DIR}/../../../../minepeon/http/* var/www -r
 
-	cp ${CUR_DIR}/../add-ons/S99startup etc/init.d
+	#cp ${CUR_DIR}/../add-ons/S99startup etc/init.d
 	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
 	cp ${CUR_DIR}/../add-ons/S87squid etc/init.d	
 	cp ${CUR_DIR}/../add-ons/S42checkip etc/init.d/S42checkip
@@ -210,7 +210,7 @@ cron()
 
 	# Run every minute
 	echo '0,5,10,15,20,25,30,35,40,45,50,55 * * * * /usr/bin/php /etc/cron.d/RECORDHashrate' > etc/cron.d/crontabs/root
-	echo '0 * * * * /etc/cron.d/pandp_register.sh' >> etc/cron.d/crontabs/root
+	#echo '0 * * * * /etc/cron.d/pandp_register.sh' >> etc/cron.d/crontabs/root
 }
 
 # Ugly hack to add php-rrd to the image.
@@ -243,7 +243,7 @@ main()
 	mounts
 	sw_upgrade
 	cron
-	ntp
+	#ntp
 	rrd
 }
 

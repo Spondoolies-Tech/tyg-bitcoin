@@ -24,10 +24,11 @@ forever_mining_watchdog()
 			  echo "Removed watchdog file."
 			  rm $WATCHDOG_FILE
 		else
-			  echo "Not mining, reboot!"
-			  /usr/local/bin/spond-manager stop
+			  #echo "Not mining, reboot!"
+			  pid3=`cat /var/run/miner_gate_arm.pid`
+			  kill $pid3
 			  sleep 1
-			  reboot
+			  #reboot
 		fi
 		
 	done

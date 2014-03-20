@@ -94,11 +94,7 @@ typedef struct _spondoolies_nvm {
   uint32_t nvm_version;
   uint32_t store_time;
   uint8_t dirty;
-  // Per work mode
-  int max_vtrim_currentwise[3][LOOP_COUNT];
-  int best_vtrim[3][LOOP_COUNT];
-  // Per work mode
-  int thermal_limit[3][HAMMERS_COUNT];
+  int best_vtrim[LOOP_COUNT];
   
   uint32_t crc32;
 } SPONDOOLIES_NVM;

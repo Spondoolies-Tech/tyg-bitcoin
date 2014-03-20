@@ -376,7 +376,7 @@ int allocate_addresses_to_devices() {
           vm.hammer[addr].working_engines = ALL_ENGINES_BITMASK;
           vm.hammer[addr].asic_present = 1;
           vm.hammer[addr].passed_last_bist_engines = ALL_ENGINES_BITMASK;
-          //vm.hammer[addr].freq_thermal_limit = MAX_ASIC_FREQ; - NVM
+          vm.hammer[addr].freq_thermal_limit = MAX_ASIC_FREQ;
           vm.hammer[addr].freq_bist_limit = MAX_ASIC_FREQ;
           vm.hammer[addr].freq_wanted = MINIMAL_ASIC_FREQ;
           if (vm.silent_mode && (addr%20 != 0)) {
@@ -559,35 +559,6 @@ BIST_VECTOR bist_tests[TOTAL_BISTS] =
 };
 
 
-
-void push_job_to_hw_rt() {
-  RT_JOB work;
-  RT_JOB *actual_work = NULL;
-  int has_request = pull_work_req(&work);
-  if (has_request) {
-    // Update leading zeroes?
-    vm.not_mining_counter = 0;
-    if (work.leading_zeroes != vm.cur_leading_zeroes) {
-      vm.cur_leading_zeroes = work.leading_zeroes;
-      write_reg_broadcast(ADDR_WIN_LEADING_0, vm.cur_leading_zeroes);
-    }
-    //flush_spi_write();
-    actual_work = add_to_sw_rt_queue(&work);
-    // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
-    // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
-    push_to_hw_queue_rt(actual_work);
-    vm.last_second_jobs++;
-    vm.last_alive_jobs++;
-    if (vm.cosecutive_jobs < MAX_CONSECUTIVE_JOBS_TO_COUNT) {    
-      vm.cosecutive_jobs++;
-    }
-  } else {
-    if (vm.cosecutive_jobs > 0) {
-      vm.cosecutive_jobs--;
-    }
-  }
-
-}
 
 
 // returns 1 on success
@@ -791,8 +762,6 @@ void once_second_tasks_rt() {
         do_bist_please) {
       do_bist_please = 0;
       do_bist_fix_loops_rt(0);
-      // push job right after bist!
-      push_job_to_hw_rt();
     }
 
     // parse_int_register("ADDR_INTR_SOURCE",
@@ -802,6 +771,17 @@ void once_second_tasks_rt() {
   } 
  //  end_stopper(&tv,"Whole one second task part 2");
  //  start_stopper(&tv);
+
+
+
+  if (counter % 10 == 0) {
+    ten_second_tasks(); 
+  }
+
+  
+  if (counter % 60 == 2) {
+    one_minute_tasks();
+  }
   ++counter;
   
  // end_stopper(&tv,"1SEC_RT");
@@ -1127,6 +1107,35 @@ void once_33_msec_tasks_rt() {
 
 
 
+void push_job_to_hw_rt() {
+  RT_JOB work;
+  RT_JOB *actual_work = NULL;
+  int has_request = pull_work_req(&work);
+  if (has_request) {
+    // Update leading zeroes?
+    vm.not_mining_counter = 0;
+    if (work.leading_zeroes != vm.cur_leading_zeroes) {
+      vm.cur_leading_zeroes = work.leading_zeroes;
+      write_reg_broadcast(ADDR_WIN_LEADING_0, vm.cur_leading_zeroes);
+    }
+    //flush_spi_write();
+    actual_work = add_to_sw_rt_queue(&work);
+    // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
+    // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
+    push_to_hw_queue_rt(actual_work);
+    vm.last_second_jobs++;
+    vm.last_alive_jobs++;
+    if (vm.cosecutive_jobs < MAX_CONSECUTIVE_JOBS_TO_COUNT) {    
+      vm.cosecutive_jobs++;
+    }
+  } else {
+    if (vm.cosecutive_jobs > 0) {
+      vm.cosecutive_jobs--;
+    }
+  }
+
+}
+
 
 
 void ping_watchdog() {
@@ -1147,8 +1156,7 @@ void save_rate_temp(int back_tmp, int front_tmp) {
       psyslog("Failed to create watchdog file\n");
       return;
     }
-    fprintf(f, "%d %d %d\n", (vm.cosecutive_jobs)?vm.total_mhash:0, back_tmp, front_tmp);
-    
+    fprintf(f, "%d %d %d\n", vm.total_mhash, back_tmp, front_tmp);
     fclose(f);
 }
 
@@ -1241,6 +1249,7 @@ void *i2c_state_machine_nrt(void *p) {
 
       if ((counter % (48)*2) ==  0)  {
         print_scaling();        
+        
       }
 
 
@@ -1295,16 +1304,14 @@ void *i2c_state_machine_nrt(void *p) {
            vm.hammer[addr].asic_temp < (MAX_ASIC_TEMPERATURE-1)) {
           vm.hammer[addr].freq_thermal_limit = (vm.hammer[addr].freq_thermal_limit+1);
         }
-
-      
-        spond_save_nvm();
+     
         psyslog("Last minute rate: %d", (vm.solved_difficulty_total*4/60))
         vm.solved_difficulty_total = 0;
 
 
         // every 3 minutes
         if (counter%(48*60*3) == 0) {
-            ac2dc_scaling();            
+            ac2dc_scaling();
         }
 
         

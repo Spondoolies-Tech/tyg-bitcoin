@@ -121,8 +121,13 @@ void discover_good_loops() {
     if (test_serial(i)) { // TODOZ
       // printf("--00--\n");
       vm.loop[i].enabled_loop = 1;
-      //vm.loop[i].dc2dc.max_vtrim_currentwise = vm.vtrim_max;
-      //vm.loop_vtrim[i] = vm.vtrim_start;
+      if (vm.thermal_test_mode) {
+        vm.loop[i].dc2dc.max_vtrim_currentwise = VTRIM_674;
+        vm.loop_vtrim[i] = VTRIM_674;
+      } else {
+        vm.loop[i].dc2dc.max_vtrim_currentwise = vm.vtrim_max;
+        vm.loop_vtrim[i] = vm.vtrim_start;
+      }
       vm.loop[i].dc2dc.dc_current_limit_16s = DC2DC_INITIAL_CURRENT_16S;
       good_loops |= 1 << i;
       ret++;
