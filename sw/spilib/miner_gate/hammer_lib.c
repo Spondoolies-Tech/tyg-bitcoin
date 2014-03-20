@@ -376,7 +376,7 @@ int allocate_addresses_to_devices() {
           vm.hammer[addr].working_engines = ALL_ENGINES_BITMASK;
           vm.hammer[addr].asic_present = 1;
           vm.hammer[addr].passed_last_bist_engines = ALL_ENGINES_BITMASK;
-          vm.hammer[addr].freq_thermal_limit = MAX_ASIC_FREQ;
+          //vm.hammer[addr].freq_thermal_limit = MAX_ASIC_FREQ; - NVM
           vm.hammer[addr].freq_bist_limit = MAX_ASIC_FREQ;
           vm.hammer[addr].freq_wanted = MINIMAL_ASIC_FREQ;
           if (vm.silent_mode && (addr%20 != 0)) {
@@ -580,8 +580,8 @@ int do_bist_ok_rt(int long_bist) {
 
 
   // Give BIST jobc
-  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 200); 
-  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 400);
+  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 4000); 
+  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 4300);
   write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, bist_tests[bist_id].nonce_winner); // 0x1DAC2B7C
   write_reg_broadcast(ADDR_MID_STATE + 0, bist_tests[bist_id].midstate[0]);
   write_reg_broadcast(ADDR_MID_STATE + 1, bist_tests[bist_id].midstate[1]);
@@ -817,7 +817,6 @@ int update_vm_with_currents_and_temperatures_nrt() {
       if (loop_can_down(l)) {
        if (vm.loop_vtrim[l] > VTRIM_MIN) {       
           vm.loop[l].dc2dc.max_vtrim_currentwise = vm.loop_vtrim[l]-1;
-          nvm.best_vtrim[l] = vm.loop_vtrim[l]-1;
        }
        loop_down(l);
       }
@@ -1157,7 +1156,8 @@ void save_rate_temp(int back_tmp, int front_tmp) {
       psyslog("Failed to create watchdog file\n");
       return;
     }
-    fprintf(f, "%d %d %d\n", vm.total_mhash, back_tmp, front_tmp);
+    fprintf(f, "%d %d %d\n", (vm.cosecutive_jobs)?vm.total_mhash:0, back_tmp, front_tmp);
+    
     fclose(f);
 }
 
@@ -1250,7 +1250,6 @@ void *i2c_state_machine_nrt(void *p) {
 
       if ((counter % (48)*2) ==  0)  {
         print_scaling();        
-        
       }
 
 
@@ -1305,17 +1304,22 @@ void *i2c_state_machine_nrt(void *p) {
            vm.hammer[addr].asic_temp < (MAX_ASIC_TEMPERATURE-1)) {
           vm.hammer[addr].freq_thermal_limit = (vm.hammer[addr].freq_thermal_limit+1);
         }
-     
+
+      
+        spond_save_nvm();
         psyslog("Last minute rate: %d", (vm.solved_difficulty_total*4/60))
         vm.solved_difficulty_total = 0;
 
 
+        // every 3 minutes
         if (counter%(48*60*3) == 0) {
-            ac2dc_scaling();
+            ac2dc_scaling();            
         }
+
         
         // once an hour - increase max vtrim on one loop
         if (counter%(48*60*60) == 0) { 
+          
           static int loop = 0;
           spond_save_nvm();
           loop = (loop+1)%LOOP_COUNT;

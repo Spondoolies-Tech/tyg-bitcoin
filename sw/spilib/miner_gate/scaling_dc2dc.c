@@ -273,7 +273,6 @@ void pause_asics_if_needed() {
 
 void resume_asics_if_needed() {
   if (vm.engines_disabled != 0) {
-    //printf("Resuming hehe\n");
     enable_good_engines_all_asics_ok();
     resume_all_work();
   }
@@ -293,6 +292,8 @@ void do_bist_fix_loops_rt(int force) {
          struct timeval tv; 
          start_stopper(&tv);
          int failed = do_bist_ok_rt(1);
+         //failed |= do_bist_ok_rt(1);
+         //failed |= do_bist_ok_rt(1);         
          end_stopper(&tv,"BIST");
          printf(MAGENTA "Bist failed %d times\n" RESET, failed);
          if (failed) {

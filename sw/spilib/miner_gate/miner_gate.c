@@ -547,6 +547,7 @@ int main(int argc, char *argv[]) {
   pid_t child;
   psyslog("Read work mode\n");
   read_work_mode();
+  // Must be done after "read_work_mode"
   psyslog("Read  NVM\n");
   load_nvm_ok();
   psyslog("reset_squid\n");

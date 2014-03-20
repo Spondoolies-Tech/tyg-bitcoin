@@ -13,7 +13,7 @@
 #define HAMMERS_PER_LOOP 8
 #define HAMMERS_COUNT (LOOP_COUNT *HAMMERS_PER_LOOP)
 #define ALL_ENGINES_BITMASK 0x7FFF
-#define NVM_FILE_NAME "/nvm/nvm.bin"
+#define NVM_FILE_NAME "/etc/mg_nvm.bin"
 
 typedef enum {
   ASIC_FREQ_0 = 0,
@@ -94,7 +94,11 @@ typedef struct _spondoolies_nvm {
   uint32_t nvm_version;
   uint32_t store_time;
   uint8_t dirty;
-  int best_vtrim[LOOP_COUNT];
+  // Per work mode
+  int max_vtrim_currentwise[3][LOOP_COUNT];
+  int best_vtrim[3][LOOP_COUNT];
+  // Per work mode
+  int thermal_limit[3][HAMMERS_COUNT];
   
   uint32_t crc32;
 } SPONDOOLIES_NVM;

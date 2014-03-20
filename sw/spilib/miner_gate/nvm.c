@@ -98,17 +98,40 @@ int load_nvm_ok() {
   printf("Loading NVM\n");
   FILE *infile = fopen(NVM_FILE_NAME, "r");
   if (infile == NULL) {
+  //if (1) {
     printf("------------------\nFile " NVM_FILE_NAME " not found\n");
     for (int i = 0; i < LOOP_COUNT ; i++) {
-    //  nvm.best_vtrim[LOOP_COUNT]
+        nvm.max_vtrim_currentwise[0][i] = VTRIM_MAX_QUIET;
+        nvm.max_vtrim_currentwise[1][i] = VTRIM_MAX_NORMAL;        
+        nvm.max_vtrim_currentwise[2][i] = VTRIM_MAX_TURBO;
+        nvm.best_vtrim[0][i] = VTRIM_START_QUIET; 
+        nvm.best_vtrim[1][i] = VTRIM_START_NORMAL; 
+        nvm.best_vtrim[2][i] = VTRIM_START_TURBO; 
     }
+    for (int i = 0; i < HAMMERS_COUNT; i++) {
+        nvm.thermal_limit[0][i] = MAX_ASIC_FREQ;
+        nvm.thermal_limit[1][i] = MAX_ASIC_FREQ;
+        nvm.thermal_limit[2][i] = MAX_ASIC_FREQ;
+    }
+     
   } else {
-    // copy file to struct
     fseek(infile, 0L, SEEK_SET);
     fread(&nvm, sizeof(char), sizeof(SPONDOOLIES_NVM), infile);
     fclose(infile);
   }
+  for (int i = 0; i < LOOP_COUNT ; i++) {
+    vm.loop[i].dc2dc.max_vtrim_currentwise = nvm.max_vtrim_currentwise[vm.work_mode][i];
+    vm.loop_vtrim[i] = nvm.best_vtrim[vm.work_mode][i];
+    printf("Restored max vtrim of %x on loop %d\n",vm.loop[i].dc2dc.max_vtrim_currentwise,i);
+  }  
+  for (int i = 0; i < HAMMERS_COUNT; i++) {
+    if (nvm.thermal_limit[vm.work_mode][i] < MAX_ASIC_FREQ) {
+      vm.hammer[i].freq_thermal_limit =  nvm.thermal_limit[vm.work_mode][i]+1;
+    } else {
+      vm.hammer[i].freq_thermal_limit =  nvm.thermal_limit[vm.work_mode][i];
 
+    }
+  }
   // LOAD NVM
   uint32_t crc = crc32(0, &nvm, sizeof(SPONDOOLIES_NVM) - sizeof(uint32_t));
   if (nvm.nvm_version != NVM_VERSION || nvm.crc32 != crc) {
@@ -129,17 +152,22 @@ int load_nvm_ok() {
 }
 
 void spond_save_nvm() {
-  // dont store NVM in noscaling
-  if (nvm.dirty) {
-    nvm.dirty = 0;
-    nvm.crc32 = crc32(0, (const void *)&nvm,
-                      sizeof(SPONDOOLIES_NVM) - sizeof(uint32_t));
-    printf("------------------\nVER=%x  CRC=%x, try to save file %s:\n",
-           nvm.nvm_version, nvm.crc32, NVM_FILE_NAME);
-    FILE *infile = fopen(NVM_FILE_NAME, "w");
-    passert(infile > 0);
-    fwrite(&nvm, sizeof(SPONDOOLIES_NVM), 1, infile);
-    printf("Success, ---->> File %d\n", infile);
-    fclose(infile);
+  
+  for (int i = 0; i < LOOP_COUNT ; i++) {
+      nvm.max_vtrim_currentwise[vm.work_mode][i] = vm.loop[i].dc2dc.max_vtrim_currentwise;
+      nvm.best_vtrim[vm.work_mode][i] = vm.loop_vtrim[i];
+      printf("Saved max vtrim of %x on loop %d\n",vm.loop[i].dc2dc.max_vtrim_currentwise,i);
   }  
+
+  for (int i = 0; i < HAMMERS_COUNT; i++) {
+      nvm.thermal_limit[vm.work_mode][i] = vm.hammer[i].freq_thermal_limit;
+  }
+  nvm.dirty = 0;
+  nvm.crc32 = crc32(0, (const void *)&nvm, sizeof(SPONDOOLIES_NVM) - sizeof(uint32_t));
+  printf("------------------\nVER=%x  CRC=%x, try to save file %s:\n",nvm.nvm_version, nvm.crc32, NVM_FILE_NAME);
+  FILE *infile = fopen(NVM_FILE_NAME, "w");
+  passert(infile > 0);
+  fwrite(&nvm, sizeof(SPONDOOLIES_NVM), 1, infile);
+  printf("Success, ---->> File %d\n", infile);
+  fclose(infile);
 }

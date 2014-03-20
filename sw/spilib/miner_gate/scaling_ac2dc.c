@@ -108,13 +108,13 @@ int asic_frequency_update_nrt_fast() {
       if ((passed == ALL_ENGINES_BITMASK)) {
           one_ok = 1;
           h->freq_wanted = h->freq_wanted+1;
-          h->freq_thermal_limit = h->freq_wanted;
+          //h->freq_thermal_limit = h->freq_wanted; - NVM
           h->freq_bist_limit = h->freq_wanted;    
           set_pll(h->address, h->freq_wanted);  
       } else if (h->freq_wanted == ASIC_FREQ_225) {
           h->working_engines = h->working_engines&passed;
           h->freq_wanted = h->freq_wanted+1;
-          h->freq_thermal_limit = h->freq_wanted;
+          //h->freq_thermal_limit = h->freq_wanted; - NVM
           h->freq_bist_limit = h->freq_wanted;    
           set_pll(h->address, h->freq_wanted);  
           h->passed_last_bist_engines = ALL_ENGINES_BITMASK;
@@ -145,8 +145,13 @@ void set_working_voltage_discover_top_speeds() {
   for (int h =0; h < HAMMERS_COUNT ; h++) {
     if (vm.hammer[h].asic_present) {
        vm.hammer[h].freq_hw = vm.hammer[h].freq_hw - 1;
+
        vm.hammer[h].freq_wanted = vm.hammer[h].freq_wanted - 1;
-       vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_thermal_limit - 1;
+       if (vm.hammer[h].freq_wanted > vm.hammer[h].freq_thermal_limit) {
+         vm.hammer[h].freq_wanted = vm.hammer[h].freq_thermal_limit;
+         vm.hammer[h].freq_hw = vm.hammer[h].freq_thermal_limit-1; // to set pll
+       }
+      // vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_thermal_limit - 1;
        vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_bist_limit -1;      
     }
   }
