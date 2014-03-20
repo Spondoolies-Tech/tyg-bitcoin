@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# this is not a service, just a place to run anything that needs to happen on startup
+#
+
+case "$1" in
+start|"")
+
+
+	/etc/cron.d/pandp_register.sh
+
+
+	;;
+
+*)
+	echo "This is a startup script, not a service, and it cannot be stopped or restarted.";;
+esac
+
+
+return $?
