@@ -70,6 +70,7 @@ copy_all_spond_files() {
 	
 	cp ${CUR_DIR}/../../../../minepeon/http/* var/www -r
 
+	cp ${CUR_DIR}/../add-ons/S99startup etc/init.d
 	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
 	cp ${CUR_DIR}/../add-ons/S87squid etc/init.d	
 	cp ${CUR_DIR}/../add-ons/S42checkip etc/init.d/S42checkip
@@ -199,12 +200,14 @@ cron()
 	cp -a ${CUR_DIR}/../add-ons/S47cron etc/init.d
 	cp -a ${CUR_DIR}/../add-ons/S13misc etc/init.d
 	cp ${CUR_DIR}/../../../../minepeon/etc/cron.d/5min/RECORDHashrate etc/cron.d
+	cp ${CUR_DIR}/../../../../minepeon/etc/cron.d/hourly/pandp_register.sh etc/cron.d
 
 	# Should be deleted as it is symlinked to /tmp/rrd in runtime.
 	rm -rf var/www/rrd
 
 	# Run every minute
 	echo '* * * * * /usr/bin/php /etc/cron.d/RECORDHashrate' > etc/cron.d/crontabs/root
+	echo '0 * * * * /etc/cron.d/pandp_register.sh' >> etc/cron.d/crontabs/root
 }
 
 # Ugly hack to add php-rrd to the image.
