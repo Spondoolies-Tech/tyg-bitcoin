@@ -292,7 +292,7 @@ void do_bist_fix_loops_rt(int force) {
          struct timeval tv; 
          start_stopper(&tv);
          int failed = do_bist_ok_rt(1);
-         //failed |= do_bist_ok_rt(1);
+         failed |= do_bist_ok_rt(1);
          //failed |= do_bist_ok_rt(1);         
          end_stopper(&tv,"BIST");
          printf(MAGENTA "Bist failed %d times\n" RESET, failed);
