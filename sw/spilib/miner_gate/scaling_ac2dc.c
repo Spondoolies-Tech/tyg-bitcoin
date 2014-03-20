@@ -163,7 +163,7 @@ void set_working_voltage_discover_top_speeds() {
 
 
 // Called from low-priority thread.
-void ac2dc_scaling_one_minute() {
+void ac2dc_scaling() {
   for (int l = 0; l < LOOP_COUNT; l++) {
      int changed = 0;
     now=time(NULL);
@@ -184,10 +184,11 @@ void ac2dc_scaling_one_minute() {
           if (loop_can_down(l)) {
             printf(CYAN "LOOP DOWN:%d\n" RESET, l);            
             changed = 1;
-            loop_down(l);
-            
+            loop_down(l);      
           }
-       } else if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 5) {
+       } else if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 5 &&
+                   (vm.loop[l].overheating_asics < 4) && 
+                   (vm.loop[l].crit_temp_downscale < 500)) {
       // scale up
         if (loop_can_up(l)) {          
           printf(CYAN "LOOP UP:%d\n" RESET, l);

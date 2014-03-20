@@ -817,6 +817,7 @@ int update_vm_with_currents_and_temperatures_nrt() {
       if (loop_can_down(l)) {
        if (vm.loop_vtrim[l] > VTRIM_MIN) {       
           vm.loop[l].dc2dc.max_vtrim_currentwise = vm.loop_vtrim[l]-1;
+          nvm.best_vtrim[l] = vm.loop_vtrim[l]-1;
        }
        loop_down(l);
       }
@@ -1304,14 +1305,19 @@ void *i2c_state_machine_nrt(void *p) {
            vm.hammer[addr].asic_temp < (MAX_ASIC_TEMPERATURE-1)) {
           vm.hammer[addr].freq_thermal_limit = (vm.hammer[addr].freq_thermal_limit+1);
         }
-        ac2dc_scaling_one_minute();
+     
         psyslog("Last minute rate: %d", (vm.solved_difficulty_total*4/60))
         vm.solved_difficulty_total = 0;
 
 
+        if (counter%(48*60*3) == 0) {
+            ac2dc_scaling();
+        }
+        
         // once an hour - increase max vtrim on one loop
         if (counter%(48*60*60) == 0) { 
           static int loop = 0;
+          spond_save_nvm();
           loop = (loop+1)%LOOP_COUNT;
           if (vm.loop[loop].dc2dc.max_vtrim_currentwise < vm.vtrim_max) {
             vm.loop[loop].dc2dc.max_vtrim_currentwise = vm.loop[loop].dc2dc.max_vtrim_currentwise+1;

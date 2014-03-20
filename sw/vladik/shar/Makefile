@@ -15,7 +15,12 @@ endif
 all:				shar
 
 
-shar:				data/uImage data/spondoolies.dtb
+shar:				data/uImage data/spondoolies.dtb ../add-ons/fw_ver
+	cp ../add-ons/fw_ver data/
+	@echo -------------------------------
+	@echo -n "Making SW upgrade version:"
+	@cat data/fw_ver
+	@echo -------------------------------
 	makeself $(MAKESELF_FLAGS) data $(SHAR) "$(SHAR_NAME)" $(SCRIPT)
 	../provisioning/sign-digest.sh --file=$(SHAR) --private=$(PRIVATE_KEY)
 	tar cf $(TAR_FILE) $(SHAR) $(SHAR).sign

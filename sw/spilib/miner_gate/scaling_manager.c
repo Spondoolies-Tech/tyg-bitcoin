@@ -215,7 +215,7 @@ void print_scaling() {
       vm.ac2dc_temp
     );
   int total_watt=0;
-  fprintf(f, GREEN "L |Vtrm|vlt|Wt|"  "A /Li|Tmp/"  "Tmp|A|H(H-)" RESET); 
+  fprintf(f, GREEN "L |Vtrm/MVtrim|vlt|Wt|"  "A /Li|Tmp/"  "Tmp|A|H(H-)" RESET); 
   for (int addr = 0; addr < HAMMERS_COUNT ; addr++) {
     
     hammer_iter hi;    
@@ -241,12 +241,12 @@ void print_scaling() {
           VTRIM_TO_VOLTAGE_MILLI(vm.loop_vtrim[hi.l]),
           dc2dc->dc_power_watts_16s/16,
           
-        ((dc2dc->dc_current_16s>=DC2DC_INITIAL_CURRENT_16S - 1*16)?RED:GREEN), dc2dc->dc_current_16s,GREEN,
-          dc2dc->dc_current_limit_16s,
+        ((dc2dc->dc_current_16s>=DC2DC_INITIAL_CURRENT_16S - 1*16)?RED:GREEN), dc2dc->dc_current_16s/16,GREEN,
+          dc2dc->dc_current_limit_16s/16,
         ((dc2dc->dc_temp>=DC2DC_TEMP_GREEN_LINE)?RED:GREEN), dc2dc->dc_temp,GREEN,
         
           (vm.loop[hi.l].asic_count) ? vm.loop[hi.l].asic_temp_sum/vm.loop[hi.l].asic_count : 0,
-          vm.loop[hi.l].crit_temp,
+          vm.loop[hi.l].crit_temp_downscale,
           vm.loop[hi.l].asic_hz_sum*15/1000,
           vm.loop[hi.l].overheating_asics
           );

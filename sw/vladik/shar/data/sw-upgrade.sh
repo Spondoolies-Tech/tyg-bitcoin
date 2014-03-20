@@ -13,8 +13,9 @@ curdir=
 
 get_new_version()
 {
-	new_version=`mkimage -l uImage | \
-		grep 'Image Name' | { read d d n; echo $n; }`
+	#new_version=`mkimage -l uImage | \
+	#	grep 'Image Name' | { read d d n; echo $n; }`
+	new_version=`cat ${curdir}/fw_ver`
 
 }
 

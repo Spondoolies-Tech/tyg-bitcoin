@@ -99,6 +99,9 @@ int load_nvm_ok() {
   FILE *infile = fopen(NVM_FILE_NAME, "r");
   if (infile == NULL) {
     printf("------------------\nFile " NVM_FILE_NAME " not found\n");
+    for (int i = 0; i < LOOP_COUNT ; i++) {
+    //  nvm.best_vtrim[LOOP_COUNT]
+    }
   } else {
     // copy file to struct
     fseek(infile, 0L, SEEK_SET);

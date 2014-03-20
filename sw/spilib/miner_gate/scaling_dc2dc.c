@@ -454,7 +454,7 @@ void asic_frequency_update_nrt(int verbal) {
              // let it cool off
              //printf("TOO HOT:%x\n",h->address);
              h->freq_thermal_limit = (ASIC_FREQ)(h->freq_thermal_limit - 1);
-             vm.loop[h->loop_address].crit_temp++;
+             vm.loop[h->loop_address].crit_temp_downscale++;
              h->last_down_freq_change_time = now;
              asic_down_completly(h);
            }
