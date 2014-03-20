@@ -7,7 +7,7 @@
 #include "defines.h"
 
 #define NVM_VERSION (0xCAF10000 + sizeof(SPONDOOLIES_NVM))
-#define RECOMPUTE_NVM_TIME_SEC (60 * 60 * 24) // once every 24 hours
+#define RECOMPUTE_NVM_TIME_SEC (60 * 60 * 24 * 7) // once every 24 hours
 
 #define LOOP_COUNT 24
 #define HAMMERS_PER_LOOP 8
@@ -91,17 +91,11 @@ typedef enum {
 
 
 typedef struct _spondoolies_nvm {
-  // Fore competibility tests.
   uint32_t nvm_version;
-  // time(NULL) at store time.
   uint32_t store_time;
-  // Save nvm
   uint8_t dirty;
-  // Known top working DC2DC current
-  //uint32_t top_dc2dc_current_16s[LOOP_COUNT];
-
+  int best_vtrim[LOOP_COUNT];
   
-  // This field must be last!
   uint32_t crc32;
 } SPONDOOLIES_NVM;
 

@@ -108,6 +108,8 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../spilib/zabbix_reader/zabbix_reader_arm  usr/local/bin
 	cp ${CUR_DIR}/../../spilib/hammer_reg/reg usr/local/bin
 	#cp ${CUR_DIR}/../add-ons/mining_controller usr/local/bin
+	rm etc/resolv.conf
+	cp ${CUR_DIR}/../add-ons/resolv.conf etc/
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
 	date > build_date.txt
 

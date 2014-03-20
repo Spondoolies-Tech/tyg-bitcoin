@@ -279,7 +279,7 @@ typedef struct {
   int overheating_asics;
   int asics_failing_bist;
   int asic_count;
-  int crit_temp;
+  int crit_temp_downscale;
   DC2DC dc2dc;
   int power_throttled;
 } LOOP;
