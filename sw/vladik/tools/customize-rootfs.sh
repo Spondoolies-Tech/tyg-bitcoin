@@ -147,12 +147,15 @@ emmc()
 web_server()
 {
 	cp -a ${CUR_DIR}/../../../../minepeon/http/* var/www/ -rf
-	cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/lighttpd usr/bin
-	cp -a ${CUR_DIR}/../add-ons/lighttpd.conf etc
-	cp -a ${CUR_DIR}/../add-ons/S55lighttpd etc/init.d
-	for m in indexfile staticfile fastcgi redirect rewrite dirlisting auth
+	cp -a ${CUR_DIR}/../add-ons/lighttpd.conf etc/lighttpd
+	cp -a ${CUR_DIR}/../add-ons/spondoolies-cert.pem root
+
+	for m in trigger_b4_dl status ssi simple setenv secdownload scgi proxy	\
+		mysql_vhost magnet flv_streaming extforward expire evhost	\
+		evasive compress cml cgi alias accesslog userdir usertrack	\
+		webdav access.so
 	do
-		cp -a ${CUR_DIR}/../lighttpd-1.4.34/src/.libs/mod_${m}.so usr/local/lib
+		rm -f usr/lib/lighttpd/mod_${m}.so
 	done
 }
 

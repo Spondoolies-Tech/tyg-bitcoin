@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2013.05-g87ec8a0-dirty Configuration
+# Buildroot 2013.05-gefa327c-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 # BR2_arcle is not set
@@ -935,7 +935,13 @@ BR2_PACKAGE_DROPBEAR_SMALL=y
 # BR2_PACKAGE_IPTABLES is not set
 # BR2_PACKAGE_IW is not set
 # BR2_PACKAGE_KISMET is not set
-# BR2_PACKAGE_LIGHTTPD is not set
+BR2_PACKAGE_LIGHTTPD=y
+BR2_PACKAGE_LIGHTTPD_OPENSSL=y
+# BR2_PACKAGE_LIGHTTPD_ZLIB is not set
+# BR2_PACKAGE_LIGHTTPD_BZIP2 is not set
+# BR2_PACKAGE_LIGHTTPD_PCRE is not set
+# BR2_PACKAGE_LIGHTTPD_WEBDAV is not set
+# BR2_PACKAGE_LIGHTTPD_LUA is not set
 # BR2_PACKAGE_LINKNX is not set
 # BR2_PACKAGE_LINKS is not set
 # BR2_PACKAGE_LINPHONE is not set
