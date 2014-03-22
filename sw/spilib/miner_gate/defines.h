@@ -38,7 +38,7 @@
 #define MIN_COSECUTIVE_JOBS_FOR_DC2DC_MEASUREMENT MIN_COSECUTIVE_JOBS_FOR_SCALING
 
 // In seconds
-#define BIST_PERIOD_SECS                              60 
+#define BIST_PERIOD_SECS                              30 
 #define AGRESSIVE_BIST_PERIOD_SECS                    15
 #define AGRESSIVE_BIST_PERIOD_UPTIME_SECS         (60*20)
 
