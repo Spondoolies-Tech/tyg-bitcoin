@@ -86,7 +86,7 @@ void unpause_all_mining_engines() {
   int err;
   psyslog("Got mining request, enable DC2DC!\n");
   set_fan_level(vm.max_fan_level);  
-  vm.not_mining_counter = 0;
+  vm.not_mining_time = 0;
   enable_good_engines_all_asics_ok();
   psyslog("Got mining request, waking up done!\n");
   vm.asics_shut_down_powersave = 0;

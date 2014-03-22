@@ -680,7 +680,7 @@ int has_work_req();
 
 void one_minute_tasks() {
   // Give them chance to raise over 3 hours if system got colder
-  //psyslog("Last minute rate: %d", (vm.solved_difficulty_total*4/60))
+  psyslog("Last minute rate: %d (m:%d, nm:%d)\n", (vm.solved_difficulty_total*4/60), vm.mining_time, vm.not_mining_time)
   //vm.solved_difficulty_total = 0;
 }
 
@@ -711,11 +711,16 @@ void once_second_tasks_rt() {
   if (vm.cosecutive_jobs == 0) {
     vm.start_mine_time = 0;
     set_light(LIGHT_GREEN, 0);
+    vm.not_mining_time++;
+    vm.mining_time = 0;
+  } else {
+    vm.not_mining_time = 0;
+    vm.mining_time++;
   }
   // See if we can stop engines
-  //psyslog("not_mining_counter %d\n", vm.not_mining_counter);
-  //vm.not_mining_counter++;
-  if (vm.not_mining_counter >= IDLE_TIME_TO_PAUSE_ENGINES) {
+  //psyslog("not_mining_time %d\n", vm.not_mining_time);
+  
+  if (vm.not_mining_time >= IDLE_TIME_TO_PAUSE_ENGINES) {
     if (!vm.asics_shut_down_powersave) {
       pause_all_mining_engines();
     }
@@ -1024,7 +1029,7 @@ void push_job_to_hw_rt() {
   int has_request = pull_work_req(&work);
   if (has_request) {
     // Update leading zeroes?
-    vm.not_mining_counter = 0;
+    vm.not_mining_time = 0;
     if (work.leading_zeroes != vm.cur_leading_zeroes) {
       vm.cur_leading_zeroes = work.leading_zeroes;
       write_reg_broadcast(ADDR_WIN_LEADING_0, vm.cur_leading_zeroes);
@@ -1131,7 +1136,7 @@ void *i2c_state_machine_nrt(void *p) {
   for (;;) {
     counter++;
     // Takes DC2DC 10 minutes to settle
-    if (/*((time(NULL) - vm.start_mine_time) < (60*10))*/((counter%4)==0)) {
+    if (((counter%4)==0)) {
       update_vm_with_currents_and_temperatures_nrt();
       if (kill_app) {
         printf("NRT out\n");
@@ -1206,7 +1211,6 @@ void *i2c_state_machine_nrt(void *p) {
           vm.hammer[addr].freq_thermal_limit = (ASIC_FREQ)(vm.hammer[addr].freq_thermal_limit+1);
         }
      
-        psyslog("Last minute rate: %d", (vm.solved_difficulty_total*4/60))
         vm.solved_difficulty_total = 0;
 
 
@@ -1246,7 +1250,7 @@ void *squid_regular_state_machine_rt(void *p) {
   // Do BIST before start
   hammer_iter hi;
   hammer_iter_init(&hi);
-  vm.not_mining_counter = 0;
+  vm.not_mining_time = 0;
   unpause_all_mining_engines();
   pause_all_mining_engines();
   

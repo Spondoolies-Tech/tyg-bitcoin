@@ -299,6 +299,7 @@ typedef struct {
   // Fans set to high
   int fan_level;
   uint32_t good_loops;
+
     
   int start_mine_time;
   // pll can be changed
@@ -314,7 +315,9 @@ typedef struct {
 
   // Pause all miner work to save electricity
   uint8_t asics_shut_down_powersave;
-  uint32_t not_mining_counter; // in seconds how long we are not mining
+  uint32_t not_mining_time; // in seconds how long we are not mining
+  uint32_t mining_time; 
+
 
   // Stoped all work
   uint8_t stopped_all_work;

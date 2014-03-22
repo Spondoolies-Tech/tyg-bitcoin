@@ -339,7 +339,7 @@ void *connection_handler_thread(void *adptr) {
   
       
       pthread_mutex_lock(&network_hw_mutex);
-      vm.not_mining_counter = 0;
+      vm.not_mining_time = 0;
       if (vm.asics_shut_down_powersave) {
         unpause_all_mining_engines();
       }
