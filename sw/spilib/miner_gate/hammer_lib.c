@@ -593,8 +593,8 @@ int do_bist_ok_rt(int long_bist) {
 
 
   // Give BIST jobc
-  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 20000); 
-  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 20300);
+  write_reg_broadcast(ADDR_BIST_NONCE_START, bist_tests[bist_id].nonce_winner - 10000); 
+  write_reg_broadcast(ADDR_BIST_NONCE_RANGE, 10500);
   write_reg_broadcast(ADDR_BIST_NONCE_EXPECTED, bist_tests[bist_id].nonce_winner); // 0x1DAC2B7C
   write_reg_broadcast(ADDR_MID_STATE + 0, bist_tests[bist_id].midstate[0]);
   write_reg_broadcast(ADDR_MID_STATE + 1, bist_tests[bist_id].midstate[1]);
@@ -623,7 +623,7 @@ int do_bist_ok_rt(int long_bist) {
   int last_res;
   //vm.bist_current = tb_get_asic_current(loop_to_measure);
   while ((res = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
-    if ((i % 5000) == 0) {
+    if ((i % 500) == 0) {
         int addr = BROADCAST_READ_ADDR(res);
         psyslog("Asic %x didnt finish BIST\n", addr);
   //    disable_asic_forever(addr);
@@ -1282,11 +1282,11 @@ void *squid_regular_state_machine_rt(void *p) {
 
     if (usec >= JOB_PUSH_PERIOD_US) { 
       // new job every 1.5 msecs = 660 per second
-      //pthread_mutex_lock(&hammer_mutex);
+      pthread_mutex_lock(&hammer_mutex);
       //start_stopper(&tv);
       once_1650_usec_tasks_rt();
       //end_stopper(&tv,"WHOOOOOOOOOOOOLE 1500 TIMER");
-      //pthread_mutex_unlock(&hammer_mutex);
+      pthread_mutex_unlock(&hammer_mutex);
 
       last_job_pushed = tv;
       int drift = usec - JOB_PUSH_PERIOD_US;

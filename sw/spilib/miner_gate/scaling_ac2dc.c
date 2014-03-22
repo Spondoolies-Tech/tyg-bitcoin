@@ -59,7 +59,14 @@ void loop_down(int l) {
       if (vm.hammer[h].asic_present) {
         // learn again
         vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit;
+        /*
+        vm.hammer[h].freq_wanted = vm.hammer[h].freq_wanted - 1;
+        if (vm.hammer[h].freq_wanted > ASIC_FREQ_225) {
+            vm.hammer[h].freq_wanted = vm.hammer[h].freq_wanted - 1;
+        }
+        */
       }
+      
    }
    
 }

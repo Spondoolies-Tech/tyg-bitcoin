@@ -129,6 +129,7 @@ int enable_good_engines_all_asics_ok() {
      passert(test_serial(-1)); 
    }
  
+
    //passert(vm.engines_disabled == 1);
    write_reg_broadcast(ADDR_CLK_ENABLE, ALL_ENGINES_BITMASK);
    write_reg_broadcast(ADDR_RESETING0, ALL_ENGINES_BITMASK);
@@ -137,6 +138,7 @@ int enable_good_engines_all_asics_ok() {
 
    flush_spi_write();
  
+
    for (int h = 0; h < HAMMERS_COUNT ; h++) {
     
      if (vm.loop[h/HAMMERS_PER_LOOP].enabled_loop &&

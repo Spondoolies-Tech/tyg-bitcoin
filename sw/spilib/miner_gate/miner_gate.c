@@ -294,7 +294,7 @@ int pull_work_rsp(minergate_do_job_rsp *r, minergate_adapter *adapter) {
   pthread_mutex_unlock(&network_hw_mutex);
   return 0;
 }
-
+extern pthread_mutex_t hammer_mutex;
 //
 // Support new minergate client
 //
@@ -337,13 +337,15 @@ void *connection_handler_thread(void *adptr) {
       usec = (now.tv_sec - last_time.tv_sec) * 1000000;
       usec += (now.tv_usec - last_time.tv_usec);
   
-      
+
+      pthread_mutex_lock(&hammer_mutex);     
       pthread_mutex_lock(&network_hw_mutex);
       vm.not_mining_time = 0;
       if (vm.asics_shut_down_powersave) {
         unpause_all_mining_engines();
       }
       pthread_mutex_unlock(&network_hw_mutex);
+      pthread_mutex_unlock(&hammer_mutex);
 
       // Reset packet.
       int i;

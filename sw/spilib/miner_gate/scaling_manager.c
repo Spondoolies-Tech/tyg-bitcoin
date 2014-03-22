@@ -69,6 +69,7 @@ void pause_all_mining_engines() {
   //passert(vm.asics_shut_down_powersave == 0);
   int some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
   set_fan_level(0);
+  /*
   while(some_asics_busy != 0) {
     int addr = BROADCAST_READ_ADDR(some_asics_busy);
     psyslog(RED "some_asics_busy %x\n" RESET, some_asics_busy);
@@ -77,6 +78,7 @@ void pause_all_mining_engines() {
   }
   // stop all ASICs
   disable_engines_all_asics();
+  */
   // disable_engines_all_asics();
   vm.asics_shut_down_powersave = 1;
   psyslog("System has no jobs, going to sleep...\n");
@@ -87,7 +89,9 @@ void unpause_all_mining_engines() {
   psyslog("Got mining request, enable DC2DC!\n");
   set_fan_level(vm.max_fan_level);  
   vm.not_mining_time = 0;
-  enable_good_engines_all_asics_ok();
+  
+  //enable_good_engines_all_asics_ok();
+  
   psyslog("Got mining request, waking up done!\n");
   vm.asics_shut_down_powersave = 0;
 }
