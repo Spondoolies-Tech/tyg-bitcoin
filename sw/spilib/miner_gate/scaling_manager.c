@@ -219,7 +219,7 @@ void print_scaling() {
         DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
 
         fprintf(f,  
-          "\n%2d|%4x(%4x)|%3d|%2d|"  
+          GREEN RESET "\n%2d|%4x(%4x)|%3d|%2d|"  
           "%s%2d%s|%s%3d%s|"   
           "%3d|%2d|%2d" , 
           hi.l, 
@@ -251,7 +251,7 @@ void print_scaling() {
 
     total_asics++;
 
-    fprintf(f,  "|%2x:%s%3dc%s %s%3dhz%s(%3d/%3d) %s%x" GREEN RESET, 
+    fprintf(f, GREEN RESET "|%2x:%s%3dc%s %s%3dhz%s(%3d/%3d) %s%x" GREEN RESET, 
       hi.addr,
       (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE-1)?((hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
        ((hi.a->freq_wanted>=ASIC_FREQ_540)? (MAGENTA) : ((hi.a->freq_wanted<=ASIC_FREQ_510)?(CYAN):(YELLOW))), hi.a->freq_wanted*15+210,GREEN,

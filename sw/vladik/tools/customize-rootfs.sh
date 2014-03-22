@@ -210,7 +210,7 @@ cron()
 	rm -rf var/www/rrd
 
 	# Run every minute
-	echo '0,5,10,15,20,25,30,35,40,45,50,55 * * * * /usr/bin/php /etc/cron.d/RECORDHashrate' > etc/cron.d/crontabs/root
+	echo '* * * * * /usr/bin/php /etc/cron.d/RECORDHashrate' > etc/cron.d/crontabs/root
 	echo '0 * * * * /etc/cron.d/pandp_register.sh' >> etc/cron.d/crontabs/root
 }
 

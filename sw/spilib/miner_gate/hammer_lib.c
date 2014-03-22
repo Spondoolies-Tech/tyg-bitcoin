@@ -681,7 +681,7 @@ int has_work_req();
 void one_minute_tasks() {
   // Give them chance to raise over 3 hours if system got colder
   psyslog("Last minute rate: %d (m:%d, nm:%d)\n", (vm.solved_difficulty_total*4/60), vm.mining_time, vm.not_mining_time)
-  //vm.solved_difficulty_total = 0;
+  vm.solved_difficulty_total = 0;
 }
 
 
@@ -1211,7 +1211,7 @@ void *i2c_state_machine_nrt(void *p) {
           vm.hammer[addr].freq_thermal_limit = (ASIC_FREQ)(vm.hammer[addr].freq_thermal_limit+1);
         }
      
-        vm.solved_difficulty_total = 0;
+        //vm.solved_difficulty_total = 0;
 
 
         // every 3 minutes
