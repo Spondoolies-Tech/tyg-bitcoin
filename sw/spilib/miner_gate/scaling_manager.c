@@ -210,7 +210,7 @@ void print_scaling() {
     if (hi.h == 0) {
       total_loops++;
       if (!vm.loop[hi.l].enabled_loop) {
-        fprintf(f, "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        fprintf(f, "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
       } else {    
         DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
 
@@ -247,13 +247,13 @@ void print_scaling() {
 
     total_asics++;
 
-    fprintf(f,  "|%2x:%s%3dc%s %s%3dhz%s(%3d/%3d) %s%x" , 
+    fprintf(f,  "|%2x:%s%3dc%s %s%3dhz%s(%3d/%3d) %s%x" GREEN RESET, 
       hi.addr,
       (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE-1)?((hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
        ((hi.a->freq_wanted>=ASIC_FREQ_540)? (MAGENTA) : ((hi.a->freq_wanted<=ASIC_FREQ_510)?(CYAN):(YELLOW))), hi.a->freq_wanted*15+210,GREEN,
        hi.a->freq_thermal_limit*15+210,
        hi.a->freq_bist_limit*15+210, 
-       (vm.hammer[hi.addr].working_engines!=0x7FFF)?GREEN_BOLD:GREEN, vm.hammer[hi.addr].working_engines);
+       (vm.hammer[hi.addr].working_engines!=0x7FFF)?GREEN_BOLD:GREEN, vm.hammer[hi.addr].working_engines, RESET);
   }
   // print last loop
   // print total hash power

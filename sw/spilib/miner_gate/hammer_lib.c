@@ -1278,11 +1278,11 @@ void *squid_regular_state_machine_rt(void *p) {
 
     if (usec >= JOB_PUSH_PERIOD_US) { 
       // new job every 1.5 msecs = 660 per second
-      pthread_mutex_lock(&hammer_mutex);
+      //pthread_mutex_lock(&hammer_mutex);
       //start_stopper(&tv);
       once_1650_usec_tasks_rt();
       //end_stopper(&tv,"WHOOOOOOOOOOOOLE 1500 TIMER");
-      pthread_mutex_unlock(&hammer_mutex);
+      //pthread_mutex_unlock(&hammer_mutex);
 
       last_job_pushed = tv;
       int drift = usec - JOB_PUSH_PERIOD_US;

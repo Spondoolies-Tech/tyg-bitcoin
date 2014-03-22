@@ -293,7 +293,7 @@ void do_bist_fix_loops_rt() {
          start_stopper(&tv);
          int failed = do_bist_ok_rt(1);      
          end_stopper(&tv,"BIST");
-         psyslog(MAGENTA "Bist failed %d times\n" RESET, failed);
+         psyslog( "Bist failed %d times\n" , failed);
          if (failed) {
            proccess_bist_results = 1;
          }

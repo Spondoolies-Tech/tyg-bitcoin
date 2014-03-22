@@ -112,7 +112,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../add-ons/resolv.conf etc/
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
 	date > build_date.txt
-	echo 1 > etc/mg_work_mode
+	echo 2 > etc/mg_work_mode
 
 	#php
 	if [ ! -d "opt/minepeon" ]; then

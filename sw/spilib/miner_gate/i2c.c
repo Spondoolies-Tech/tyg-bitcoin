@@ -79,11 +79,11 @@ void i2c_write(uint8_t addr, uint8_t value, int *pError) {
   i2c_set_address(addr, pError);
   if (pError != NULL && *pError != 0) {
        psyslog(RED "i2c write 0x%x = 0x%x error1\n" RESET, addr, value); 
-       print_stack();
+       //print_stack();
   } else {
     if (i2c_smbus_write_byte(file, value) == -1) {
       psyslog(RED "i2c write 0x%x = 0x%x error2\n" RESET, addr, value); 
-      print_stack();
+      //print_stack();
       if (pError != NULL)
         *pError = -1;
     }
