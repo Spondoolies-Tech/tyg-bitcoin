@@ -703,7 +703,7 @@ void once_second_tasks_rt() {
       if ((vm.start_mine_time == 0)) {
         vm.start_mine_time = time(NULL);
         set_light(LIGHT_GREEN, 1);
-        psyslog(MAGENTA "Restarting mining timer\n" RESET);
+        psyslog( "Restarting mining timer\n" );
       }
   }
 

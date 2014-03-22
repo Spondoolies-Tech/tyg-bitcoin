@@ -40,7 +40,7 @@
 // In seconds
 #define BIST_PERIOD_SECS                              60 
 #define AGRESSIVE_BIST_PERIOD_SECS                    15
-#define AGRESSIVE_BIST_PERIOD_UPTIME_SECS         (60*10)
+#define AGRESSIVE_BIST_PERIOD_UPTIME_SECS         (60*20)
 
 
 #define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 2

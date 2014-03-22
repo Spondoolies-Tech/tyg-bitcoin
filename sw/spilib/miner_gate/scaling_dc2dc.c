@@ -43,16 +43,6 @@ static int proccess_bist_results = 0;
 
 
 
-void do_bist() {
-  //struct timeval tv;
-  //start_stopper(&tv);
-  resume_asics_if_needed();
-  do_bist_ok_rt(0);
-  //end_stopper(&tv, "bist stopper");
-}
-
-
-
 // returns worst asic
 //  Any ASIC is worth then NULL
 HAMMER *choose_asic_to_down(HAMMER *a, HAMMER *b) {
@@ -290,13 +280,14 @@ void do_bist_fix_loops_rt() {
 
   
   if (!vm.asics_shut_down_powersave && !vm.thermal_test_mode) { 
+      int uptime = time(NULL) - vm.start_mine_time;
       if (((counter % BIST_PERIOD_SECS) == 0) ||
            (
-             ((time(NULL) - vm.start_mine_time) < AGRESSIVE_BIST_PERIOD_UPTIME_SECS) &&
+             (uptime < AGRESSIVE_BIST_PERIOD_UPTIME_SECS) &&
              ((counter % AGRESSIVE_BIST_PERIOD_SECS) == 0)
            )
           ){
-        printf(MAGENTA "Running BIST\n" RESET);
+        printf(MAGENTA "Running BIST, uptime = %d\n" RESET, uptime);
 
          struct timeval tv; 
          start_stopper(&tv);
