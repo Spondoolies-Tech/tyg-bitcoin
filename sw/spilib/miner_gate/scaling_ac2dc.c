@@ -1,3 +1,14 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
 #include "squid.h"
 #include <stdio.h>
 #include <string.h>
@@ -41,14 +52,13 @@ int loop_can_down(int l) {
 
 void loop_down(int l) {
   int err;
-   printf("vtrim=%x\n",vm.loop_vtrim[l]);
+   //printf("vtrim=%x\n",vm.loop_vtrim[l]);
    dc2dc_set_vtrim(l, vm.loop_vtrim[l]-1, &err);
    vm.loop[l].last_ac2dc_scaling_on_loop  = now;
    for (int h = l*HAMMERS_PER_LOOP; h < l*HAMMERS_PER_LOOP+HAMMERS_PER_LOOP;h++) {
       if (vm.hammer[h].asic_present) {
-          // learn again
-          vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit;
-          //vm.hammer[h].freq_hw = vm.hammer[h].freq_hw+1; // To reforce pll setting
+        // learn again
+        vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit;
       }
    }
    
@@ -81,9 +91,8 @@ void loop_up(int l) {
           // if its termal, dont change it.
           if (vm.hammer[h].freq_bist_limit == vm.hammer[h].freq_thermal_limit) {
             vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = 
-              (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-2)?(vm.hammer[h].freq_bist_limit+2):ASIC_FREQ_MAX; 
+              (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-2)?((ASIC_FREQ)(vm.hammer[h].freq_bist_limit+2)):ASIC_FREQ_MAX; 
           }
-          //vm.hammer[h].freq_hw = vm.hammer[h].freq_hw+1; // To reforce pll setting
           vm.hammer[h].agressivly_scale_up = true;
         } 
     }
@@ -107,13 +116,13 @@ int asic_frequency_update_nrt_fast() {
       int passed = h->passed_last_bist_engines;        
       if ((passed == ALL_ENGINES_BITMASK)) {
           one_ok = 1;
-          h->freq_wanted = h->freq_wanted+1;
+          h->freq_wanted = (ASIC_FREQ)(h->freq_wanted+1);
           h->freq_thermal_limit = h->freq_wanted;
           h->freq_bist_limit = h->freq_wanted;    
           set_pll(h->address, h->freq_wanted);  
       } else if (h->freq_wanted == ASIC_FREQ_225) {
           h->working_engines = h->working_engines&passed;
-          h->freq_wanted = h->freq_wanted+1;
+          h->freq_wanted = (ASIC_FREQ)(h->freq_wanted+1);
           h->freq_thermal_limit = h->freq_wanted;
           h->freq_bist_limit = h->freq_wanted;    
           set_pll(h->address, h->freq_wanted);  
@@ -137,23 +146,21 @@ void set_working_voltage_discover_top_speeds() {
     resume_asics_if_needed();
     do_bist_ok_rt(0);
     one_ok = asic_frequency_update_nrt_fast();
-    n = n + 1;
+    n = (ASIC_FREQ)(n + 1);
  } while (one_ok && (!kill_app));
 
 
   // All remember BIST they failed!
   for (int h =0; h < HAMMERS_COUNT ; h++) {
     if (vm.hammer[h].asic_present) {
-       vm.hammer[h].freq_hw = vm.hammer[h].freq_hw - 1;
-       vm.hammer[h].freq_wanted = vm.hammer[h].freq_wanted - 1;
-       vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_thermal_limit - 1;
-       vm.hammer[h].freq_bist_limit = vm.hammer[h].freq_bist_limit -1;      
+       vm.hammer[h].freq_hw = (ASIC_FREQ)(vm.hammer[h].freq_hw - 1);
+       vm.hammer[h].freq_wanted = (ASIC_FREQ)(vm.hammer[h].freq_wanted - 1);
+       vm.hammer[h].freq_thermal_limit = (ASIC_FREQ)(vm.hammer[h].freq_thermal_limit - 1);
+       vm.hammer[h].freq_bist_limit = (ASIC_FREQ)(vm.hammer[h].freq_bist_limit -1);      
     }
   }
-
   
- resume_asics_if_needed();
- //assert(0);
+  resume_asics_if_needed();
 }
 
 

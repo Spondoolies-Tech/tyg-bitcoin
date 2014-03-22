@@ -16,6 +16,7 @@ all:				shar
 
 
 shar:				data/uImage data/spondoolies.dtb ../add-ons/fw_ver
+	vi ../add-ons/fw_ver
 	cd ../ ; ./make_image
 	cp ../image/uImage data/
 	cp ../add-ons/fw_ver data/
@@ -27,6 +28,7 @@ shar:				data/uImage data/spondoolies.dtb ../add-ons/fw_ver
 	../provisioning/sign-digest.sh --file=$(SHAR) --private=$(PRIVATE_KEY)
 	tar cf $(TAR_FILE) $(SHAR) $(SHAR).sign
 	$(RM) -f $(SHAR) $(SHAR).sign
+	bash VER=`cat ../add-ons/fw_ver`; mv spon.tar spon_$VER.tar
 
 .PHONY:	latest
 latest:

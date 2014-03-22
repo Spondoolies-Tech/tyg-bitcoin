@@ -1,4 +1,17 @@
 /*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
+
+
+/*
     Minergate server network interface.
     Multithreaded application, listens on socket and handles requests.
     Pushes mining requests from network to lock and returns 
@@ -36,11 +49,8 @@
 #include "corner_discovery.h"
 #include "asic_thermal.h"
 #include <syslog.h>
-
 #include "pll.h"
 #include "real_time_queue.h"
-#include "leakage_discovery.h"
-
 #include <signal.h>
 
 
@@ -76,10 +86,11 @@ minergate_adapter *adapters[0x100] = { 0 };
 int kill_app = 0;
 
 void exit_nicely() {
-   int err;
+  int err;
   kill_app = 1;
-  usleep(1000*1000);
+  // Let other threads finish. 
   set_light(LIGHT_YELLOW, 0);
+  usleep(1000*1000);
   set_light(LIGHT_GREEN, 0);   
   disable_engines_all_asics();
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
@@ -91,7 +102,6 @@ void exit_nicely() {
 }
 
 int read_work_mode() {
-	
 	FILE* file = fopen ("/etc/mg_work_mode", "r");
 	int i = 0;
 	if (file <= 0) {
@@ -117,7 +127,33 @@ int read_work_mode() {
     vm.vtrim_start = VTRIM_START_TURBO;
     vm.vtrim_max = VTRIM_MAX_TURBO;
   }
+
+
+  file = fopen ("/etc/mg_fan_speed_override", "r");
+  if (file > 0) {
+    int i;
+    fscanf(file, "%d", &i);
+    if (i >= 0 && i <= 100) {
+      vm.max_fan_level = i;
+    }
+    fclose (file);
+  } 
+
+
+  file = fopen ("/etc/mg_max_voltage", "r");
+  if (file > 0) {
+    int vtrim;
+    fscanf(file, "%d", &vtrim);
+    if (vtrim >= 0 && i <= VTRIM_810 - VTRIM_MIN) {
+      vm.vtrim_max = VTRIM_MIN+vtrim;
+      if (vm.vtrim_start > vm.vtrim_max) {
+        vm.vtrim_start = vm.vtrim_max;
+      }
+    }
+    fclose (file);
+  } 
   
+
   printf("WORK MODE = %d\n", vm.work_mode);
 	
 }
@@ -125,7 +161,6 @@ int read_work_mode() {
 
 static void sighandler(int sig)
 {
- 
   /* Restore signal handlers so we can still quit if kill_work fails */  
   sigaction(SIGTERM, &termhandler, NULL);
   sigaction(SIGINT, &inthandler, NULL);
@@ -283,11 +318,8 @@ void *connection_handler_thread(void *adptr) {
   while (one_done_sw_rt_queue(&work)) {
     push_work_rsp(&work);
   }
-  // (minergate_adapter*)malloc(sizeof(minergate_adapter));
   int nbytes;
 
-  // minergate_data* md1 =    get_minergate_data(adapter->next_rsp,  300, 3);
-  // minergate_data* md2 =  get_minergate_data(adapter->next_rsp,  400, 4);
   // Read packet
   struct timeval now;      
   struct timeval last_time; 
@@ -299,8 +331,6 @@ void *connection_handler_thread(void *adptr) {
     struct timeval last_time; 
     int usec;
     if (nbytes) {
-      // DBG(DBG_NET,"got req len:%d %d\n", adapter->last_req->data_length +
-      // MINERGATE_PACKET_HEADER_SIZE, nbytes);
       passert(adapter->last_req->magic == 0xcaf4);
       gettimeofday(&now, NULL);
 
@@ -323,26 +353,18 @@ void *connection_handler_thread(void *adptr) {
       if (rsp_count > MAX_RESPONDS) {
         rsp_count = MAX_RESPONDS;
       }
-      // adapter->next_rsp;
-      //  DBG(DBG_NET,"rsp_count %d\n", rsp_count);
+
       for (i = 0; i < rsp_count; i++) {
-        // printf("rsp ");
         minergate_do_job_rsp *rsp = adapter->next_rsp->rsp + i;
         int res = pull_work_rsp(rsp, adapter);
         passert(res);
       }
       adapter->next_rsp->rsp_count = rsp_count;
-      int mhashes_done = (vm.total_mhash/1000)*(usec/1000);
-      adapter->next_rsp->gh_done = mhashes_done/1000;  
-      // printf("SND %d\n", rsp_count);
+      int mhashes_done = (vm.total_mhash>>10)*(usec>>10);
+      adapter->next_rsp->gh_div_10_rate = mhashes_done>>10;  
 
-      // DBG(DBG_NET, "GOT minergate_do_job_req: %x/%x\n",
-      // sizeof(minergate_do_job_req), md->data_length);
       int array_size = adapter->last_req->req_count;
-      DBG(DBG_NET, "Got %d minergate_do_job_req\n", array_size);
-      // printf("GPT %d\n", array_size);
       for (i = 0; i < array_size; i++) { // walk the jobs
-        // printf("j");
         minergate_do_job_req *work = adapter->last_req->req + i;
         push_work_req(work, adapter);
       }
@@ -390,13 +412,11 @@ int init_socket() {
   if (bind(socket_fd, (struct sockaddr *)&address,
            sizeof(struct sockaddr_un)) !=
       0) {
-    DBG(DBG_NET, "bind() failed\n");
     perror("Err:");
     return 0;
   }
 
   if (listen(socket_fd, 5) != 0) {
-    DBG(DBG_NET, "listen() failed\n");
     perror("Err:");
     return 0;
   }
@@ -404,44 +424,9 @@ int init_socket() {
   return socket_fd;
 }
 
-int parse_squid_status(int v) {
-  if (v & BIT_STATUS_SERIAL_Q_TX_FULL)
-    printf("BIT_STATUS_SERIAL_Q_TX_FULL       ");
-  if (v & BIT_STATUS_SERIAL_Q_TX_NOT_EMPTY)
-    printf("BIT_STATUS_SERIAL_Q_TX_NOT_EMPTY  ");
-  if (v & BIT_STATUS_SERIAL_Q_TX_EMPTY)
-    printf("BIT_STATUS_SERIAL_Q_TX_EMPTY      ");
-  if (v & BIT_STATUS_SERIAL_Q_RX_FULL)
-    printf("BIT_STATUS_SERIAL_Q_RX_FULL       ");
-  if (v & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY)
-    printf("BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY  ");
-  if (v & BIT_STATUS_SERIAL_Q_RX_EMPTY)
-    printf("BIT_STATUS_SERIAL_Q_RX_EMPTY      ");
-  if (v & BIT_STATUS_SERVICE_Q_FULL)
-    printf("BIT_STATUS_SERVICE_Q_FULL         ");
-  if (v & BIT_STATUS_SERVICE_Q_NOT_EMPTY)
-    printf("BIT_STATUS_SERVICE_Q_NOT_EMPTY    ");
-  if (v & BIT_STATUS_SERVICE_Q_EMPTY)
-    printf("BIT_STATUS_SERVICE_Q_EMPTY        ");
-  if (v & BIT_STATUS_FIFO_SERIAL_TX_ERR)
-    printf("BIT_STATUS_FIFO_SERIAL_TX_ERR     ");
-  if (v & BIT_STATUS_FIFO_SERIAL_RX_ERR)
-    printf("BIT_STATUS_FIFO_SERIAL_RX_ERR     ");
-  if (v & BIT_STATUS_FIFO_SERVICE_ERR)
-    printf("BIT_STATUS_FIFO_SERVICE_ERR       ");
-  if (v & BIT_STATUS_CHAIN_EMPTY)
-    printf("BIT_STATUS_CHAIN_EMPTY            ");
-  if (v & BIT_STATUS_LOOP_TIMEOUT_ERROR)
-    printf("BIT_STATUS_LOOP_TIMEOUT_ERROR     ");
-  if (v & BIT_STATUS_LOOP_CORRUPTION_ERROR)
-    printf("BIT_STATUS_LOOP_CORRUPTION_ERROR  ");
-  if (v & BIT_STATUS_ILLEGAL_ACCESS)
-    printf("BIT_STATUS_ILLEGAL_ACCESS         ");
-  printf("\n");
-}
+
 
 void test_asic_reset() {
-  printf("--------------- %d\n", __LINE__);
   // Reset ASICs
   write_reg_broadcast(ADDR_GOT_ADDR, 0);
 
@@ -494,7 +479,6 @@ void reset_squid() {
 
 
 
-int loop_to_measure;
 
 int main(int argc, char *argv[]) {
   printf(RESET);
@@ -506,17 +490,13 @@ int main(int argc, char *argv[]) {
   setlogmask(LOG_UPTO(LOG_INFO));
   openlog("minergate", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
   syslog(LOG_NOTICE, "minergate started");
-  // syslog (LOG_INFO, "A tree falls in a forest");
-  // syslog (LOG_ALERT, "Real issue - A tree falls in a forest");
-
+ 
   enable_sinal_handler();
-
 
   if ((argc > 1) && strcmp(argv[1], "--help") == 0) {
     printf("--testreset = Test asic reset!!!\n");
     printf("--silent-test = Work with 10 ASICs!!!\n");
     printf("--thermal-test = Only test thermal!!!\n");    
-    printf("<num> = Asic to mesure\n");
     return 0;
   }
 
@@ -568,6 +548,7 @@ int main(int argc, char *argv[]) {
   reset_sw_rt_queue();
   leds_init();
   set_light(LIGHT_YELLOW, 1);
+  set_light(LIGHT_GREEN, 0);
 
 
   // test SPI
@@ -642,8 +623,6 @@ int main(int argc, char *argv[]) {
   // passert(read_reg_broadcast(ADDR_VERSION), "No version found in ASICs");
   socket_fd = init_socket();
   passert(socket_fd > 0);
-
-  
 
   psyslog("Starting HW thread\n");
 

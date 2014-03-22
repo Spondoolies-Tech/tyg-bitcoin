@@ -1,3 +1,14 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
 #ifndef _____DC2DEFINES__45R_H____
 #define _____DC2DEFINES__45R_H____
 
@@ -27,7 +38,11 @@
 #define MIN_COSECUTIVE_JOBS_FOR_DC2DC_MEASUREMENT MIN_COSECUTIVE_JOBS_FOR_SCALING
 
 // In seconds
-#define BIST_PERIOD_SECS                   15 
+#define BIST_PERIOD_SECS                              60 
+#define AGRESSIVE_BIST_PERIOD_SECS                    15
+#define AGRESSIVE_BIST_PERIOD_UPTIME_SECS         (60*10)
+
+
 #define TRY_ASIC_FREQ_INCREASE_PERIOD_SECS 2
 
 #define MAX_BOTTOM_TEMP 100
@@ -77,7 +92,7 @@
 
 #define FAN_TURBO 100
 #define FAN_NORMAL 80
-#define FAN_QUIET 40
+#define FAN_QUIET 50
 
 
 //#define CORNER_DISCOVERY_FREQ_SS       ASIC_FREQ_480 // all less

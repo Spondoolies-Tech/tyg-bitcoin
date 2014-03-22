@@ -1,3 +1,15 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
+
 #ifndef _____DC2CORNERDISC__45R_H____
 #define _____DC2CORNERDISC__45R_H____
 
@@ -6,12 +18,8 @@
 #include "hammer.h"
 #include "defines.h"
 
-
-// Functions assumes in NVM loops and present ASICs 
-// discovered, but max_freq/corner/engines not detected
 void discover_good_loops();
 void compute_corners();
-const char* corner_to_collor(ASIC_CORNER c);
 void enable_voltage_freq(ASIC_FREQ f);
 void set_working_voltage_discover_top_speeds() ;
 

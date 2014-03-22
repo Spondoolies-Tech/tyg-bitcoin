@@ -1,3 +1,14 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
 #include "squid.h"
 #include <stdio.h>
 #include <string.h>
@@ -233,12 +244,6 @@ HAMMER *choose_asic_to_up(HAMMER *a, HAMMER *b, int force) {
     return (a->last_freq_change_time < b->last_freq_change_time) ? a : b;
   }
 
-
-  if (a->corner != b->corner) {
-     // Upscale lower corners because they have lower leakage
-     return (a->corner < b->corner) ? a : b;
-  }
-
   if (a->freq_wanted != b->freq_wanted) {
     // Increase slower ASICs first
     return (a->freq_wanted < b->freq_wanted) ? a : b;
@@ -264,7 +269,6 @@ HAMMER *find_asic_to_up(int l, int force) {
 
 void pause_asics_if_needed() {
   if (vm.engines_disabled == 0) {
-    //printf("Disabling hehe\n");
     stop_all_work_rt();
     disable_engines_all_asics();
   }
@@ -280,29 +284,30 @@ void resume_asics_if_needed() {
 }
 
 
-void do_bist_fix_loops_rt(int force) {
+void do_bist_fix_loops_rt() {
   static int counter = 0;  
   counter++; 
 
   
   if (!vm.asics_shut_down_powersave && !vm.thermal_test_mode) { 
-      if (force  || 
-         ((counter % BIST_PERIOD_SECS) == 0)) {
+      if (((counter % BIST_PERIOD_SECS) == 0) ||
+           (
+             ((time(NULL) - vm.start_mine_time) < AGRESSIVE_BIST_PERIOD_UPTIME_SECS) &&
+             ((counter % AGRESSIVE_BIST_PERIOD_SECS) == 0)
+           )
+          ){
         printf(MAGENTA "Running BIST\n" RESET);
 
          struct timeval tv; 
          start_stopper(&tv);
          int failed = do_bist_ok_rt(1);      
          end_stopper(&tv,"BIST");
-         printf(MAGENTA "Bist failed %d times\n" RESET, failed);
+         psyslog(MAGENTA "Bist failed %d times\n" RESET, failed);
          if (failed) {
-           proccess_bist_results = 2;
+           proccess_bist_results = 1;
          }
       }
   }
-
-  //change_dc2dc_voltage_if_needed();
-  //resume_asics_if_needed();
 }
 
 
@@ -376,16 +381,11 @@ void maybe_change_freqs_nrt() {
 
 
 
-
-
-
 int loop_can_down(int l);
 int loop_down(int l);
 
 
-
 // Runs from LOW priority thread.
-// every 7 seconds or so
 void asic_frequency_update_nrt(int verbal) {    
     int now = time(NULL);
     int usec;
@@ -427,7 +427,6 @@ void asic_frequency_update_nrt(int verbal) {
           cnt++;
           // It's not only thermaly punished, it's failing bist
           h->agressivly_scale_up = false;          
-          //printf("ASIC bist work: %x %x:%x %x:%x\n",h->address,h->freq_hw,h->freq_wanted,h->working_engines,h->passed_last_bist_engines);
 
           //passert(h);
           if (asic_can_down(h)) {
@@ -477,15 +476,13 @@ void asic_frequency_update_nrt(int verbal) {
            if ((counter%(LOOP_COUNT/2)) == 0) {
               HAMMER* hh = find_asic_to_up(l, 0);
               if (hh) {
-                //printf("Upping %x\n", hh->address);
                   asic_up(hh);
                   changed++;
               }
            }
          }
        }
-
-          }
+     }
     
     if (vm.ac2dc_power >= AC2DC_POWER_LIMIT)  {
         int l = rand()%LOOP_COUNT;

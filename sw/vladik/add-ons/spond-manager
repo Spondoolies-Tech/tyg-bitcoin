@@ -12,6 +12,12 @@ export PATH=$PATH:/usr/local/bin:/bin
 
 
 
+test_free_memory()
+{
+	FREE_MEM=`awk '/MemFree/ {printf( "%.2d\n", $2 / 1024 )}' /proc/meminfo`
+	[ $FREE_MEM -lt 100 ] && reboot 
+}
+
 
 forever_mining_watchdog()
 {
@@ -30,7 +36,6 @@ forever_mining_watchdog()
 			  sleep 1
 			  #reboot
 		fi
-		
 	done
 	
 }
@@ -40,13 +45,14 @@ forever_mining_watchdog()
 miner_gate_arm_watchdog () {
 	$MINERGATE_CMD &
 	echo $! > /var/run/miner_gate_arm.pid
-	sleep 4
+	sleep 5
 	$CGMINER_CMD &
 	echo $! > /var/run/cgminer_arm.pid
 	forever_mining_watchdog &
 	echo $! > /var/run/fmw.pid
 
 	while true; do
+		test_free_memory
 		pidm=`cat /var/run/miner_gate_arm.pid`
 		if [ ! -e /proc/$pidm -a /proc/$pidm/exe ]; then
 			echo "Minergate died and restarted"

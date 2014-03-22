@@ -1,3 +1,14 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
 #include "squid.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +48,45 @@ typedef struct {
   uint8_t cmd;
   uint32_t i[64];
 } __attribute__((__packed__)) cpi_cmd;
+
+
+
+int parse_squid_status(int v) {
+  if (v & BIT_STATUS_SERIAL_Q_TX_FULL)
+    printf("BIT_STATUS_SERIAL_Q_TX_FULL       ");
+  if (v & BIT_STATUS_SERIAL_Q_TX_NOT_EMPTY)
+    printf("BIT_STATUS_SERIAL_Q_TX_NOT_EMPTY  ");
+  if (v & BIT_STATUS_SERIAL_Q_TX_EMPTY)
+    printf("BIT_STATUS_SERIAL_Q_TX_EMPTY      ");
+  if (v & BIT_STATUS_SERIAL_Q_RX_FULL)
+    printf("BIT_STATUS_SERIAL_Q_RX_FULL       ");
+  if (v & BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY)
+    printf("BIT_STATUS_SERIAL_Q_RX_NOT_EMPTY  ");
+  if (v & BIT_STATUS_SERIAL_Q_RX_EMPTY)
+    printf("BIT_STATUS_SERIAL_Q_RX_EMPTY      ");
+  if (v & BIT_STATUS_SERVICE_Q_FULL)
+    printf("BIT_STATUS_SERVICE_Q_FULL         ");
+  if (v & BIT_STATUS_SERVICE_Q_NOT_EMPTY)
+    printf("BIT_STATUS_SERVICE_Q_NOT_EMPTY    ");
+  if (v & BIT_STATUS_SERVICE_Q_EMPTY)
+    printf("BIT_STATUS_SERVICE_Q_EMPTY        ");
+  if (v & BIT_STATUS_FIFO_SERIAL_TX_ERR)
+    printf("BIT_STATUS_FIFO_SERIAL_TX_ERR     ");
+  if (v & BIT_STATUS_FIFO_SERIAL_RX_ERR)
+    printf("BIT_STATUS_FIFO_SERIAL_RX_ERR     ");
+  if (v & BIT_STATUS_FIFO_SERVICE_ERR)
+    printf("BIT_STATUS_FIFO_SERVICE_ERR       ");
+  if (v & BIT_STATUS_CHAIN_EMPTY)
+    printf("BIT_STATUS_CHAIN_EMPTY            ");
+  if (v & BIT_STATUS_LOOP_TIMEOUT_ERROR)
+    printf("BIT_STATUS_LOOP_TIMEOUT_ERROR     ");
+  if (v & BIT_STATUS_LOOP_CORRUPTION_ERROR)
+    printf("BIT_STATUS_LOOP_CORRUPTION_ERROR  ");
+  if (v & BIT_STATUS_ILLEGAL_ACCESS)
+    printf("BIT_STATUS_ILLEGAL_ACCESS         ");
+  printf("\n");
+}
+
 
 void read_spi_mult(uint8_t addr, int count, uint32_t values[]) {
   int ret;

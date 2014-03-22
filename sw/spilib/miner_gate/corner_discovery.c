@@ -1,3 +1,13 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +37,7 @@ void enable_voltage_freq(ASIC_FREQ f) {
       } else {
         dc2dc_set_vtrim(l, vm.loop_vtrim[l], &err);
       }
-      // passert(err);
+
       // for each ASIC
       for (h = 0; h < HAMMERS_PER_LOOP; h++, i++) {
         HAMMER *a = &vm.hammer[l * HAMMERS_PER_LOOP + h];
@@ -50,51 +60,6 @@ void set_safe_voltage_and_frequency() {
 }
 
 
-const char* corner_to_collor(ASIC_CORNER c) {
-  const static char* color[] = {RESET, CYAN_BOLD ,CYAN, GREEN,  RED, RED_BOLD};
-  return color[c];
-}
-
-/*
-void compute_corners() {
-  enable_voltage_freq(ASIC_FREQ_810);
-  hammer_iter hi;
-  hammer_iter_init(&hi);
-
-  int bist_ok;
-  do {
-    resume_asics_if_needed();
-    bist_ok = do_bist_ok_rt(0);
-    pause_asics_if_needed();
-    asic_frequency_update_nrt();
- } while (!bist_ok);
-
-   while (hammer_iter_next_present(&hi)) {
-      if (hi.a->freq >= CORNER_DISCOVERY_FREQ_FF)
-        hi.a->corner = ASIC_CORNER_FFG;
-      else if (hi.a->freq >= CORNER_DISCOVERY_FREQ_TF)
-        hi.a->corner = ASIC_CORNER_TTFFG;
-      else if (hi.a->freq >= CORNER_DISCOVERY_FREQ_TT)
-        hi.a->corner = ASIC_CORNER_TT;
-      else if (hi.a->freq >= CORNER_DISCOVERY_FREQ_TS)
-        hi.a->corner = ASIC_CORNER_SSTT;
-      else 
-        hi.a->corner = ASIC_CORNER_SS;
-      
-   }
-   
-   resume_asics_if_needed();
-}
-*/
-
-/*
-int set_working_voltage_discover_top_speeds();
-
-void set_working_voltage_discover_top_speeds() {
-   set_working_voltage_discover_top_speeds();
-}
-*/
-
 
 
 void discover_good_loops() {
@@ -115,11 +80,7 @@ void discover_good_loops() {
     vm.loop[i].id = i;
     unsigned int bypass_loops = (~(1 << i) & 0xFFFFFF);
     write_spi(ADDR_SQUID_LOOP_BYPASS, bypass_loops);
-    //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
-    //write_spi(ADDR_SQUID_LOOP_RESET, 0xffffff);
-    //printf("Testing loop::::::\n");
-    if (test_serial(i)) { // TODOZ
-      // printf("--00--\n");
+    if (test_serial(i)) {
       vm.loop[i].enabled_loop = 1;
       if (vm.thermal_test_mode) {
         vm.loop[i].dc2dc.max_vtrim_currentwise = VTRIM_674;
@@ -132,12 +93,10 @@ void discover_good_loops() {
       good_loops |= 1 << i;
       ret++;
     } else {
-      // printf("--11--\n");
       vm.loop[i].enabled_loop = 0;
       vm.loop[i].dc2dc.max_vtrim_currentwise = 0;
       vm.loop_vtrim[i] = 0;
       for (int h = i * HAMMERS_PER_LOOP; h < (i + 1) * HAMMERS_PER_LOOP; h++) {
-        // printf("remove ASIC 0x%x\n", h);
         vm.hammer[h].asic_present = 0;
         vm.hammer[h].working_engines = 0;
       }
@@ -148,15 +107,8 @@ void discover_good_loops() {
   }
   write_spi(ADDR_SQUID_LOOP_BYPASS, ~(good_loops));
   vm.good_loops = good_loops;
-  test_serial(-1);
-
- 
+  test_serial(-1); 
   psyslog("Found %d good loops\n", ret);
-  // Devide current between availible loops
-  
-  
-
-  
   passert(ret);
 }
 

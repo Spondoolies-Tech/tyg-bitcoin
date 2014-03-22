@@ -1,3 +1,15 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
+
 #include "dc2dc.h"
 #include "i2c.h"
 #include "nvm.h"
@@ -91,11 +103,9 @@ void dc2dc_disable_dc2dc(int loop, int *err) {
   pthread_mutex_lock(&i2c_mutex);
   //printf("%s:%d\n",__FILE__, __LINE__);
   
-#if TEST_BOARD != 1
   dc2dc_select_i2c(loop, err);
   i2c_write_byte(I2C_DC2DC, 0x02, 0x12, err);
   dc2dc_i2c_close();
-#endif
   pthread_mutex_unlock(&i2c_mutex);
 }
 
@@ -248,7 +258,6 @@ int update_dc2dc_current_temp_measurments(int loop, int* overcurrent, int* overc
   
     if (!vm.asics_shut_down_powersave) {
         int current = dc2dc_get_current_16s_of_amper(i, overcurrent, overcurrent_warning , &vm.loop[i].dc2dc.dc_temp , &err);
-
         if (*overcurrent != 0){
         	psyslog("DC2DC OC ERROR in LOOP %d !!\n", loop);
 /*

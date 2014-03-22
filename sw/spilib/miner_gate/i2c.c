@@ -1,9 +1,21 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
+
 #include "i2c.h"
 #include "i2c-mydev.h"
 #include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
-//#include <linux/i2c-dev.h>
+#include "spond_debug.h"
 
 static int file;
 pthread_mutex_t i2cm = PTHREAD_MUTEX_INITIALIZER;
@@ -12,20 +24,7 @@ pthread_mutex_t i2c_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int ignorable_err;
 
-/*
 
-78 extern s32 i2c_smbus_read_byte(struct i2c_client *client);
-79 extern s32 i2c_smbus_write_byte(struct i2c_client *client, uint8_t value);
-80 extern s32 i2c_smbus_read_byte_data(struct i2c_client *client, uint8_t
-command);
-81 extern s32 i2c_smbus_write_byte_data(struct i2c_client *client,
-82                                      uint8_t command, uint8_t value);
-83 extern s32 i2c_smbus_read_word_data(struct i2c_client *client, uint8_t
-command);
-84 extern s32 i2c_smbus_write_word_data(struct i2c_client *client,
-85                                      uint8_t command, uint16_t value);
-
-*/
 
 #define SLEEP_TIME_I2C 500
 
@@ -80,9 +79,11 @@ void i2c_write(uint8_t addr, uint8_t value, int *pError) {
   i2c_set_address(addr, pError);
   if (pError != NULL && *pError != 0) {
        psyslog(RED "i2c write 0x%x = 0x%x error1\n" RESET, addr, value); 
+       print_stack();
   } else {
     if (i2c_smbus_write_byte(file, value) == -1) {
       psyslog(RED "i2c write 0x%x = 0x%x error2\n" RESET, addr, value); 
+      print_stack();
       if (pError != NULL)
         *pError = -1;
     }
@@ -158,38 +159,19 @@ uint8_t i2c_waddr_read_byte(uint8_t addr, uint16_t dev_addr, int *pError) {
   return res;
 }
 
-// uint16_t i2c_read_w(uint8_t addr) {
-//    uint16_t res;
-//    pthread_mutex_lock(&i2cm);
-//    i2c_set_address(addr);
-//    res = i2c_smbus_read_word_data(file , 0);
-//  //usleep(SLEEP_TIME_I2C);
-//    pthread_mutex_unlock(&i2cm);
-//    return res;
-//}
-
-// void i2c_write_w(uint8_t addr, uint16_t value){
-//      pthread_mutex_lock(&i2cm);
-//      i2c_set_address(addr);
-//      i2c_smbus_write_word_data(file,0 ,value);
-//    usleep(SLEEP_TIME_I2C);
-//      pthread_mutex_unlock(&i2cm);
-//}
-
-//TODO
-//
 void i2c_waddr_write_byte(uint8_t addr, uint16_t dev_addr, uint8_t value, int *pError) {
 	  pthread_mutex_lock(&i2cm);
 	  passert(pError);
 	  i2c_set_address(addr, pError);
 	  if (*pError != 0) {
-	    psyslog(RED "i2c write byte 0x%x 0x%x = 0x%x error1\n" RESET, addr, dev_addr, value);
+	    psyslog(RED "i2c write byte 0x%x 0x%x = 0x%x error3\n" RESET, addr, dev_addr, value);
+      print_stack();
 
 	  } else {
 		  uint8_t command = (uint8_t)(dev_addr & 0xFF);
 		  uint8_t block[] = { (uint8_t)(dev_addr >> 8),value};
 		  if (i2c_smbus_write_block_data(file , command , 2 , block) == -1){
-	    	  psyslog(RED "i2c_waddr_write_byte 0x%x 0x%x = 0x%x error2 ; c=%d , b0=%d , b1=%d\n" RESET, addr, dev_addr, value , command , block[0] , block[1]);
+	    	  psyslog(RED "i2c_waddr_write_byte 0x%x 0x%x = 0x%x error4 ; c=%d , b0=%d , b1=%d\n" RESET, addr, dev_addr, value , command , block[0] , block[1]);
 	        *pError = -1;
 	    }
 	    //usleep(SLEEP_TIME_I2C);
@@ -203,11 +185,11 @@ void i2c_write_byte(uint8_t addr, uint8_t command, uint8_t value, int *pError) {
   passert(pError);
   i2c_set_address(addr, pError);
   if (*pError != 0) {
-    psyslog(RED "i2c write byte 0x%x 0x%x = 0x%x error1\n" RESET, addr, command, value);
+    psyslog(RED "i2c write byte 0x%x 0x%x = 0x%x error5\n" RESET, addr, command, value);
 
   } else {
     if (i2c_smbus_write_byte_data(file, command, value) == -1) {
-      psyslog(RED "i2c write byte 0x%x 0x%x = 0x%x error2\n" RESET, addr, command, value);
+      psyslog(RED "i2c write byte 0x%x 0x%x = 0x%x error6\n" RESET, addr, command, value);
      
         *pError = -1;
     }
@@ -223,12 +205,12 @@ uint16_t i2c_read_word(uint8_t addr, uint8_t command, int *pError) {
   passert(pError);
   i2c_set_address(addr, pError);
   if ( *pError != 0) {
-    psyslog(RED "i2c read word 0x%x 0x%x error1\n" RESET, addr, command);
+    psyslog(RED "i2c read word 0x%x 0x%x error7\n" RESET, addr, command);
     r = 0xFFFF;
   } else {
     r = i2c_smbus_read_word_data(file, command, pError);
     if ( *pError != 0) {
-      psyslog(RED "i2c read word 0x%x 0x%x error2\n" RESET, addr, command, *pError);
+      psyslog(RED "i2c read word 0x%x 0x%x error8\n" RESET, addr, command, *pError);
       r = 0x0;
       pthread_mutex_unlock(&i2cm);
       return r;
@@ -246,11 +228,11 @@ void i2c_write_word(uint8_t addr, uint8_t command, uint16_t value,
   pthread_mutex_lock(&i2cm);
   i2c_set_address(addr, pError);
   if (pError != NULL && *pError != 0) {
-    psyslog(RED "i2c write word 0x%x 0x%x = 0x%x error1\n" RESET, addr, command, value);        
+    psyslog(RED "i2c write word 0x%x 0x%x = 0x%x error9\n" RESET, addr, command, value);        
   } else {
     if ((i2c_smbus_write_word_data(file, command, value) == -1) &&
         (pError != NULL)) {
-      psyslog(RED "i2c write word 0x%x 0x%x = 0x%x error2\n" RESET, addr, command, value);        
+      psyslog(RED "i2c write word 0x%x 0x%x = 0x%x errora\n" RESET, addr, command, value);        
       *pError = -1;
     }
 

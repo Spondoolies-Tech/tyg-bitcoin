@@ -112,6 +112,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../add-ons/resolv.conf etc/
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
 	date > build_date.txt
+	echo 1 > etc/mg_work_mode
 
 	#php
 	if [ ! -d "opt/minepeon" ]; then
@@ -210,7 +211,7 @@ cron()
 
 	# Run every minute
 	echo '0,5,10,15,20,25,30,35,40,45,50,55 * * * * /usr/bin/php /etc/cron.d/RECORDHashrate' > etc/cron.d/crontabs/root
-	#echo '0 * * * * /etc/cron.d/pandp_register.sh' >> etc/cron.d/crontabs/root
+	echo '0 * * * * /etc/cron.d/pandp_register.sh' >> etc/cron.d/crontabs/root
 }
 
 # Ugly hack to add php-rrd to the image.

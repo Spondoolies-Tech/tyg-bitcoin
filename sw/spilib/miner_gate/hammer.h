@@ -1,3 +1,14 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
 #ifndef _____HAMMER_H____
 #define _____HAMMER_H____
 
@@ -228,7 +239,6 @@ typedef struct {
   // address - loop*8 + offset
   uint8_t address;
   uint8_t loop_address;
-  ASIC_CORNER corner;
   // Passed engines (set by "do_bist_ok_rt()")
   uint16_t passed_last_bist_engines;
 
@@ -263,7 +273,6 @@ typedef struct {
   int dc_current_limit_16s;   
   int dc_power_watts_16s;  
   int last_voltage_change_time;
-  int kill_me_i_am_bad;
   
   int max_vtrim_currentwise;
   // Guessing added current
@@ -327,6 +336,7 @@ typedef struct {
   int ac2dc_power;  // in ampers. 0 = bad reading.
   int dc2dc_total_power; 
   int total_mhash; 
+  int concecutive_bad_wins;
   uint32_t ac2dc_temp;
   int work_mode; // 0 = slow, 1 = normal, 2 = turbo
   int max_fan_level;

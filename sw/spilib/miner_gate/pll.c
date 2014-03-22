@@ -1,3 +1,13 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +19,7 @@
 #include "hammer_lib.h"
 #include "scaling_manager.h"
 #include "spond_debug.h"
+
 
 pll_frequency_settings pfs[ASIC_FREQ_MAX] = {
   { 0, 0, 0 }, 
@@ -74,11 +85,7 @@ void set_pll(int addr, ASIC_FREQ freq) {
   passert(freq < ASIC_FREQ_MAX);
   passert(freq >= ASIC_FREQ_225);
   pll_frequency_settings *ppfs;
- // if (freq > ASIC_FREQ_225) {
- //   ppfs = &pfs[freq-1];
- // } else {
   ppfs = &pfs[freq];
- // }
   uint32_t pll_config = 0;
   uint32_t M = ppfs->m_mult;
   uint32_t P = ppfs->p_div;

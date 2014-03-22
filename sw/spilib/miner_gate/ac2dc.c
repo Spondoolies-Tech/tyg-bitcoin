@@ -1,3 +1,15 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+
+
 #include "ac2dc_const.h"
 #include "ac2dc.h"
 #include "dc2dc.h"
@@ -236,7 +248,6 @@ int ac2dc_get_eeprom(int offset, int *pError) {
 #endif
 
 void reset_i2c() {
-  /*
   FILE *f = fopen("/sys/class/gpio/export", "w");
   if (!f)
     return;
@@ -255,42 +266,41 @@ void reset_i2c() {
   fprintf(f, "1");
   usleep(1000000);
   fclose(f);
-  */
 }
 
 
 
 #ifdef MINERGATE
 int update_ac2dc_power_measurments() {
+#if AC2DC_BUG == 0
   int err;
   static int counter = 0;
   counter++;
   pthread_mutex_lock(&i2c_mutex);
  
   reset_i2c();
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
-  //do_stupid_i2c_workaround();
-#if 0//AC2DC_BUG == 0  
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);  
   vm.ac2dc_temp = ac2dc_get_temperature();
-#endif
-  int power_guessed = (vm.dc2dc_total_power*1000/790)+60;// ac2dc_get_power()/1000; //TODOZ
-  int power = power_guessed;
-#if AC2DC_BUG == 0  
-  power = ac2dc_get_power()/1000;
-#endif
-  //printf(CYAN"power=%d(guessed=%d)\n" RESET, power,power_guessed);
-
+  //int power_guessed = (vm.dc2dc_total_power*1000/790)+60;// ac2dc_get_power()/1000; //TODOZ
+  //int power = power_guessed;
+  int power = ac2dc_get_power()/1000;
   if (
     !vm.asics_shut_down_powersave &&
     power >= AC2DC_CURRENT_TRUSTWORTHY && 
     vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {
       vm.ac2dc_power = power;
     } else {
-      //printf(GREEN "CONSEC = %d\n" RESET, vm.cosecutive_jobs); 
       vm.ac2dc_power = 0;
     }
   i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);  
   pthread_mutex_unlock(&i2c_mutex);  
+#else 
+  if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {
+     vm.ac2dc_power = vm.ac2dc_power = (vm.dc2dc_total_power*1000/790)+60;;
+  } else {
+     vm.ac2dc_power = 0;
+  }
+#endif
   return 0;
 }
 #endif

@@ -1,3 +1,14 @@
+/*
+ * Copyright 2014 Zvi (Zvisha) Shteingart - Spondoolies-tech.com
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.  See COPYING for more details.
+ *
+ * Note that changing this SW will void your miners guaranty
+ */
+ 
 
 #include "pwm_manager.h"
 #include <stdio.h>
@@ -10,11 +21,6 @@
 
 extern pthread_mutex_t i2cm;
 
-
-/*
-
-
-*/
 
 // 2 lamps - 0=green, 1=yellow
 void set_light(int light_id, bool on) {
@@ -114,23 +120,3 @@ void set_fan_level(int fan_level) {
   	}
 }
 
-/*
-cd /sys/devices/bone_capemgr.*
-echo am33xx_pwm > slots
-echo bone_pwm_P9_31 > slots
-
-cd /sys/devices/ocp.*
-cd pwm_test_P9_31.*
-
-our period should be 40000:
-echo 40000 > period
-
-for 100%:
-echo 40000 > duty
-
-for 80%:
-echo 32000 > duty
-
-for 30% (minimum):
-echo 12000 > duty
-*/
