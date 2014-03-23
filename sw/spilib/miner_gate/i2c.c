@@ -259,11 +259,11 @@ uint16_t read_mgmt_temp() {
   pthread_mutex_lock(&i2cm_trans);
   // set router
   //     ./i2cset -y 0 0x70 0x00 0xff
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_MGMT_PIN);
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_MGMT_PIN | PRIMARY_I2C_SWITCH_DEAULT);
   // read value
   //     ./i2cget -y 0 0x48 0x00 w
   uint16_t value = i2c_read_word(0x48, 0x00);
-  i2c_write(PRIMARY_I2C_SWITCH, 0);
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_DEAULT);
   pthread_mutex_unlock(&i2cm_trans);
   return value;
 }

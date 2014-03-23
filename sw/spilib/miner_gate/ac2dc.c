@@ -83,7 +83,7 @@ static int ac2dc_get_power() {
 
 void ac2dc_init() {
   int err;
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN | PRIMARY_I2C_SWITCH_DEAULT);
   int res = i2c_read_word(AC2DC_EMERSON_I2C_MGMT_DEVICE, AC2DC_I2C_READ_TEMP1_WORD, &err);
   if (!err) {
     psyslog("EMERSON AC2DC LOCATED\n");
@@ -92,7 +92,7 @@ void ac2dc_init() {
     psyslog("MURATA AC2DC LOCATED\n");
     murata = 1;
   }
-  i2c_write(PRIMARY_I2C_SWITCH, 0);
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_DEAULT);
 }
 
 
@@ -103,7 +103,7 @@ static int ac2dc_get_temperature() {
 
 
   int err = 0;
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);
+  //i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN | PRIMARY_I2C_SWITCH_DEAULT);
   do_stupid_i2c_workaround();
   int res = i2c_read_word(mgmt_addr[murata], AC2DC_I2C_READ_TEMP1_WORD, &err);
   if (err) {
@@ -127,7 +127,7 @@ static int ac2dc_get_temperature() {
   if (temp3 > temp1)
     temp1 = temp3;
 
-  //i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+  //i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_DEFAULT);
 
   return temp1 / 1000;
 }
@@ -156,7 +156,7 @@ int ac2dc_get_vpd(ac2dc_vpd_info_t *pVpd) {
 
   pthread_mutex_lock(&i2c_mutex);
 
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN  , &err);
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN | PRIMARY_I2C_SWITCH_DEAULT , &err);
 
   if (err) {
     fprintf(stderr, "Failed writing to I2C address 0x%X (err %d)",
@@ -198,7 +198,7 @@ ac2dc_get_eeprom_quick_err:
     rc =  err;
   }
 
-  i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_DEAULT);
   pthread_mutex_unlock(&i2c_mutex);
 
   return rc;
@@ -234,14 +234,14 @@ int ac2dc_get_eeprom(int offset, int *pError) {
   //printf("%s:%d\n",__FILE__, __LINE__);
    pthread_mutex_lock(&i2c_mutex);
   int b;
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN, pError);
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN | PRIMARY_I2C_SWITCH_DEAULT, pError);
   if (pError && *pError) {
      pthread_mutex_unlock(&i2c_mutex);
     return *pError;
   }
 
   b = i2c_read_byte(eeprom_addr[murata], offset, pError);
-  i2c_write(PRIMARY_I2C_SWITCH, 0x00);
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_DEAULT);
    pthread_mutex_unlock(&i2c_mutex);
   return b;
 }
@@ -279,7 +279,7 @@ int update_ac2dc_power_measurments() {
   pthread_mutex_lock(&i2c_mutex);
  
   reset_i2c();
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);  
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN | PRIMARY_I2C_SWITCH_DEAULT);  
   vm.ac2dc_temp = ac2dc_get_temperature();
   //int power_guessed = (vm.dc2dc_total_power*1000/790)+60;// ac2dc_get_power()/1000; //TODOZ
   //int power = power_guessed;
@@ -292,7 +292,7 @@ int update_ac2dc_power_measurments() {
     } else {
       vm.ac2dc_power = 0;
     }
-  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN);  
+  i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_AC2DC_PIN | PRIMARY_I2C_SWITCH_DEAULT);  
   pthread_mutex_unlock(&i2c_mutex);  
 #else 
   if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_AC2DC_MEASUREMENT) {

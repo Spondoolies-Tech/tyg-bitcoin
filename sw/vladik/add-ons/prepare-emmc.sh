@@ -86,7 +86,8 @@ format_partitions()
 create_dirs()
 {
 	mount ${EMMC_DEVICE}p2 ${MP_MMC_CONF}
-	mkdir ${MP_MMC_CONF}/etc ${MP_MMC_CONF}/rrd
+	mkdir ${MP_MMC_CONF}/etc #${MP_MMC_CONF}/rrd
+	ln -s /tmp ${MP_MMC_CONF}/rrd
 	umount ${MP_MMC_CONF}
 	
 }

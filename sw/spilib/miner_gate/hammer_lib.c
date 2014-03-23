@@ -391,7 +391,7 @@ int allocate_addresses_to_devices() {
           vm.hammer[addr].freq_bist_limit = MAX_ASIC_FREQ;
           vm.hammer[addr].freq_wanted = MINIMAL_ASIC_FREQ;
           if (vm.silent_mode && (addr%20 != 0)) {
-            disable_asic_forever(addr);
+            disable_asic_forever_rt(addr);
           }
          
         } else {
@@ -626,7 +626,7 @@ int do_bist_ok_rt(int long_bist) {
     if ((i % 500) == 0) {
         int addr = BROADCAST_READ_ADDR(res);
         psyslog("Asic %x didnt finish BIST\n", addr);
-  //    disable_asic_forever(addr);
+  //    disable_asic_forever_rt(addr);
   //    passert(0);
       break;
     } 
@@ -705,6 +705,17 @@ void once_second_tasks_rt() {
         set_light(LIGHT_GREEN, 1);
         psyslog( "Restarting mining timer\n" );
       }
+  }
+  
+  for (int i=0; i< HAMMERS_COUNT; i++) {
+    HAMMER *h = &vm.hammer[i];
+    if (!h->asic_present) {
+      continue;
+    }
+        
+    if (h->too_hot_temp_counter > TOO_HOT_COUNER_DISABLE_ASIC) {
+      disable_asic_forever_rt(i);
+    }
   }
 
 
@@ -796,7 +807,7 @@ int update_vm_with_currents_and_temperatures_nrt() {
       pthread_mutex_lock(&hammer_mutex);
       for (int i = loop*HAMMERS_PER_LOOP; i < loop*HAMMERS_PER_LOOP + HAMMERS_PER_LOOP ; i++) {
         if (vm.hammer[i].asic_present) {
-          disable_asic_forever(i);
+          disable_asic_forever_rt(i);
         }
       }
       vm.good_loops = vm.good_loops & ~(1<<loop);
@@ -828,13 +839,16 @@ void proccess_temp_reading_rt(HAMMER *a, int intr) {
      if (!(intr & BIT_INTR_0_OVER)) {
        if (a->asic_temp > (MAX_ASIC_TEMPERATURE-2)) {
            a->asic_temp = (ASIC_TEMP)(MAX_ASIC_TEMPERATURE-2);
+           a->too_hot_temp_counter=0;
        }
      } else if ((intr & BIT_INTR_1_OVER)) { 
         if ((a->asic_temp < MAX_ASIC_TEMPERATURE)) {
           a->asic_temp = (ASIC_TEMP)(MAX_ASIC_TEMPERATURE);
+          a->too_hot_temp_counter++;
         }
      } else {
-          a->asic_temp = (ASIC_TEMP)(MAX_ASIC_TEMPERATURE-1);
+          a->asic_temp = (ASIC_TEMP)(MAX_ASIC_TEMPERATURE-1);          
+          a->too_hot_temp_counter=0;
      }
 
 }
@@ -921,8 +935,6 @@ void once_33_msec_temp_rt() {
 
    // find next PLL
    pll_set_addr = (pll_set_addr+1)%HAMMERS_COUNT;
-   
-   
    for (int i = 0 ; i < 10 ; i++) {
      if (!vm.hammer[pll_set_addr].asic_present ||
         (vm.hammer[pll_set_addr].freq_wanted == vm.hammer[pll_set_addr].freq_hw)) {
@@ -993,10 +1005,6 @@ void once_33_msec_tasks_rt() {
   
   if (!vm.asics_shut_down_powersave) { 
 
-
-
-
-  
     /*
     if (measure_temp_addr == 0) {
       // rotate temperature
@@ -1040,7 +1048,6 @@ void push_job_to_hw_rt() {
     // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);
     push_to_hw_queue_rt(actual_work);
     vm.last_second_jobs++;
-    vm.last_alive_jobs++;
     if (vm.cosecutive_jobs < MAX_CONSECUTIVE_JOBS_TO_COUNT) {    
       vm.cosecutive_jobs++;
     }
@@ -1178,7 +1185,7 @@ void *i2c_state_machine_nrt(void *p) {
           set_light(LIGHT_YELLOW, 0);
           set_light(LIGHT_GREEN, 0);
           set_fan_level(100);
-          usleep(1000*1000*20);
+          usleep(1000*1000*60);
           exit(0);
         }
         
@@ -1198,7 +1205,7 @@ void *i2c_state_machine_nrt(void *p) {
          if (vm.cosecutive_jobs > 0) {
            save_rate_temp(bottom_tmp, mgmt_tmp);
          }
-       } 
+      }
 
       // Once every minute
       if (counter%(48*60) == 0) {
@@ -1210,7 +1217,6 @@ void *i2c_state_machine_nrt(void *p) {
            vm.hammer[addr].asic_temp < (MAX_ASIC_TEMPERATURE-1)) {
           vm.hammer[addr].freq_thermal_limit = (ASIC_FREQ)(vm.hammer[addr].freq_thermal_limit+1);
         }
-     
         //vm.solved_difficulty_total = 0;
 
 
@@ -1222,7 +1228,6 @@ void *i2c_state_machine_nrt(void *p) {
         
         // once an hour - increase max vtrim on one loop
         if (counter%(48*60*60) == 0) { 
-          
           static int loop = 0;
           spond_save_nvm();
           loop = (loop+1)%LOOP_COUNT;

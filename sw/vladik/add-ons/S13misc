@@ -6,12 +6,12 @@
 
 rrd_dirs()
 {
-	sh -c '[ -d /mnt/mmc-config/rrd ] && rmdir /mnt/mmc-config/rrd'
+	[ -d /mnt/mmc-config/rrd ] && rm -rf /mnt/mmc-config/rrd
 	mkdir /tmp/rrd
 	cd /mnt/mmc-config
-	ln -s /tmp/rrd
+	ln -s /tmp/rrd ./
 	cd /var/www
-	ln -s /tmp/rrd
+	ln -s /tmp/rrd ./
 }
 
 misc_start()

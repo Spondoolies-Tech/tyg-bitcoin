@@ -586,7 +586,7 @@ int main(int argc, char *argv[]) {
  
    while (addr = BROADCAST_READ_ADDR(read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY))) {
       psyslog(RED "CONDUCTOR BUZY IN %x (%X)\n" RESET, addr,read_reg_broadcast(ADDR_VERSION));
-      disable_asic_forever(addr);
+      disable_asic_forever_rt(addr);
    }
     
   // Give addresses to devices.

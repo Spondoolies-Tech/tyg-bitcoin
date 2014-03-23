@@ -246,19 +246,20 @@ typedef struct {
   ASIC_TEMP asic_temp; // periodic measurments - ASIC_TEMP_
   ASIC_FREQ freq_hw;        // *15 Hz  
   ASIC_FREQ freq_wanted;        // *15 Hz
-  int pll_waiting_reply;
   ASIC_FREQ freq_thermal_limit; 
   ASIC_FREQ freq_bist_limit;   
-  
+  int pll_waiting_reply;
+    
   int agressivly_scale_up;
   int last_freq_change_time; // time() when we increased ASIC frequency
   int last_down_freq_change_time;
-  //int dc2dc_ac2dc_limit;
+  // int dc2dc_ac2dc_limit;
   // Set durring initialisation currently enabled engines
   uint32_t working_engines;
 
   // Jobs solved by ASIC
   uint32_t solved_jobs;
+  uint32_t too_hot_temp_counter;
 
   // Did we already scaled up this ASIC frequency
   uint8_t can_scale_up;
@@ -348,7 +349,6 @@ typedef struct {
 
   
   int last_second_jobs;
-  int last_alive_jobs;
   int cur_leading_zeroes;
 
   // When system just started, search optimal speed agressively

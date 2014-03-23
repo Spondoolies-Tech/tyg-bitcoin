@@ -73,7 +73,7 @@ void pause_all_mining_engines() {
   while(some_asics_busy != 0) {
     int addr = BROADCAST_READ_ADDR(some_asics_busy);
     psyslog(RED "some_asics_busy %x\n" RESET, some_asics_busy);
-    disable_asic_forever(addr);
+    disable_asic_forever_rt(addr);
     some_asics_busy = read_reg_broadcast(ADDR_BR_CONDUCTOR_BUSY);
   }
   // stop all ASICs
@@ -202,19 +202,20 @@ void print_scaling() {
   int total_watt=0;
   fprintf(f,GREEN  "L |Vtrm/max  |vlt|Wt|"  "Am|DCt|"  "crt|Gh|Ov" ); 
   for (int i = 0; i < HAMMERS_PER_LOOP/2; i++) {
-    fprintf(f, "|ID|aTMP|Freq |MFT|MFB| Eng ");
+    fprintf(f, "|ID|aTMP|Freq |T|B|Engn|Wn");
+    
   }
   for (int addr = 0; addr < HAMMERS_COUNT ; addr++) {  
     hammer_iter hi;    
     hi.addr = addr;
     hi.a = &vm.hammer[addr];
     hi.l = addr/HAMMERS_PER_LOOP;
-    hi.h = addr%HAMMERS_PER_LOOP;                       
-    if (hi.h == HAMMERS_PER_LOOP/2) {fprintf(f, "\n-------------------------------------");}
+    hi.h = addr%HAMMERS_PER_LOOP;                                                                  
+    if (hi.h == HAMMERS_PER_LOOP/2) {fprintf(f,GREEN RESET "\n                                     ");}
     if (hi.h == 0) {
       total_loops++;
       if (!vm.loop[hi.l].enabled_loop) {
-        fprintf(f, "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        fprintf(f, GREEN RESET "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
       } else {    
         DC2DC* dc2dc = &vm.loop[hi.l].dc2dc;
 
@@ -241,7 +242,7 @@ void print_scaling() {
     }
     
     if (!hi.a->asic_present) {
-      fprintf(f, "|xxxxxxxxxxxxxxxxxxxxxxxxxxx");           
+      fprintf(f, GREEN RESET "|xxxxxxxxxxxxxxxxxxxxxxxxxxx");           
       continue;
     }
 
@@ -251,13 +252,14 @@ void print_scaling() {
 
     total_asics++;
 
-    fprintf(f, GREEN RESET "|%2x:%s%3dc%s %s%3dhz%s(%3d/%3d) %s%x" GREEN RESET, 
+    fprintf(f, GREEN RESET "|%2x:%s%3dc%s %s%3dhz%s(%2d/%2d)%s%x" GREEN RESET "%3d", 
       hi.addr,
       (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE-1)?((hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
        ((hi.a->freq_wanted>=ASIC_FREQ_540)? (MAGENTA) : ((hi.a->freq_wanted<=ASIC_FREQ_510)?(CYAN):(YELLOW))), hi.a->freq_wanted*15+210,GREEN,
-       hi.a->freq_thermal_limit*15+210,
-       hi.a->freq_bist_limit*15+210, 
-       (vm.hammer[hi.addr].working_engines!=0x7FFF)?GREEN_BOLD:GREEN, vm.hammer[hi.addr].working_engines, RESET);
+       hi.a->freq_thermal_limit-hi.a->freq_wanted,
+       hi.a->freq_bist_limit-hi.a->freq_wanted, 
+       (vm.hammer[hi.addr].working_engines!=0x7FFF)?GREEN_BOLD:GREEN, vm.hammer[hi.addr].working_engines,
+        vm.hammer[hi.addr].solved_jobs);
   }
   // print last loop
   // print total hash power

@@ -11,11 +11,23 @@ WATCHDOG_FILE="/var/run/dont_reboot"
 export PATH=$PATH:/usr/local/bin:/bin
 
 
+reboot_miner_safe() {
+	echo "Not mining, reboot!"
+	pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
+	pid3=`cat /var/run/miner_gate_arm.pid`
+	kill $pid3
+	sleep 1
+	kill $pid3
+	sleep 5
+        reboot
+
+}
+
 
 test_free_memory()
 {
 	FREE_MEM=`awk '/MemFree/ {printf( "%.2d\n", $2 / 1024 )}' /proc/meminfo`
-	[ $FREE_MEM -lt 100 ] && reboot 
+	[ $FREE_MEM -lt 100 ] && reboot_miner_safe 
 }
 
 
@@ -25,16 +37,12 @@ forever_mining_watchdog()
 	do
 		#sleep for 5 minutes
 		sleep 300
-		if [ -f $WATCHDOG_FILE ]
+		if [ -f $WATCHDOG_FILE ] 
 		then
-			  echo "Removed watchdog file."
-			  rm $WATCHDOG_FILE
+			#echo "Removed watchdog file."
+			rm $WATCHDOG_FILE
 		else
-			  #echo "Not mining, reboot!"
-			  pid3=`cat /var/run/miner_gate_arm.pid`
-			  kill $pid3
-			  sleep 1
-			  #reboot
+			reboot_miner_safe 
 		fi
 	done
 	

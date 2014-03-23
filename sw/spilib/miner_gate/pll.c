@@ -99,7 +99,7 @@ void set_pll(int addr, ASIC_FREQ freq) {
   //printf("Sett pll %x", addr);
 }
 
-void disable_asic_forever(int addr) {
+void disable_asic_forever_rt(int addr) {
   vm.hammer[addr].working_engines = 0;
   vm.hammer[addr].asic_present = 0;
   disable_engines_asic(addr);
@@ -119,7 +119,7 @@ int enable_good_engines_all_asics_ok() {
         psyslog(RED "PLL %x stuck, killing ASIC\n" RESET, reg);
         //return 0;
         int addr = BROADCAST_READ_ADDR(reg);
-        disable_asic_forever(addr);
+        disable_asic_forever_rt(addr);
         killed_pll++;
       }
       usleep(10);

@@ -333,6 +333,7 @@ void maybe_change_freqs_nrt() {
        for (int i = 0 ; i < HAMMERS_PER_LOOP ; i++) {
          HAMMER* h = &vm.hammer[l*HAMMERS_PER_LOOP+i];
          if (h->asic_present) {
+          
            if (h->asic_temp >= MAX_ASIC_TEMPERATURE && 
                h->freq_wanted > MINIMAL_ASIC_FREQ &&
                (now - h->last_down_freq_change_time) > 20) {

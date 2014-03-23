@@ -95,7 +95,7 @@ void disable_engines_asic(int addr);
 void enable_engines_asic(int addr, int engines_mask);
 void set_pll(int addr, ASIC_FREQ freq);
 int enable_good_engines_all_asics_ok();
-void disable_asic_forever(int addr);
+void disable_asic_forever_rt(int addr);
 void enable_all_engines_all_asics();
 void set_asic_freq(int addr, ASIC_FREQ new_freq);
 

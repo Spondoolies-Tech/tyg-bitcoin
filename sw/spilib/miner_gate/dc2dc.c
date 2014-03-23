@@ -142,7 +142,7 @@ static void dc2dc_i2c_close() {
       i2c_write(I2C_DC2DC_SWITCH_GROUP1, 0, &err);
   
           
-      i2c_write(PRIMARY_I2C_SWITCH, 0);
+      i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_DEAULT);
 }
 
 static void dc2dc_select_i2c_ex(int top,          // 1 or 0
@@ -150,9 +150,9 @@ static void dc2dc_select_i2c_ex(int top,          // 1 or 0
                          int dc2dc_offset, // 0..7
                          int *err) { // 0x00=first, 0x01=second, 0x81=both
   if (top) {
-    i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_TOP_MAIN_PIN,err); // TOP
+    i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_TOP_MAIN_PIN | PRIMARY_I2C_SWITCH_DEAULT,err); // TOP
   } else {
-    i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN, err); // BOTTOM
+    i2c_write(PRIMARY_I2C_SWITCH, PRIMARY_I2C_SWITCH_BOTTOM_MAIN_PIN | PRIMARY_I2C_SWITCH_DEAULT, err); // BOTTOM
   }
 
   if (i2c_group == 0) {
