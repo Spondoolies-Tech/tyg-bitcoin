@@ -226,6 +226,12 @@ ntp()
 	cp -a ${CUR_DIR}/../add-ons/S43ntp etc/init.d
 }
 
+cryptodev()
+{
+	cp -a ${CUR_DIR}/../cryptodev-linux-1.6/cryptodev.ko lib/modules
+	cp -a ${CUR_DIR}/../add-ons/S80cryptodev etc/init.d
+}
+
 main()
 {
 	set -e
@@ -247,6 +253,7 @@ main()
 	cron
 	#ntp
 	rrd
+	cryptodev
 }
 
 main $@

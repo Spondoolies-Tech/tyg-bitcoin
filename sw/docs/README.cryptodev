@@ -1,0 +1,6 @@
+Compilation
+===========
+
+cd sw/vladik/cryptodev-linux-1.6
+make -C ../kernel/kernel ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- SUBDIRS=`pwd`
+
