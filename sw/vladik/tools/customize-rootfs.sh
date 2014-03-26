@@ -90,6 +90,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/eeprom-read-hostname.sh usr/local/bin
 	cp ${CUR_DIR}/../../scripts/rff usr/local/bin
 	cp ${CUR_DIR}/../../scripts/wtf usr/local/bin
+	cp ${CUR_DIR}/../../scripts/leds usr/local/bin
 	cp ${CUR_DIR}/../../scripts/mainvpd usr/local/bin
 	cp ${CUR_DIR}/../../scripts/mbtest usr/local/bin
 	cp ${CUR_DIR}/../../scripts/getmac.sh usr/local/bin
