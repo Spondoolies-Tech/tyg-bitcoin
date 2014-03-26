@@ -21,11 +21,7 @@
 void kill_fan();
 void init_pwm();
 void set_fan_level(int fan_level_percent);
-void leds_init();
 
-#define LIGHT_GREEN  0
-#define LIGHT_YELLOW 1
-void set_light(int light_id, bool on);
 
 
 #endif

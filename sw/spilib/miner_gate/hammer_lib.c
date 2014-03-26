@@ -37,6 +37,8 @@
 #include "scaling_manager.h"
 #include <sched.h>
 #include "pll.h"
+#include "leds.h"
+
 
 extern int kill_app;
 void exit_nicely();
@@ -567,8 +569,6 @@ BIST_VECTOR bist_tests[TOTAL_BISTS] =
 {0xbbed44a1 ,
   {   0x0dd441c1,0x5802c0da,0xf2951ee4,0xd77909da,0xb25c02cb,0x009b6349,0xfe2d9807,0x257609a8 },
   0x5064218c, 0x57332e1b, 0xcef3abae, 35}
-
-
 };
 
 
@@ -702,7 +702,7 @@ void once_second_tasks_rt() {
   if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) {
       if ((vm.start_mine_time == 0)) {
         vm.start_mine_time = time(NULL);
-        set_light(LIGHT_GREEN, 1);
+        set_light(LIGHT_GREEN, LIGHT_MODE_FAST_BLINK);
         psyslog( "Restarting mining timer\n" );
       }
   }
@@ -721,7 +721,7 @@ void once_second_tasks_rt() {
 
   if (vm.cosecutive_jobs == 0) {
     vm.start_mine_time = 0;
-    set_light(LIGHT_GREEN, 0);
+    set_light(LIGHT_GREEN, LIGHT_MODE_SLOW_BLINK);
     vm.not_mining_time++;
     vm.mining_time = 0;
   } else {
@@ -1149,9 +1149,16 @@ void *i2c_state_machine_nrt(void *p) {
         printf("NRT out\n");
         return NULL;
       }
+
+      
+      if (((counter%12)==0)) {
+           leds_periodic_quater_second();
+      }
+
     }
 
   
+
     // Update AC2DC once every second
     if ((counter % (48)) ==  0)  {
       //printf("BOARD TEMP = %d\n", get_mng_board_temp());
@@ -1162,7 +1169,6 @@ void *i2c_state_machine_nrt(void *p) {
 
       if ((counter % (48)*2) ==  0)  {
         print_scaling();        
-        
       }
 
 
@@ -1171,6 +1177,23 @@ void *i2c_state_machine_nrt(void *p) {
         int err;
         
         mgmt_tmp = get_mng_board_temp();
+        // If temperature dropped by more then 3 degree - 
+        // reset mining settings
+        if (vm.mgmt_temp_max < mgmt_tmp) {
+           vm.mgmt_temp_max = mgmt_tmp;
+        }
+        
+        if ((vm.mgmt_temp_max - mgmt_tmp) >= 3) {
+          psyslog("Temperature dropped by more then 3 deg - recalibrate miner!\n");
+          for (int addr = 0; addr < HAMMERS_COUNT; addr++) {
+            HAMMER *a = &vm.hammer[addr];
+            if (a->asic_present) {
+              vm.hammer[addr].freq_thermal_limit = (ASIC_FREQ)(vm.hammer[addr].freq_bist_limit);
+              vm.mgmt_temp_max = mgmt_tmp;
+            }
+          }
+        }
+        
         bottom_tmp = get_bottom_board_temp();
         top_tmp = get_top_board_temp();      
         printf("MGMT TEMP = %d\n",mgmt_tmp);
@@ -1182,8 +1205,8 @@ void *i2c_state_machine_nrt(void *p) {
           for (int l = 0 ; l < LOOP_COUNT ; l++) {
             dc2dc_disable_dc2dc(l, &err); 
           }
-          set_light(LIGHT_YELLOW, 0);
-          set_light(LIGHT_GREEN, 0);
+          //set_light(LIGHT_YELLOW, LIGHT_MODE_OFF);
+          set_light(LIGHT_GREEN, LIGHT_MODE_SLOW_BLINK);
           set_fan_level(100);
           usleep(1000*1000*60);
           exit(0);

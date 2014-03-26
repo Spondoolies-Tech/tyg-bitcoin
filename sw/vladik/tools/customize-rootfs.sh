@@ -113,7 +113,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../add-ons/eeprom-provisioning.sh usr/local/bin
 	date > build_date.txt
 	echo 2 > etc/mg_work_mode
-
+	echo '1200' >> etc/mg_psu_limit
 	#php
 	if [ ! -d "opt/minepeon" ]; then
 		mkdir opt/minepeon

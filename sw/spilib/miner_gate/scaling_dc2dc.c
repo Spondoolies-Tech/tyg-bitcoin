@@ -107,7 +107,7 @@ int asic_can_up(HAMMER *a, int force) {
     return 1;
   }
  
-  if (vm.ac2dc_power >= AC2DC_POWER_LIMIT)
+  if (vm.ac2dc_power >= vm.max_ac2dc_power)
    {
     return 0;
   }
@@ -362,13 +362,13 @@ void maybe_change_freqs_nrt() {
    if (((counter%15) == 0) ||
        proccess_bist_results ||
        critical_downscale ||
-       (vm.ac2dc_power > AC2DC_POWER_LIMIT)) {
-       printf(MAGENTA "Running FREQ update\n" RESET);
-       //!!!  HERE WE DO FREQUENCY UPDATES!!!
-       asic_frequency_update_nrt();
-       proccess_bist_results = 0;
-       // Dont run for next 7 seconds.
-   }
+       (vm.ac2dc_power > vm.max_ac2dc_power)) {
+           printf(MAGENTA "Running FREQ update\n" RESET);
+           //!!!  HERE WE DO FREQUENCY UPDATES!!!
+           asic_frequency_update_nrt();
+           proccess_bist_results = 0;
+           // Dont run for next 7 seconds.
+       }
 }
 
 
@@ -476,7 +476,7 @@ void asic_frequency_update_nrt(int verbal) {
        }
      }
     
-    if (vm.ac2dc_power >= AC2DC_POWER_LIMIT)  {
+    if (vm.ac2dc_power >= vm.max_ac2dc_power)  {
         int l = rand()%LOOP_COUNT;
         while (!vm.loop[l].enabled_loop) {
           l = rand()%LOOP_COUNT;

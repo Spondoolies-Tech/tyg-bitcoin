@@ -52,6 +52,7 @@
 #include "pll.h"
 #include "real_time_queue.h"
 #include <signal.h>
+#include "leds.h"
 
 
 using namespace std;
@@ -89,9 +90,9 @@ void exit_nicely() {
   int err;
   kill_app = 1;
   // Let other threads finish. 
-  set_light(LIGHT_YELLOW, 0);
+  //set_light(LIGHT_YELLOW, LIGHT_MODE_OFF);
   usleep(1000*1000);
-  set_light(LIGHT_GREEN, 0);   
+  set_light(LIGHT_GREEN, LIGHT_MODE_OFF);   
   disable_engines_all_asics();
   for (int l = 0 ; l < LOOP_COUNT ; l++) {
     dc2dc_disable_dc2dc(l, &err); 
@@ -152,7 +153,18 @@ int read_work_mode() {
     }
     fclose (file);
   } 
-  
+
+
+   vm.max_ac2dc_power = AC2DC_POWER_LIMIT;
+   file = fopen ("/etc/mg_psu_limit", "r");
+   if (file > 0) {
+    int limit;
+    fscanf(file, "%d", &limit);
+    if (limit >= 500) {
+      vm.max_ac2dc_power = limit;
+    }
+    fclose (file);
+  } 
 
   printf("WORK MODE = %d\n", vm.work_mode);
 	
@@ -549,8 +561,8 @@ int main(int argc, char *argv[]) {
   //exit(0);
   reset_sw_rt_queue();
   leds_init();
-  set_light(LIGHT_YELLOW, 1);
-  set_light(LIGHT_GREEN, 0);
+  //set_light(LIGHT_YELLOW, LIGHT_MODE_ON);
+  set_light(LIGHT_GREEN, LIGHT_MODE_SLOW_BLINK);
 
 
   // test SPI
@@ -605,9 +617,9 @@ int main(int argc, char *argv[]) {
   
 
   // Enables NVM engines in ASICs.
-//  printf("enable_voltage_from_nvm\n");
-//  enable_voltage_from_nvm();
-  
+  //  printf("enable_voltage_from_nvm\n");
+  //  enable_voltage_from_nvm();
+    
   psyslog("init_scaling done, ready to mine, saving NVM\n");
 
   if (testreset_mode) {
