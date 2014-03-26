@@ -1,0 +1,65 @@
+#!/bin/sh
+
+
+speed="1" # tenths on a second
+gpio_yellow=22
+color=$gpio_yellow
+blink_file="/tmp/blink"
+
+
+blink(){
+	state=$(( (1+$state) %2))
+	led_set $state
+	usleep $(($speed*100000))
+	if [ -e $blink_file ]; then
+		blink
+	else
+		led_set $start_state
+		return
+	fi
+}
+
+blink_start()
+{
+	led_status
+	start_state=$?
+	state=$start_state
+	date > $blink_file
+	blink
+}
+
+blink_stop(){
+	rm $blink_file
+}
+
+led_on(){
+	led_set 1
+}
+
+led_off(){
+	led_set 0
+}
+
+led_set()
+{
+	echo $1 >> /sys/class/gpio/gpio$color/value
+}
+
+led_status()
+{
+	return `cat /sys/class/gpio/gpio$color/value`
+}
+
+main()
+{
+case "$1" in
+	stop) blink_stop;;
+	on) led_on;;
+	off) led_off;;
+	*) blink_start;;
+esac
+	
+}
+
+main $1
+return $?
