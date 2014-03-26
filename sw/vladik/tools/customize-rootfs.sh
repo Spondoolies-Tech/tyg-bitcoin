@@ -90,6 +90,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/eeprom-read-hostname.sh usr/local/bin
 	cp ${CUR_DIR}/../../scripts/rff usr/local/bin
 	cp ${CUR_DIR}/../../scripts/wtf usr/local/bin
+	cp ${CUR_DIR}/../../scripts/leds usr/local/bin
 	cp ${CUR_DIR}/../../scripts/mainvpd usr/local/bin
 	cp ${CUR_DIR}/../../scripts/mbtest usr/local/bin
 	cp ${CUR_DIR}/../../scripts/getmac.sh usr/local/bin
@@ -212,6 +213,7 @@ cron()
 	# Run every minute
 	echo '* * * * * /usr/bin/php /etc/cron.d/RECORDHashrate' > etc/cron.d/crontabs/root
 	echo '0 * * * * /etc/cron.d/pandp_register.sh' >> etc/cron.d/crontabs/root
+	echo '0 0,3,6,9 * * *  curl -s --fail  "http://firmware.spondoolies-tech.com/release/latest?id=`cat /board_ver`" > /tmp/fw_update ' >> /etc/cron.d/crontabs/root
 }
 
 # Ugly hack to add php-rrd to the image.
@@ -223,6 +225,12 @@ rrd()
 ntp()
 {
 	cp -a ${CUR_DIR}/../add-ons/S43ntp etc/init.d
+}
+
+cryptodev()
+{
+	cp -a ${CUR_DIR}/../cryptodev-linux-1.6/cryptodev.ko lib/modules
+	cp -a ${CUR_DIR}/../add-ons/S80cryptodev etc/init.d
 }
 
 main()
@@ -246,6 +254,7 @@ main()
 	cron
 	#ntp
 	rrd
+	cryptodev
 }
 
 main $@

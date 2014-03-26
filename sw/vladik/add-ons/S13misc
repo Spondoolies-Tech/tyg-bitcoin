@@ -19,10 +19,18 @@ misc_start()
 	rrd_dirs
 }
 
+led_init()
+{
+	echo 22 > /sys/class/gpio/export
+	echo "on" > /sys/class/gpio/gpio22/direction
+	echo 51 > /sys/class/gpio/export
+	echo "on" > /sys/class/gpio/gpio51/direction
+}
 
 case "$1" in
 start)
 	misc_start
+	led_init
 	;;
 stop)
 	;;

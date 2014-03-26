@@ -7,8 +7,9 @@ case "$1" in
 start|"")
 
 
-	/etc/cron.d/pandp_register.sh
-	/etc/cron.d/RECORDHashrate
+	/etc/cron.d/pandp_register.sh &
+	/etc/cron.d/RECORDHashrate    &
+
 
 	;;
 
