@@ -98,7 +98,7 @@ void loop_up(int l) {
           // if its termal, dont change it.
           if (vm.hammer[h].freq_bist_limit == vm.hammer[h].freq_thermal_limit) {
             vm.hammer[h].freq_thermal_limit = vm.hammer[h].freq_bist_limit = 
-              (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-2)?((ASIC_FREQ)(vm.hammer[h].freq_bist_limit+2)):ASIC_FREQ_MAX; 
+              (vm.hammer[h].freq_bist_limit < ASIC_FREQ_MAX-3)?((ASIC_FREQ)(vm.hammer[h].freq_bist_limit+3)):ASIC_FREQ_MAX; 
           }
           vm.hammer[h].agressivly_scale_up = true;
         } 
@@ -175,48 +175,80 @@ void set_working_voltage_discover_top_speeds() {
 
 
 
+void ac2dc_scaling_loop(int l) {
+  int changed = 0;
+  now=time(NULL);
+  if ((!vm.asics_shut_down_powersave) && (vm.loop[l].enabled_loop) &&
+       (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING)) {
+  
+   // int temperature_high = (vm.loop[l].asic_temp_sum / vm.loop[l].asic_count >= 113);
+   // int fully_utilized = (vm.loop[l].overheating_asics == 0); // h->freq_thermal_limit - h->freq
+    int tmp_scaled=0;
+   
+   
+    //printf(CYAN "ac2dc %d %d %d!\n" RESET, l, vm.loop[l].overheating_asics, free_current);
+    printf(CYAN "%d vm.loop[l].overheating_asics:%d \n" RESET, l, vm.loop[l].overheating_asics);
+  
+    
+     // has unused freq - scale down.
+     if (vm.loop[l].overheating_asics >= 6) {
+        if (loop_can_down(l)) {
+          psyslog( "LOOP DOWN:%d\n" , l);            
+          changed = 1;
+          loop_down(l);  
+          vm.ac2dc_power -= 3;
+        }
+     } else if ((vm.max_ac2dc_power - vm.ac2dc_power) > 5 &&
+                 (vm.loop[l].overheating_asics < 4) && 
+                 (vm.loop[l].crit_temp_downscale < 500)) {
+    // scale up
+      if (loop_can_up(l)) {          
+        printf( "LOOP UP:%d\n" , l);
+        changed = 1;
+        loop_up(l);
+        vm.ac2dc_power += 4;
+      }
+    }
+    
+  
+      
+        }
+        vm.loop[l].dc2dc.last_voltage_change_time = time(NULL);
+
+
+}
+
+
+
 
 // Called from low-priority thread.
 void ac2dc_scaling() {
-  for (int l = 0; l < LOOP_COUNT; l++) {
-     int changed = 0;
-    now=time(NULL);
-    if ((!vm.asics_shut_down_powersave) && (vm.loop[l].enabled_loop) &&
-         (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING)) {
-    
-     // int temperature_high = (vm.loop[l].asic_temp_sum / vm.loop[l].asic_count >= 113);
-     // int fully_utilized = (vm.loop[l].overheating_asics == 0); // h->freq_thermal_limit - h->freq
-      int tmp_scaled=0;
-     
-     
-      //printf(CYAN "ac2dc %d %d %d!\n" RESET, l, vm.loop[l].overheating_asics, free_current);
-      printf(CYAN "%d vm.loop[l].overheating_asics:%d \n" RESET, l, vm.loop[l].overheating_asics);
+  // First raws
+  for (int l = 0; l < 4; l++) {
+    ac2dc_scaling_loop(l);
+  }
 
-      
-       // has unused freq - scale down.
-       if (vm.loop[l].overheating_asics >= 6) {
-          if (loop_can_down(l)) {
-            printf(CYAN "LOOP DOWN:%d\n" RESET, l);            
-            changed = 1;
-            loop_down(l);      
-          }
-       } else if ((AC2DC_POWER_LIMIT - vm.ac2dc_power) > 5 &&
-                   (vm.loop[l].overheating_asics < 4) && 
-                   (vm.loop[l].crit_temp_downscale < 500)) {
-      // scale up
-        if (loop_can_up(l)) {          
-          printf(CYAN "LOOP UP:%d\n" RESET, l);
-          changed = 1;
-          loop_up(l);
-          vm.ac2dc_power += 5;
-        }
-      }
-      
+  for (int l = 12; l < 16; l++) {
+    ac2dc_scaling_loop(l);
+  }
 
-        
-          }
-          vm.loop[l].dc2dc.last_voltage_change_time = time(NULL);
-        }
-    }
+  // Second raws
+  for (int l = 4; l < 8; l++) {
+    ac2dc_scaling_loop(l);
+  }
+
+  for (int l = 16; l < 20; l++) {
+    ac2dc_scaling_loop(l);
+  }
+
+  // Third raws
+  for (int l = 8; l < 12; l++) {
+    ac2dc_scaling_loop(l);
+  }
+
+  for (int l = 20; l < LOOP_COUNT; l++) {
+    ac2dc_scaling_loop(l);
+  }
+}
 
 

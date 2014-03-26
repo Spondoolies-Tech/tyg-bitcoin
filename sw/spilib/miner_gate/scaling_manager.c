@@ -194,16 +194,16 @@ void print_scaling() {
   int total_loops=0;
   int total_asics=0;
   int expected_rate=0;
-  fprintf(f, GREEN "\n----------\nAC2DC power=%d[%d], temp=%d\n" RESET,
+  fprintf(f, GREEN "\n----------\nAC2DC power=%d[%d], temp=%d, leading zeroes=%d\n" RESET,
       vm.ac2dc_power,
-      AC2DC_POWER_LIMIT,
-      vm.ac2dc_temp
+      vm.max_ac2dc_power,
+      vm.ac2dc_temp,
+      vm.cur_leading_zeroes
     );
   int total_watt=0;
   fprintf(f,GREEN  "L |Vtrm/max  |vlt|Wt|"  "Am|DCt|"  "crt|Gh|Ov" ); 
   for (int i = 0; i < HAMMERS_PER_LOOP/2; i++) {
-    fprintf(f, "|ID|aTMP|Freq |T|B|Engn|Wn");
-    
+    fprintf(f, "|ID|aTMP|Freq |Th|Bt|Engn|Wn ");
   }
   for (int addr = 0; addr < HAMMERS_COUNT ; addr++) {  
     hammer_iter hi;    
@@ -252,7 +252,7 @@ void print_scaling() {
 
     total_asics++;
 
-    fprintf(f, GREEN RESET "|%2x:%s%3dc%s %s%3dhz%s(%2d/%2d)%s%x" GREEN RESET "%3d", 
+    fprintf(f, GREEN RESET "|%2x:%s%3dc%s %s%3dhz%s(%2d/%2d)%s %x" GREEN RESET "%3d", 
       hi.addr,
       (hi.a->asic_temp>=MAX_ASIC_TEMPERATURE-1)?((hi.a->asic_temp>=MAX_ASIC_TEMPERATURE)?RED:YELLOW):GREEN,((hi.a->asic_temp*6)+77),GREEN,
        ((hi.a->freq_wanted>=ASIC_FREQ_540)? (MAGENTA) : ((hi.a->freq_wanted<=ASIC_FREQ_510)?(CYAN):(YELLOW))), hi.a->freq_wanted*15+210,GREEN,
@@ -263,7 +263,7 @@ void print_scaling() {
   }
   // print last loop
   // print total hash power
-  fprintf(f, RESET "\n[H:HW:%dGh/Th:%dGh/W:%dGh,W:%d,L:%d,A:%d,ER:%d,EP:%d]\n",
+  fprintf(f, RESET "\n[H:HW:%dGh/Th:%dGh/W:%dGh,W:%d,L:%d,A:%d,ER:%d,EP:%d,MMtmp:%d]\n",
                 (total_hash_power*15)/1000,
                 theoretical_hash_power*15/1000,
                 wanted_hash_power*15/1000,
@@ -271,7 +271,8 @@ void print_scaling() {
                 total_loops,
                 total_asics,
                 (total_hash_power*15*192)/1000/total_asics,
-                (vm.ac2dc_power-70)/total_asics*192+70
+                (vm.ac2dc_power-70)/total_asics*192+70,
+                vm.mgmt_temp_max
   );
 
    fprintf(f, "Pushed %d jobs , in queue %d jobs!\n",

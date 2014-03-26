@@ -301,7 +301,7 @@ typedef struct {
   int fan_level;
   uint32_t good_loops;
 
-    
+  int mgmt_temp_max;
   int start_mine_time;
   // pll can be changed
   uint8_t engines_disabled;
@@ -346,7 +346,7 @@ typedef struct {
   int max_fan_level;
   int vtrim_start;
   int vtrim_max;
-
+  int max_ac2dc_power; 
   
   int last_second_jobs;
   int cur_leading_zeroes;
