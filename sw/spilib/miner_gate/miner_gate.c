@@ -314,6 +314,7 @@ void *connection_handler_thread(void *adptr) {
   psyslog("New adapter connected!\n");
   minergate_adapter *adapter = (minergate_adapter *)adptr;
   // DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
+  set_light(LIGHT_GREEN, LIGHT_MODE_FAST_BLINK);
 
   adapter->adapter_id = 0;
   adapters[0] = adapter;
@@ -395,7 +396,8 @@ void *connection_handler_thread(void *adptr) {
       last_time = now;
     }
   }
-  adapters[adapter->adapter_id] = NULL;
+  adapters[adapter->adapter_id] = NULL;  
+  set_light(LIGHT_GREEN, LIGHT_MODE_SLOW_BLINK);
   free_minergate_adapter(adapter);
   // Clear the real_time_queue from the old packets
   adapter = NULL;

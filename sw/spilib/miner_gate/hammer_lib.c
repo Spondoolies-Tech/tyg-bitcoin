@@ -702,7 +702,7 @@ void once_second_tasks_rt() {
   if (vm.cosecutive_jobs >= MIN_COSECUTIVE_JOBS_FOR_SCALING) {
       if ((vm.start_mine_time == 0)) {
         vm.start_mine_time = time(NULL);
-        set_light(LIGHT_GREEN, LIGHT_MODE_FAST_BLINK);
+        set_light(LIGHT_GREEN, LIGHT_MODE_ON);
         psyslog( "Restarting mining timer\n" );
       }
   }
@@ -721,7 +721,7 @@ void once_second_tasks_rt() {
 
   if (vm.cosecutive_jobs == 0) {
     vm.start_mine_time = 0;
-    set_light(LIGHT_GREEN, LIGHT_MODE_SLOW_BLINK);
+    set_light(LIGHT_GREEN, LIGHT_MODE_FAST_BLINK);
     vm.not_mining_time++;
     vm.mining_time = 0;
   } else {
@@ -1206,7 +1206,7 @@ void *i2c_state_machine_nrt(void *p) {
             dc2dc_disable_dc2dc(l, &err); 
           }
           //set_light(LIGHT_YELLOW, LIGHT_MODE_OFF);
-          set_light(LIGHT_GREEN, LIGHT_MODE_SLOW_BLINK);
+          set_light(LIGHT_GREEN, LIGHT_MODE_FAST_BLINK);
           set_fan_level(100);
           usleep(1000*1000*60);
           exit(0);
