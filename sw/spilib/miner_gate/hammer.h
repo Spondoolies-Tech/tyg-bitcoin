@@ -210,6 +210,7 @@ typedef sha2_small_common_ctx_t sha256_ctx_t;
 #define WORK_STATE_FREE 0
 #define WORK_STATE_HAS_JOB 1
 
+
 typedef struct {
   uint8_t work_state; //
   uint8_t work_id_in_hw;
@@ -218,14 +219,15 @@ typedef struct {
   uint32_t work_id_in_sw;
 
   uint32_t difficulty;
-  uint32_t timestamp;
+  uint32_t timestamp; // BIG ENDIAN !!
   uint32_t mrkle_root;
   uint32_t midstate[8];
   uint32_t winner_nonce; // 0 means no nonce. This means we loose 0.00000000001%
                          // results. Fuck it.
   // uint32_t work_state;
   // uint32_t nonce;
-  // uint8_t won;
+  uint8_t ntime_max;
+  uint8_t ntime_offset;
 } RT_JOB;
 
 #define WAIT_BETWEEN_FREQ_CHANGE 30 // seconds

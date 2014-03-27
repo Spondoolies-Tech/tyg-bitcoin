@@ -74,15 +74,17 @@ RT_JOB *add_to_sw_rt_queue(const RT_JOB *work) {
 }
 
 int one_done_sw_rt_queue(RT_JOB *work) {
-  if (rt_queue_size) {
-    *work = rt_queue[rt_queue_hw_done];
-    //passert(rt_queue[rt_queue_hw_done].work_state == WORK_STATE_HAS_JOB);
-    rt_queue[rt_queue_hw_done].work_state = WORK_STATE_FREE;
-    rt_queue_hw_done = (rt_queue_hw_done + 1) % 0x100;
-    rt_queue_size--;
-    //passert((rt_queue_sw_write - rt_queue_hw_done) % 0x100 <= MAX_PACKETS_IN_RT_QUEUE);
-    //passert(rt_queue_size <= MAX_PACKETS_IN_RT_QUEUE);
-    return 1;
-  }
+    if (rt_queue_size) {
+      *work = rt_queue[rt_queue_hw_done];
+      //passert(rt_queue[rt_queue_hw_done].work_state == WORK_STATE_HAS_JOB);
+      rt_queue[rt_queue_hw_done].work_state = WORK_STATE_FREE;
+      rt_queue_hw_done = (rt_queue_hw_done + 1) % 0x100;
+      rt_queue_size--;
+      //passert((rt_queue_sw_write - rt_queue_hw_done) % 0x100 <= MAX_PACKETS_IN_RT_QUEUE);
+      //passert(rt_queue_size <= MAX_PACKETS_IN_RT_QUEUE);
+      return 1;
+    }
+
+  
   return 0;
 }
