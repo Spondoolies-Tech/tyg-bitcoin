@@ -233,6 +233,12 @@ cryptodev()
 	cp -a ${CUR_DIR}/../add-ons/S80cryptodev etc/init.d
 }
 
+wifi()
+{
+	# Supported wireless NICs require firmware.
+	cp -a ${CUR_DIR}/../add-ons/firmware/* lib/firmware
+}
+
 main()
 {
 	set -e
@@ -255,6 +261,7 @@ main()
 	#ntp
 	rrd
 	cryptodev
+	wifi
 }
 
 main $@
