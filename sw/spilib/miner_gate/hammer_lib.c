@@ -461,6 +461,9 @@ int get_print_win(int winner_device) {
 
   if (work_in_hw->work_state == WORK_STATE_HAS_JOB) {
     work_in_hw->winner_nonce = winner_nonce;
+    if (work_in_hw->ntime_offset) {
+      work_in_hw->timestamp = ntohl(ntohl(work_in_hw->timestamp) - work_in_hw->ntime_offset);  
+    }
     vm.concecutive_bad_wins = 0;
     return next_win_reg;
   } else {
@@ -1043,6 +1046,13 @@ void push_job_to_hw_rt() {
       write_reg_broadcast(ADDR_WIN_LEADING_0, vm.cur_leading_zeroes);
     }
     //flush_spi_write();
+#if 0
+    if (work.ntime_max > work.ntime_offset) {
+      work.ntime_offset++;
+      work.timestamp = ntohl(ntohl(work.timestamp) + work.ntime_offset);  
+      //work.timestamp += work.ntime_offset;
+    }
+#endif     
     actual_work = add_to_sw_rt_queue(&work);
     // write_reg_device(0, ADDR_CURRENT_NONCE_START, rand() + rand()<<16);
     // write_reg_device(0, ADDR_CURRENT_NONCE_START + 1, rand() + rand()<<16);

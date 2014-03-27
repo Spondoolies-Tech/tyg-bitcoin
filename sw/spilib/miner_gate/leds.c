@@ -56,10 +56,8 @@ void set_light_on_off(int light_id, int on) {
   }
 
   if (on) {
-    printf("TURN 1\n");
 	  fprintf(f, "1");
   } else {
-    printf("TURN 0\n");
     fprintf(f, "0");
   }
   *ls = on;
