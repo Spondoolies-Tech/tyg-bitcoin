@@ -56,10 +56,8 @@ void set_light_on_off(int light_id, int on) {
   }
 
   if (on) {
-    printf("TURN 1\n");
 	  fprintf(f, "1");
   } else {
-    printf("TURN 0\n");
     fprintf(f, "0");
   }
   *ls = on;
@@ -107,13 +105,15 @@ void set_light(int light_id, LIGHT_MODE m) {
     lm = &lm_green;
     ls = &green_on;
   }
-  *lm = m;
-
  
-  if (m == LIGHT_MODE_ON) {
-	  set_light_on_off(light_id, true);
-  } else if (m == LIGHT_MODE_OFF) {
-    set_light_on_off(light_id, false); 
+
+  if (*lm != m) {
+    *lm = m;
+    if (m == LIGHT_MODE_ON) {
+  	  set_light_on_off(light_id, true);
+    } else if (m == LIGHT_MODE_OFF) {
+      set_light_on_off(light_id, false); 
+    }
   }
 }
 

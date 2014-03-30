@@ -53,6 +53,8 @@
 #include "real_time_queue.h"
 #include <signal.h>
 #include "leds.h"
+#include <sys/types.h>
+#include <dirent.h>
 
 
 using namespace std;
@@ -220,6 +222,8 @@ void push_work_rsp(RT_JOB *work) {
   r.mrkle_root = work->mrkle_root;
   r.winner_nonce = work->winner_nonce;
   r.work_id_in_sw = work->work_id_in_sw;
+  r.ntime_offset = work->ntime_offset;
+  //printf("ntime offset set to %d (%x)\n",r.ntime_offset, work->timestamp);
   r.res = 0;
   adapter->work_minergate_rsp.push(r);
   //passert(adapter->work_minergate_rsp.size() <= MINERGATE_TOTAL_QUEUE * 2);
@@ -244,6 +248,9 @@ int pull_work_req_adapter(RT_JOB *w, minergate_adapter *adapter) {
     w->work_id_in_sw = r.work_id_in_sw;
     w->work_state = 0;
     w->leading_zeroes = r.leading_zeroes;
+    w->ntime_max = r.ntime_limit;
+    w->ntime_offset = 0;
+    //printf("Roll limit:%d\n",r.ntime_limit);
     return 1;
   }
   return 0;
@@ -259,7 +266,7 @@ int pull_work_req(RT_JOB *w) {
   // go over adapters...
   // TODO
   pthread_mutex_lock(&network_hw_mutex);
- int ret = false;
+  int ret = false;
   minergate_adapter *adapter = adapters[0];
   if (adapter) {
       ret =pull_work_req_adapter(w, adapter);
@@ -284,6 +291,7 @@ void push_work_req(minergate_do_job_req *req, minergate_adapter *adapter) {
     minergate_do_job_rsp rsp;
     rsp.mrkle_root = req->mrkle_root;
     rsp.winner_nonce = 0;
+    rsp.ntime_offset = 0;
     rsp.work_id_in_sw = req->work_id_in_sw;
     rsp.res = 1;
     // printf("returning %d %d\n",req->work_id_in_sw,rsp.work_id_in_sw);
@@ -314,6 +322,7 @@ void *connection_handler_thread(void *adptr) {
   psyslog("New adapter connected!\n");
   minergate_adapter *adapter = (minergate_adapter *)adptr;
   // DBG(DBG_NET,"connection_fd = %d\n", adapter->connection_fd);
+  set_light(LIGHT_GREEN, LIGHT_MODE_FAST_BLINK);
 
   adapter->adapter_id = 0;
   adapters[0] = adapter;
@@ -395,7 +404,8 @@ void *connection_handler_thread(void *adptr) {
       last_time = now;
     }
   }
-  adapters[adapter->adapter_id] = NULL;
+  adapters[adapter->adapter_id] = NULL;  
+  set_light(LIGHT_GREEN, LIGHT_MODE_SLOW_BLINK);
   free_minergate_adapter(adapter);
   // Clear the real_time_queue from the old packets
   adapter = NULL;
@@ -491,6 +501,50 @@ void reset_squid() {
 
 
 
+pid_t proc_find(const char* name) 
+{
+    DIR* dir;
+    struct dirent* ent;
+    char buf[512];
+
+    long  pid;
+    char pname[100] = {0,};
+    char state;
+    FILE *fp=NULL; 
+
+    if (!(dir = opendir("/proc"))) {
+        perror("can't open /proc");
+        return -1;
+    }
+
+    while((ent = readdir(dir)) != NULL) {
+        long lpid = atol(ent->d_name);
+        if(lpid < 0)
+            continue;
+        snprintf(buf, sizeof(buf), "/proc/%ld/stat", lpid);
+        fp = fopen(buf, "r");
+
+        if (fp) {
+            if ( (fscanf(fp, "%ld (%[^)]) %c", &pid, pname, &state)) != 3 ){
+                printf("fscanf failed \n");
+                fclose(fp);
+                closedir(dir);
+                return -1; 
+            }
+            if (!strcmp(pname, name)) {
+                fclose(fp);
+                closedir(dir);
+                return (pid_t)lpid;
+            }
+            fclose(fp);
+        }
+    }
+
+
+closedir(dir);
+return -1;
+}
+
 
 
 
@@ -499,6 +553,15 @@ int main(int argc, char *argv[]) {
   int testreset_mode = 0;
   int init_mode = 0;
   int s;
+
+
+   if (proc_find("miner_gate_arm") == -1) {
+       printf("miner_gate_arm is already running\n");
+       exit(0);
+   }
+
+
+
   srand (time(NULL));
   enable_reg_debug = 0;
   setlogmask(LOG_UPTO(LOG_INFO));

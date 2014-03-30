@@ -35,6 +35,9 @@ do_upgrade()
 {
 	# Boot partition already mounted. Go there.
 	cd /mnt/${MEDIA}-boot
+	
+	mv -f u-boot.img u-boot.old ||
+		{ echo 'Cannot move u-boot.img to u-boot.old'; exit 220; }
 
 	mv -f uImage uImage.old ||
 		{ echo 'Cannot move uImage to uImage.old'; exit 220; }
@@ -42,16 +45,26 @@ do_upgrade()
 	mv -f spondoolies.dtb spondoolies.dtb.old ||
 		{ echo 'Cannot move spondoolies.dtb to spondoolies.dtb.old';	\
 			mv uImage.old uImage; exit 221; }
+	
+	mv -f ${curdir}/u-boot.img u-boot.img ||
+		{ echo 'Cannot copy new u-boot.img, revert to the old version';	\
+			mv uImage.old uImage;					\
+			mv u-boot.old u-boot.img;				\
+			mv spondoolies.dtb.old spondoolies.dtb;			\
+			exit 222; }
+
 
 	mv -f ${curdir}/uImage uImage ||
 		{ echo 'Cannot copy new uImage, revert to the old version';	\
 			mv uImage.old uImage;					\
+			mv u-boot.old u-boot.img;				\
 			mv spondoolies.dtb.old spondoolies.dtb;			\
 			exit 222; }
 
 	mv -f ${curdir}/spondoolies.dtb spondoolies.dtb ||
 		{ echo 'Cannot copy new DTB, revert to the old version';	\
 			mv uImage.old uImage;					\
+			mv u-boot.old u-boot.img;				\
 			mv spondoolies.dtb.old spondoolies.dtb;			\
 			exit 223; }
 
