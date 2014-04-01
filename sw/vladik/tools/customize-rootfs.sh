@@ -70,7 +70,10 @@ copy_all_spond_files() {
 	
 	cp ${CUR_DIR}/../../../../minepeon/http/* var/www -r
 
-	#cp ${CUR_DIR}/../add-ons/S99startup etc/init.d
+	cp ${CUR_DIR}/../add-ons/S99startup etc/init.d
+	cp ${CUR_DIR}/../add-ons/S01logging etc/init.d
+	cp ${CUR_DIR}/../add-ons/S18logging_nvm etc/init.d
+
 	cp ${CUR_DIR}/../add-ons/S90spondoolies etc/init.d
 	cp ${CUR_DIR}/../add-ons/S87squid etc/init.d	
 	cp ${CUR_DIR}/../add-ons/S42checkip etc/init.d/S42checkip

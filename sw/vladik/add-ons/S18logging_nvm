@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Start logging
+#
+
+case "$1" in
+  start)
+	// Stop old deamon
+	start-stop-daemon -K -q -p /var/run/syslogd.pid
+
+	if [ ! -d "/mnt/mmc-config/log" ]; then
+		mkdir /mnt/mmc-config/log
+	fi
+	echo -n "Starting logging: "
+	start-stop-daemon -S -q -p /var/run/syslogd.pid --exec /sbin/syslogd -- -m 0 -O /mnt/mmc-config/log/messages -b 99 -s 500
+	echo "OK"
+	;;
+  stop)
+	echo -n "Stopping logging: "
+	start-stop-daemon -K -q -p /var/run/syslogd.pid
+	echo "OK"
+	;;
+  restart|reload)
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

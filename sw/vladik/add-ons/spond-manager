@@ -7,20 +7,41 @@
 MINERGATE_CMD="nohup chrt -f 90 /usr/local/bin/miner_gate_arm > /dev/null 2>&1"
 CGMINER_CMD="nohup /usr/local/bin/cgminer --config /etc/cgminer.conf"
 WATCHDOG_FILE="/var/run/dont_reboot"
-
+NVM_LOG="/mnt/mmc-config/log/mining-watchdog-reboot.log"
+SYSLOG_FILE="/mnt/mmc-config/log/messages"
+MAX_NVM_LOG_SIZE=5000
 export PATH=$PATH:/usr/local/bin:/bin
 
 
 reboot_miner_safe() {
+	NVM_LOG_SIZE=$(du -a "$NVM_LOG" | cut -f 1)
+	if [ $NVM_LOG_SIZE -ge $MAX_NVM_LOG_SIZE ]; then
+		echo "removing huge log file"
+		rm $NVM_LOG
+	fi
+
 	echo "Not mining, reboot!"
+	echo "-----------------------" >> $NVM_LOG
+	echo -e "Not mining, reboot!" >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	echo `date` >> $NVM_LOG
+	dmesg >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	ps >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	cat /proc/meminfo >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	cat /var/log/asics >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
 	pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
 	pid3=`cat /var/run/miner_gate_arm.pid`
 	kill $pid3
 	sleep 1
 	kill $pid3
+	sync
 	sleep 5
+	sync
         reboot
-
 }
 
 
