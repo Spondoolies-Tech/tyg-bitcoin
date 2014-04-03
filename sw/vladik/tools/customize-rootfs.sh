@@ -240,6 +240,10 @@ wifi()
 {
 	# Supported wireless NICs require firmware.
 	cp -a ${CUR_DIR}/../add-ons/firmware/* lib/firmware
+	cp -a ${CUR_DIR}/../add-ons/iwlist-scan-parse.awk usr/local/bin
+	cp -a ${CUR_DIR}/../add-ons/wifi-conf-create.sh usr/local/bin
+	cp -a ${CUR_DIR}/../add-ons/hotplug.sh usr/local/bin
+	cp -a ${CUR_DIR}/../add-ons/S20hotplug etc/init.d
 }
 
 main()

@@ -1,4 +1,13 @@
 # Configure Loopback
-auto lo eth0
+auto lo
 iface lo inet loopback
+
+# Ethernet
+auto eth0
 iface eth0 inet dhcp
+
+# WiFi
+#auto wlan0
+iface wlan0 inet dhcp
+pre-up wpa_supplicant -B -D wext -i wlan0 -c /etc/wifi.conf;sleep 3
+post-down pkill wpa_supplicant;pkill udhcpc

@@ -13,6 +13,9 @@ NTP_SERVER=pool.ntp.org
 # Spondoolies public key.
 SPON_PUBLIC_KEY=/etc/spondoolies-pub.pem
 
+# Hotplug script
+HOTPLUG=/usr/local/bin/hotplug.sh
+
 ###
 ### Mount points
 ###
