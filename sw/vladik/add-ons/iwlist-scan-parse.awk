@@ -1,6 +1,6 @@
 #!/usr/bin/awk -f
 
-# Parse iwlist <iface> scan results
+# Parse iwlist <iface> scan results and outputs it in JSON format.
 # Written by Vladik Goytin
 
 
@@ -39,7 +39,10 @@ BEGIN	{
 
 /Encryption/		{
 				gsub(/.*Encryption key:/,"")
-				encryption[cell] = $0
+				if ($0 == "on")
+					encryption[cell] = "true"
+				else
+					encryption[cell] = "false"
 			}		
 
 /WPA Version 1/		{
@@ -65,23 +68,38 @@ BEGIN	{
 /Authentication Suites/	{
 				gsub(/.*Authentication Suites.*: /,"")
 				key_mgmt[cell] = $0
+				if (key_mgmt[cell] == "PSK" || key_mgmt[cell] == "EAP")
+					key_mgmt[cell] = "WPA-" key_mgmt[cell]
 			}
 
 
 END	{
 		max_cells = cell
+		printf "{\n\"WiFi\": [\n"
+		delimiter = ","
+
 		for(cell = 1; cell <= max_cells; cell++)
+		{
+			# JSON dislikes the trailing "," so remove it for the last item.
+			if (cell == max_cells)
+				delimiter = ""
+
 			if (mode[cell] == "Master")
 			{
-				printf "ESSID=%s MAC=%s Chan=%s Quality=%s Enc=%s ",
-					essid[cell], mac[cell], channel[cell],
+				printf "{ \"ESSID\": %s, \"MAC\": \"%s\", \"Chan\": %s, ",
+					essid[cell], mac[cell], channel[cell]
+				printf "\"Quality\": \"%s\", \"Enc\": %s ",
 					quality[cell], encryption[cell]
-				if (encryption[cell] == "on")
+				if (encryption[cell] == "true")
 				{
-					printf "Proto=%s Group=<%s> Pairwise=\"%s\" KeyMgmt=%s\n",
-					proto[cell], group[cell], pairwise[cell], key_mgmt[cell]
+					printf ", \"Proto\": \"%s\", \"Group\": \"%s\",	",
+						proto[cell], group[cell]
+					printf "\"Pairwise\": \"%s\", \"KeyMgmt\" :\"%s\" }%s\n",
+						pairwise[cell], key_mgmt[cell], delimiter
 				}
 				else
-					printf "\n"
+					printf "}%s\n", delimiter
 			}
+		}
+		printf "]}\n"
 	}

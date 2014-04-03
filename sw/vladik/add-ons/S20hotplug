@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Hotplug
+#
+
+. /etc/common-defs
+
+start_hotplug()
+{
+	echo "${HOTPLUG}" > /proc/sys/kernel/hotplug
+}
+
+
+case "$1" in
+start)
+	start_hotplug
+	;;
+stop)
+	;;
+restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+

@@ -47,7 +47,7 @@ main()
 {
 	test_environment || { usage; exit 1; }
 
-	create_wifi_conf #> /etc/wifi.conf
+	create_wifi_conf > /etc/wifi.conf
 }
 
 main $@
