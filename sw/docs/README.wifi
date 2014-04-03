@@ -1,0 +1,43 @@
+					WiFi management
+					===============
+
+Available wireless networks
+---------------------------
+The list of available wireless networks is available upon calling
+
+	iwlist wlan0 scan | iwlist-scan-parse.awk
+
+The data is output in JSON format.
+Sample output:
+
+{
+"WiFi": [
+  { "ESSID": "spontech", "MAC": "D8:FE:E3:03:EA:41", "Chan": 6, "Quality": "66/70", "Enc": true , "Proto": "WPA2", "Group": "CCMP", "Pairwise": "CCMP", "KeyMgmt" :"WPA-PSK" },
+  { "ESSID": "TELGUEST", "MAC": "04:DA:D2:74:D6:82", "Chan": 1, "Quality": "43/70", "Enc": false }
+]}
+
+
+WPA Supplicant configuration file creation
+------------------------------------------
+In order to create WPA Supplicant configuration file run script wifi-conf-create.sh
+with parameters:
+
+	ESSID="<essid>" KEY_MGMT=<key mgmt> PROTO=<proto>\
+		PAIRWISE_CIPHERS="<pairwise ciphers>" GROUP_CIPHERS="<group ciphers>"	\
+			wifi-conf-create.sh
+
+Note, that certain parameters are enclosed into brackets and certain - not.
+For example:
+
+	ESSID="My Network" KEY_MGMT=WPA-PSK PROTO=WPA2	\
+		PAIRWISE_CIPHERS="TKIP CCMP" GROUP_CIPHERS="TKIP CCMP"	\
+			wifi-conf-create.sh
+
+
+The passphrase is read from stdin.
+
+
+Hotplug
+-------
+USB NICs plugging / unplugging detected and handled.
+
