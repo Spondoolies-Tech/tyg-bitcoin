@@ -8,7 +8,7 @@ MAKESELF_FLAGS			:= --nocomp
 
 ifeq ($(PRIVATE_KEY),)
 $(warning Set PRIVATE_KEY: make PRIVATE_KEY=<priv key file>)
-$(warning Example: make PRIVATE_KEY=/mnt/flash/spondoolies.pem)
+$(warning Example: make PRIVATE_KEY=spondoolies.pem)
 $(error )
 endif
 
@@ -16,7 +16,6 @@ all:				shar
 
 
 shar:				data/uImage data/spondoolies.dtb ../add-ons/fw_ver ../../../../u-boot/u-boot.img
-	vi ../add-ons/fw_ver
 	cd ../ ; ./make_image
 	cp ../image/uImage data/
 	cp ../add-ons/fw_ver data/

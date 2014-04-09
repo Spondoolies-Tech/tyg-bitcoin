@@ -1,0 +1,23 @@
+
+https://console.developers.google.com/project/apps~spond-cloud-01/storage/spond_firmware/
+Upload image
+Make publicly availible
+
+
+
+
+ssh -i fw_upload_key debian@firmware.spondoolies-tech.com
+
+mysql -pDevNow1 -uroot
+use spond;
+REPLACE INTO `firmware` (`modelVersion`, `firmwareVersion`, `fileName`, `id`, `createdAt`, `updatedAt`) VALUES ('SP10', '1.2.10', 'spon_1_2_10.tar', 1, NULL, NULL);
+
+select * from firmware;
+
+
+
+
+DEBUG:
+sudo su -
+cd spondcloud/
+tail -f application.log

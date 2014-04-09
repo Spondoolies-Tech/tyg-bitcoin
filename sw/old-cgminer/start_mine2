@@ -1,3 +1,0 @@
-./cgminer -o http://api.bitcoin.cz:8332 -u zvisha.1 -p aRNBW3vS -D
-
-#--syslog
