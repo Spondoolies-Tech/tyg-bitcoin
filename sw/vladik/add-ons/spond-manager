@@ -151,7 +151,7 @@ stop)
 	;;
 restart|reload)
 	"$0" stop
-	sleep 1
+	sleep 3
 	"$0" start
 	;;
 *)
