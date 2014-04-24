@@ -14,6 +14,14 @@ MBR_SIZE=512
 tmpfile=`mktemp`
 
 
+# Certain services prevent unmounting: stop them.
+stop_services()
+{
+	/etc/init.d/S47cron stop
+	pkill klogd
+	pkill syslogd
+}
+
 unmount_unionfs()
 {
 	mount | grep 'unionfs' |
@@ -96,8 +104,10 @@ copy_files()
 {
 	mount ${SDCARD_DEVICE}p1 ${MP_SD_BOOT}
 	mount ${EMMC_DEVICE}p1 ${MP_MMC_BOOT}
-	cp ${MP_SD_BOOT}/MLO ${MP_MMC_BOOT}
-	cp ${MP_SD_BOOT}/u-boot.img ${MP_MMC_BOOT}
+	cp ${MP_SD_BOOT}/upgrade/MLO					\
+		${MP_SD_BOOT}/upgrade/u-boot.img			\
+		${MP_SD_BOOT}/upgrade/uImage				\
+		${MP_SD_BOOT}/upgrade/spondoolies.dtb ${MP_MMC_BOOT}
 	umount ${MP_MMC_BOOT}
 	umount ${MP_SD_BOOT}
 }
@@ -130,6 +140,7 @@ main()
 {
 	check_for_sdcard
 	start_counting &
+	stop_services
 	unmount_unionfs
 	unmount_emmc
 	place_mbr
