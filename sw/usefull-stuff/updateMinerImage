@@ -42,11 +42,16 @@ if [ "$CHECK" == "-check" ] ; then
 	fi
 fi
 
+echo sshpass -e ssh root@$MINER mount /mnt/mmc-boot
 sshpass -e ssh root@$MINER mount /mnt/mmc-boot
+echo sshpass -e scp $IMAGE root@$MINER:/mnt/mmc-boot/
 sshpass -e scp $IMAGE root@$MINER:/mnt/mmc-boot/
+echo sshpass -e ssh root@$MINER sync
 sshpass -e ssh root@$MINER sync
+echo sshpass -e ssh root@$MINER umount /mnt/mmc-boot
 sshpass -e ssh root@$MINER umount /mnt/mmc-boot
 sleep 3
+echo sshpass -e ssh root@$MINER /sbin/reboot
 sshpass -e ssh root@$MINER /sbin/reboot
 
 

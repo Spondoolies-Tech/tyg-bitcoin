@@ -9,7 +9,7 @@ cd ${CURDIR}/../spilib/
 ./make_me
 
 cd ${CURDIR}/../../../cg-miner-git/cgminer
-./make_me
+make
 
 
 #make buildroot
