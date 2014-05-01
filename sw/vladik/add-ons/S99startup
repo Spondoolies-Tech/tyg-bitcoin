@@ -16,9 +16,7 @@ ssl_cert()
 
 case "$1" in
 start|"")
-
-	ntpd -qn -p pool.ntp.org # set system time, no daemon
-
+	#ntpd -qn -p pool.ntp.org # set system time, no daemon
 	ssl_cert 
 	/etc/cron.d/pandp_register.sh &
 	/etc/cron.d/RECORDHashrate    &

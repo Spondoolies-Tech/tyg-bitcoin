@@ -28,6 +28,7 @@ start)
 
 	echo "NORMALBOOT=${NORMALBOOT}"
 	if [ ${NORMALBOOT} -eq 1 ]; then 
+		/usr/local/bin/spond-manager stop
 		/usr/local/bin/spond-manager start
 	fi
 	;;
@@ -35,11 +36,11 @@ stop)
 	/usr/local/bin/spond-manager stop
 	;;
 restart|reload)
-	/usr/local/bin/spond-manager start
 	/usr/local/bin/spond-manager stop
+	/usr/local/bin/spond-manager start
 	;;
 *)
-	echo "Usage: $0 {start|stop|restart}"
+	echo "Usage: $0 {start|stop|restart} does nothing"
 	exit 1
 esac
 

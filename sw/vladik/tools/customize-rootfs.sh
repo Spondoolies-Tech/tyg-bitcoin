@@ -248,7 +248,7 @@ wifi()
 
 netplug()
 {
-	cp -a ${CUR_DIR}/../add-ons/S41netplug etc/init.d
+	cp -a ${CUR_DIR}/../add-ons/S95netplug etc/init.d
 	cp -a ${CUR_DIR}/../add-ons/netplug etc/netplug.d
 	cp -a ${CUR_DIR}/../add-ons/netplugd.conf etc/netplug
 }

@@ -6,6 +6,7 @@
 
 cron_start()
 {
+	ntpd -qdn -p pool.ntp.org
 	/usr/sbin/crond
 }
 

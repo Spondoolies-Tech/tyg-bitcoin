@@ -4,6 +4,7 @@
 # Written by Vladik Goytin
 
 set -e
+set -x
 
 . /etc/common-defs
 
@@ -17,9 +18,22 @@ tmpfile=`mktemp`
 # Certain services prevent unmounting: stop them.
 stop_services()
 {
-	/etc/init.d/S47cron stop
-	pkill klogd
-	pkill syslogd
+	spond-manager stop
+	sleep 1
+	/etc/init.d/S47cron stop & 
+	sleep 1
+	pkill klogd &
+	sleep 1
+	pkill lighttpd &
+	sleep 1
+	pkill netplugd &
+	sleep 1
+	pkill syslogd &
+	sleep 1
+	pkill udhcpc &
+	sleep 1
+	pkill crond &
+	sleep 1
 }
 
 unmount_unionfs()
@@ -139,7 +153,7 @@ check_for_sdcard()
 main()
 {
 	check_for_sdcard
-	start_counting &
+	#start_counting &
 	stop_services
 	unmount_unionfs
 	unmount_emmc
@@ -148,7 +162,7 @@ main()
 	format_partitions
 	create_dirs
 	copy_files
-	stop_counting
+	#stop_counting
 }
 
 main $@
