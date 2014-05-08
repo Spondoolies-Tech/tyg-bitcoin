@@ -39,8 +39,8 @@ stop)
 	/usr/local/bin/spond-manager stop
 	;;
 restart|reload)
-	/usr/local/bin/spond-manager start
 	/usr/local/bin/spond-manager stop
+	/usr/local/bin/spond-manager start
 	;;
 *)
 	echo "Usage: $0 {start|stop|restart}"
