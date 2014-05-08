@@ -14,7 +14,8 @@ usage()
 	EOF
 }
 
-create_wifi_conf()
+
+wifi_conf_header()
 {
 	cat<<-EOF
 	# WPA Supplicant configuration file
@@ -26,6 +27,13 @@ create_wifi_conf()
 
 	network={
 	 	ssid="${ESSID}"
+	EOF
+
+}
+
+secured_wifi_conf()
+{
+	cat<<-EOF
 	 	key_mgmt=${KEY_MGMT}
 	 	proto=${PROTO}
 	 	pairwise=${PAIRWISE_CIPHERS}
@@ -36,10 +44,21 @@ create_wifi_conf()
 }
 
 
+unsecured_wifi_conf()
+{
+	cat<<-EOF
+	 	key_mgmt=NONE
+	}
+	EOF
+}
+
 test_environment()
 {
-	[ x"${ESSID}" != x ] && [ x"${KEY_MGMT}" != x ] && [ x"${PROTO}" != x ] &&
-		[ x"${PAIRWISE_CIPHERS}" != x ] && [ x"${GROUP_CIPHERS}" != x ]
+	[ x"${ESSID}" != x ] && [ x"${KEY_MGMT}" != x ] &&
+		( [ "${KEY_MGMT}" = 'NONE' ] ||
+		  ( [ x"${PROTO}" != x ] && [ x"${PAIRWISE_CIPHERS}" != x ] &&
+		    [ x"${GROUP_CIPHERS}" != x ] )
+		)
 }
 
 
@@ -47,7 +66,10 @@ main()
 {
 	test_environment || { usage; exit 1; }
 
-	create_wifi_conf > /etc/wifi.conf
+	{
+		wifi_conf_header
+		[ "${KEY_MGMT}" = 'NONE' ] && unsecured_wifi_conf || secured_wifi_conf
+	} > /etc/wifi.conf
 }
 
 main $@

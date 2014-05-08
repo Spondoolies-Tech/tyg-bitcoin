@@ -4,6 +4,7 @@
 # Written by Vladik Goytin
 
 set -e
+set -x
 
 . /etc/common-defs
 
@@ -13,6 +14,27 @@ MBR=/usr/local/lib/emmc-mbr
 MBR_SIZE=512
 tmpfile=`mktemp`
 
+
+# Certain services prevent unmounting: stop them.
+stop_services()
+{
+	spond-manager stop
+	sleep 1
+	/etc/init.d/S47cron stop & 
+	sleep 1
+	pkill klogd &
+	sleep 1
+	pkill lighttpd &
+	sleep 1
+	pkill netplugd &
+	sleep 1
+	pkill syslogd &
+	sleep 1
+	pkill udhcpc &
+	sleep 1
+	pkill crond &
+	sleep 1
+}
 
 unmount_unionfs()
 {
@@ -96,8 +118,10 @@ copy_files()
 {
 	mount ${SDCARD_DEVICE}p1 ${MP_SD_BOOT}
 	mount ${EMMC_DEVICE}p1 ${MP_MMC_BOOT}
-	cp ${MP_SD_BOOT}/MLO ${MP_MMC_BOOT}
-	cp ${MP_SD_BOOT}/u-boot.img ${MP_MMC_BOOT}
+	cp ${MP_SD_BOOT}/upgrade/MLO					\
+		${MP_SD_BOOT}/upgrade/u-boot.img			\
+		${MP_SD_BOOT}/upgrade/uImage				\
+		${MP_SD_BOOT}/upgrade/spondoolies.dtb ${MP_MMC_BOOT}
 	umount ${MP_MMC_BOOT}
 	umount ${MP_SD_BOOT}
 }
@@ -129,7 +153,8 @@ check_for_sdcard()
 main()
 {
 	check_for_sdcard
-	start_counting &
+	#start_counting &
+	stop_services
 	unmount_unionfs
 	unmount_emmc
 	place_mbr
@@ -137,7 +162,7 @@ main()
 	format_partitions
 	create_dirs
 	copy_files
-	stop_counting
+	#stop_counting
 }
 
 main $@

@@ -246,6 +246,13 @@ wifi()
 	cp -a ${CUR_DIR}/../add-ons/S20hotplug etc/init.d
 }
 
+netplug()
+{
+	cp -a ${CUR_DIR}/../add-ons/S95netplug etc/init.d
+	cp -a ${CUR_DIR}/../add-ons/netplug etc/netplug.d
+	cp -a ${CUR_DIR}/../add-ons/netplugd.conf etc/netplug
+}
+
 main()
 {
 	set -e
@@ -269,6 +276,7 @@ main()
 	rrd
 	cryptodev
 	wifi
+	netplug
 }
 
 main $@

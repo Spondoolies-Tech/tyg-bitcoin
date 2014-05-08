@@ -1,27 +1,26 @@
 #!/bin/sh
 #
-# Cron services.
+# netplug
 #
 # Written by Vladik Goytin.
 
-cron_start()
+netplug_start()
 {
-	ntpd -qdn -p pool.ntp.org
-	/usr/sbin/crond
+	/sbin/netplugd -c /etc/netplug/netplugd.conf
 }
 
 
-cron_stop()
+netplug_stop()
 {
-	pkill crond
+	pkill netplugd
 }
 
 case "$1" in
 start)
-	cron_start
+	netplug_start
 	;;
 stop)
-	cron_stop
+	netplug_stop
 	;;
 restart|reload)
 	"$0" stop

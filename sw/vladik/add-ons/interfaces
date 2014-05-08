@@ -6,6 +6,10 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
 
+# This is a workaround for slow link detection. Allows to avoid race
+# between link detection and DHCP client start by "ifup".
+pre-up ifconfig eth0;sleep 3
+
 # WiFi
 auto wlan0
 iface wlan0 inet dhcp
