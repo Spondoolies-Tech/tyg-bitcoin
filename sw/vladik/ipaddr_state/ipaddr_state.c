@@ -60,9 +60,12 @@ static void parse_nl_message(struct nlmsghdr *nlh)
 				if_indextoname(ifa->ifa_index, name);
 
 				if (strcmp(name, AVOIDED_IFACE))
+				{
 					printf("%s-%s\n", name,
 						(nlh->nlmsg_type == RTM_NEWADDR) ?
 							"add" : "remove");
+					fflush(stdout);
+				}
 			}
 			rth = RTA_NEXT(rth, rtl);
 		}
