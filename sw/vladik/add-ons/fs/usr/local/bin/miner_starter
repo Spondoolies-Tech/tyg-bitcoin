@@ -68,8 +68,6 @@ watch_ip_addr()
 
 init()
 {
-	[ ${state} = 'stop' ] && pkill `basename ${IP_WATCHER}` && exit 0
-
 	[ -f ${COUNT_FILE} ] && read active_ifaces < ${COUNT_FILE} ||
 				echo 0 > ${COUNT_FILE}
 
@@ -85,6 +83,11 @@ init()
 
 main()
 {
+	if [ ${state} = 'stop' ]; then 
+		pkill `basename ${IP_WATCHER}` 
+		exit 0
+	fi
+
 	trap bye EXIT
 	init
 	watch_ip_addr
