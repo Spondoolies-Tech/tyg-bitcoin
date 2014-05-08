@@ -16,7 +16,7 @@ fi
 
 MGATE_CMD="miner_gate_arm"
 
-MGATE_TEST_CMD="miner_gate_test_arm 35 100 100" 
+MGATE_TEST_CMD="miner_gate_test_arm 39 100 100" 
 
 MG_MOD=/etc/mg_work_mode
 
