@@ -1,6 +1,6 @@
 #!/bin/sh
 CURDIR=${PWD}
-vi add-ons/fw_ver
+vi add-ons/fs/fw_ver
 cd ${CURDIR}/memtester-4.3.0/
 make
 
