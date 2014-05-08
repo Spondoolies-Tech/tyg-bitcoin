@@ -167,6 +167,11 @@ cryptodev()
 	cp -a ${CUR_DIR}/../cryptodev-linux-1.6/cryptodev.ko lib/modules
 }
 
+ipstate()
+{
+	cp -a ${CUR_DIR}/../ipaddr_state/ipaddr_state usr/local/bin
+}
+
 main()
 {
 	set -e
@@ -185,6 +190,7 @@ main()
 	cron
 	rrd
 	cryptodev
+	ipstate
 }
 
 main $@

@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Miner starter
+#
+
+. /etc/common-defs
+
+export PATH=$PATH:/usr/local/bin:
+
+DAEMON=miner_starter
+
+case "$1" in
+start)
+	${DAEMON} passive
+	;;
+stop)
+	pkill ${DAEMON}
+	;;
+restart|reload)
+	echo "Restarting ${DAEMON}, please wait ...'
+	"$0" stop
+	sleep 5
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+

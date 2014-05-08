@@ -1,0 +1,85 @@
+#!/bin/sh
+
+# Control sponrunner according to IP address(es) status.
+# Written by Vladik Goytin.
+
+. /etc/common-defs
+
+active_ifaces=0
+running=n
+
+IP_WATCHER=ipaddr_state
+COUNT_FILE=/var/run/iface_count
+
+TAG=miner_starter
+
+# active/passive
+state=$1
+
+watch_ip_addr()
+{
+	${IP_WATCHER} |
+	while read status
+	do
+		case $status in
+		*-add)
+			active_ifaces=$((++active_ifaces))
+
+			if [ ${state} = 'active' ]; then
+				if [ ${running} = n ]; then
+					logger -t ${TAG} "starting ${SPOND_RUNNER}"
+					${SPOND_RUNNER} start
+					running=y
+				fi
+			fi
+			;;
+		*-remove)
+			active_ifaces=$((--active_ifaces))
+
+			if [ ${state} = 'active' ]; then
+				if [ ${active_ifaces} -gt 0 ]; then
+					logger -t ${TAG} "restarting ${SPOND_RUNNER}, please wait"
+					${SPON_RUNNER} stop
+					sleep 5
+					${SPON_RUNNER} start
+					running=y
+				else
+					log -t ${TAG} "stopping ${SPOND_RUNNER}"
+					${SPOND_RUNNER} stop
+					running=n
+				fi
+			fi
+		esac
+
+		echo "${active_ifaces}" > ${COUNT_FILE}
+		logger -t ${TAG} "active_ifaces = ${active_ifaces}"
+	done
+}
+
+init()
+{
+	[ -f ${COUNT_FILE} ] && read active_ifaces < ${COUNT_FILE} ||
+				echo 0 > ${COUNT_FILE}
+
+	if [ ${state} = 'active' ]; then
+		if [ ${active_ifaces} -gt 0 ]; then
+			logger -t ${TAG} "starting ${SPOND_RUNNER} ..."
+			${SPOND_RUNNER} start
+			running=y
+		fi
+	fi
+}
+
+parse_args()
+{
+	[ -x ]
+}
+
+main()
+{
+	parse_args
+	init
+	watch_ip_addr
+}
+
+main $@
