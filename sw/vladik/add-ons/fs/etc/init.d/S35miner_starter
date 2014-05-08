@@ -5,19 +5,17 @@
 
 . /etc/common-defs
 
-export PATH=$PATH:/usr/local/bin:
-
-DAEMON=miner_starter
+DAEMON=/usr/local/bin/miner_starter
 
 case "$1" in
 start)
-	${DAEMON} passive
+	${DAEMON} passive &
 	;;
 stop)
-	pkill ${DAEMON}
+	${DAEMON} stop
 	;;
 restart|reload)
-	echo "Restarting ${DAEMON}, please wait ...'
+	echo "Restarting ${DAEMON}, please wait ..."
 	"$0" stop
 	sleep 5
 	"$0" start

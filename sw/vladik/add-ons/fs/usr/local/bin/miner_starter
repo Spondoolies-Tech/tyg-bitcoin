@@ -8,13 +8,22 @@
 active_ifaces=0
 running=n
 
-IP_WATCHER=ipaddr_state
+IP_WATCHER=/usr/local/bin/ipaddr_state
 COUNT_FILE=/var/run/iface_count
 
 TAG=miner_starter
 
-# active/passive
+# active / passive / stop
 state=$1
+
+
+bye()
+{
+	${SPOND_RUNNER} stop
+	sleep 3
+	logger -t ${TAG} 'exiting'
+	exit 0
+}
 
 watch_ip_addr()
 {
@@ -34,7 +43,8 @@ watch_ip_addr()
 			fi
 			;;
 		*-remove)
-			active_ifaces=$((--active_ifaces))
+			[ ${active_ifaces} -gt 0 ] &&
+				active_ifaces=$((--active_ifaces))
 
 			if [ ${state} = 'active' ]; then
 				if [ ${active_ifaces} -gt 0 ]; then
@@ -58,9 +68,12 @@ watch_ip_addr()
 
 init()
 {
+	[ ${state} = 'stop' ] && pkill `basename ${IP_WATCHER}` && exit 0
+
 	[ -f ${COUNT_FILE} ] && read active_ifaces < ${COUNT_FILE} ||
 				echo 0 > ${COUNT_FILE}
 
+	logger -t ${TAG} "starting, state = ${state}, active_ifaces = ${active_ifaces}"
 	if [ ${state} = 'active' ]; then
 		if [ ${active_ifaces} -gt 0 ]; then
 			logger -t ${TAG} "starting ${SPOND_RUNNER} ..."
@@ -70,14 +83,9 @@ init()
 	fi
 }
 
-parse_args()
-{
-	[ -x ]
-}
-
 main()
 {
-	parse_args
+	trap bye EXIT
 	init
 	watch_ip_addr
 }

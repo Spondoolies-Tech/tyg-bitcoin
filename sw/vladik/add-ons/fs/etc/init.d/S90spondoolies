@@ -3,7 +3,7 @@
 # Handle SPI.
 #
 
-export PATH=$PATH:/usr/local/bin:/bin
+export PATH=$PATH:/usr/local/bin
 
 DAEMON=miner_starter
 
@@ -31,16 +31,17 @@ start)
 	if [ ${NORMALBOOT} -eq 1 ]; then 
 		read state < ${MINING_STATUS}
 		[ ${state} -eq 1 ] && state='active' || state='passive'
-		pkill ${DAEMON}
-		${DAEMON} ${state}
+		$0 stop
+		${DAEMON} ${state} &
 	fi
 	;;
 stop)
-	/usr/local/bin/spond-manager stop
+	${DAEMON} stop
+	sleep 3
 	;;
 restart|reload)
-	/usr/local/bin/spond-manager stop
-	/usr/local/bin/spond-manager start
+	$0 stop
+	$0 start
 	;;
 *)
 	echo "Usage: $0 {start|stop|restart}"

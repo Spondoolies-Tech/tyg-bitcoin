@@ -8,16 +8,18 @@
 
 export PATH=$PATH:/usr/local/bin:
 
+DAEMON=/usr/local/bin/miner_starter
+
 case "$1" in
 start)
 	echo 1 > ${MINING_STATUS}
-	pkill miner_starter
-	miner_starter active
+	${DAEMON} stop
+	${DAEMON} active &
 	;;
 stop)
 	echo 0 > ${MINING_STATUS}
-	pkill miner_starter
-	miner_starter passive
+	${DAEMON} stop
+	${DAEMON} passive &
 	;;
 restart|reload)
 	"$0" stop
