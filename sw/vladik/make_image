@@ -11,6 +11,8 @@ cd ${CURDIR}/../spilib/
 cd ${CURDIR}/../../../cg-miner-git/cgminer
 make
 
+CC=arm-none-linux-gnueabi-gcc make -C ${CURDIR}/ipaddr_state
+
 
 #make buildroot
 cd ${CURDIR}/buildroot-2013.05/
