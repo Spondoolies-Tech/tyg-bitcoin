@@ -3,6 +3,9 @@
 # Handle SPI.
 #
 
+
+. /etc/common-defs
+
 export PATH=$PATH:/usr/local/bin
 
 DAEMON=miner_starter
@@ -31,7 +34,7 @@ start)
 	if [ ${NORMALBOOT} -eq 1 ]; then 
 		read state < ${MINING_STATUS}
 		[ ${state} -eq 1 ] && state='active' || state='passive'
-		$0 stop
+		${DAEMON} stop
 		${DAEMON} ${state} &
 	fi
 	;;
