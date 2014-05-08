@@ -102,6 +102,7 @@ copy_all_spond_files() {
 	cp ${CUR_DIR}/../../scripts/readboxvpd.sh usr/local/bin
 	cp ${CUR_DIR}/../../scripts/writemngvpd.sh usr/local/bin
 	cp ${CUR_DIR}/../../scripts/writeboxvpd.sh usr/local/bin
+	cp ${CUR_DIR}/../../scripts/setdcrind usr/local/bin
 	#cp ${CUR_DIR}/../../scripts/read-mng-eeprom-stripped.sh usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate/miner_gate_arm usr/local/bin
 	cp ${CUR_DIR}/../../spilib/miner_gate/mg_version ./
