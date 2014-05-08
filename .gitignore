@@ -1,6 +1,7 @@
 sw/vladik/buildroot-2013.05
 sw/vladik/kernel
 sw/vladik/u-boot
+sw/vladik/ipaddr_state/ipaddr_state
 *.o
 *.lo
 *.la
