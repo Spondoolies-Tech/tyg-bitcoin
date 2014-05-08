@@ -5,6 +5,7 @@
 
 export PATH=$PATH:/usr/local/bin:/bin
 
+DAEMON=miner_starter
 
 case "$1" in
 start)
@@ -28,7 +29,10 @@ start)
 
 	echo "NORMALBOOT=${NORMALBOOT}"
 	if [ ${NORMALBOOT} -eq 1 ]; then 
-		/usr/local/bin/spond-manager start
+		read state < ${MINING_STATUS}
+		[ ${state} -eq 1 ] && state='active' || state='passive'
+		pkill ${DAEMON}
+		${DAEMON} ${state}
 	fi
 	;;
 stop)

@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Handle SPI.
+#
+
+. /etc/common-defs
+
+
+export PATH=$PATH:/usr/local/bin:
+
+case "$1" in
+start)
+	echo 1 > ${MINING_STATUS}
+	pkill miner_starter
+	miner_starter active
+	;;
+stop)
+	echo 0 > ${MINING_STATUS}
+	pkill miner_starter
+	miner_starter passive
+	;;
+restart|reload)
+	"$0" stop
+	sleep 1
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+
