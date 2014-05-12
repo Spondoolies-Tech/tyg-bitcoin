@@ -36,10 +36,18 @@ start)
 		[ ${state} -eq 1 ] && state='active' || state='passive'
 		${DAEMON} stop
 		${DAEMON} ${state} &
+		/usr/local/bin/ifup-requester &
+		echo $! > /var/run/ifup-requester.pid
 	fi
 	;;
 stop)
 	${DAEMON} stop
+	if [ -f "/var/run/ifup-requester.pid" ]
+	then
+		pid1=`cat /var/run/ifup-requester.pid`
+		rm /var/run/ifup-requester.pid
+		kill -9 $pid1
+	fi
 	sleep 3
 	;;
 restart|reload)

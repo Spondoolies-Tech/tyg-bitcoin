@@ -1,0 +1,20 @@
+#!/bin/sh
+
+
+
+poll_eth_loop () {
+	while true; do
+		eth_ip=`ifconfig eth0 | grep "inet addr" | grep -v 127.0.0.1 | wc -l`
+		if [ $eth_ip -lt 1 ]; then
+			logger "Requesting DHCP!"
+			ifup eth0
+		else 
+			echo "Nothing"
+		fi
+		sleep 1;
+	done
+}
+
+
+poll_eth_loop 
+
