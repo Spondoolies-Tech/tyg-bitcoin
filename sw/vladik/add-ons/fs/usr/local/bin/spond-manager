@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# Handle SPI.
+#
+
+. /etc/common-defs
+
+
+export PATH=$PATH:/usr/local/bin:
+
+DAEMON=/usr/local/bin/miner_starter
+
+case "$1" in
+start)
+	echo 1 > ${MINING_STATUS}
+	${DAEMON} stop
+	${DAEMON} active &
+	;;
+stop)
+	echo 0 > ${MINING_STATUS}
+	${DAEMON} stop
+	${DAEMON} passive &
+	;;
+restart|reload)
+	"$0" stop
+	sleep 1
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+

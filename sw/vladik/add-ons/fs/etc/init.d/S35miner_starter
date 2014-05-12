@@ -1,31 +1,23 @@
 #!/bin/sh
 #
-# NTP client
+# Miner starter
 #
-# Written by Vladik Goytin.
 
 . /etc/common-defs
 
-ntp_start()
-{
-	/usr/sbin/ntpd -p ${NTP_SERVER}
-}
-
-
-ntp_stop()
-{
-	pkill ntpd
-}
+DAEMON=/usr/local/bin/miner_starter
 
 case "$1" in
 start)
-	ntp_start
+	${DAEMON} passive &
 	;;
 stop)
-	ntp_stop
+	${DAEMON} stop
 	;;
 restart|reload)
+	echo "Restarting ${DAEMON}, please wait ..."
 	"$0" stop
+	sleep 5
 	"$0" start
 	;;
 *)
@@ -34,4 +26,6 @@ restart|reload)
 esac
 
 exit $?
+
+
 

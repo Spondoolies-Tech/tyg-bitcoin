@@ -2,7 +2,6 @@
 #
 # Miscellaneous.
 #
-# Written by Vladik Goytin.
 
 rrd_dirs()
 {
@@ -27,17 +26,9 @@ led_init()
 	echo "on" > /sys/class/gpio/gpio51/direction
 }
 
-override_reboot() {
-	rm /sbin/reboot
-	echo "#!/bin/sh" > /sbin/reboot
-	echo "echo REBOOT CALLED >> /mnt/mmc-config/log/messages" > /sbin/reboot
-	echo "/usr/local/bin/spond-manager stop; sync; /bin/busybox reboot;" >> /sbin/reboot
-	chmod 777 /sbin/reboot
-}
 
 case "$1" in
 start)
-	override_reboot
 	misc_start
 	led_init
 	;;
