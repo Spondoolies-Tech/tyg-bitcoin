@@ -120,9 +120,10 @@ get_software_version()
 download_software()
 {
 	cd /tmp
+	echo "Downloading url:${url}"
 	download-file.sh --url=${url}						\
 			--query="id=${board_id}&ver=${software_version}" ||	\
-		{ rc=$?; echo "${url} download fail, rc = ${rc}"; exit ${rc}; }
+		{ rc=$?; echo "download fail, rc = ${rc}"; exit ${rc}; }
 }
 
 
