@@ -5,6 +5,9 @@ git pull
 cd $WD/vladik/kernel/kernel
 git pull
 #git diff
+cd $WD/vladik/provisioning
+git pull
+#git diff
 cd $WD/../../cg-miner-git/cgminer
 git pull
 #git diff
