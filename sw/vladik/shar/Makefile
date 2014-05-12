@@ -15,10 +15,10 @@ endif
 all:				shar
 
 
-shar:				data/uImage data/spondoolies.dtb ../add-ons/fw_ver ../../../../u-boot/u-boot.img
+shar:				data/uImage data/spondoolies.dtb ../add-ons/fs/fw_ver ../../../../u-boot/u-boot.img
 	cd ../ ; ./make_image
 	cp ../image/uImage data/
-	cp ../add-ons/fw_ver data/
+	cp ../add-ons/fs/fw_ver data/
 	cp ../../../../u-boot/u-boot.img data/
 	@echo -------------------------------
 	@echo -n "Making SW upgrade version:"
@@ -28,7 +28,7 @@ shar:				data/uImage data/spondoolies.dtb ../add-ons/fw_ver ../../../../u-boot/u
 	../provisioning/sign-digest.sh --file=$(SHAR) --private=$(PRIVATE_KEY)
 	tar cf $(TAR_FILE) $(SHAR) $(SHAR).sign
 	$(RM) -f $(SHAR) $(SHAR).sign
-	mv spon.tar spon_`cat ../add-ons/fw_ver`.tar
+	mv spon.tar spon_`cat ../add-ons/fs/fw_ver`.tar
 
 .PHONY:	latest
 latest:
