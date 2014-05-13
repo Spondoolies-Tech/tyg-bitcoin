@@ -47,12 +47,16 @@ usage()
 
 	 	--help		-- show this help
 	 	--url		-- url's URL to download
+	 	--ver		-- version to download
 
 	Examples:
 	 	${__prog_name} --url=https://mydomain.com/thefile
-	 		-- download file from URL https://mydomain.com/thefile
-	 		   along with its signed digest
-	 		   https://mydomain.com/thefile.sign
+	 		-- download latest released production version from URL https://mydomain.com/thefile
+	 		   with the signature bundled inside
+
+	 	${__prog_name} --url=https://mydomain.com/thefile --ver=XXX
+	 		-- download specified version from URL https://mydomain.com/thefile
+			   with the signature bundled inside
 	EOF
 }
 
@@ -60,7 +64,7 @@ usage()
 
 parse_args()
 {
-	opts="help,url:"
+	opts="help,url:,ver:"
 	temp=`getopt -o h --long ${opts} -n sign-digest.sh -- $@`
 	[ $? -ne 0 ] && usage
 
@@ -72,6 +76,8 @@ parse_args()
 		-h|--help)              usage; exit 0; shift ;;
 		--url)			url=$2;
 					tar=`basename ${url}`
+					shift 2 ;;
+		--ver)			software_version=$2;
 					shift 2 ;;
 		--)                     shift; break 2 ;;  # exit loop
 		* )                     echo "unknown parameter $1"; return 1 ;;
