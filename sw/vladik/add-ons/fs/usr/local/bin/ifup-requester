@@ -1,5 +1,5 @@
 #!/bin/sh
-
+# Written by Spondoolies
 
 
 poll_eth_loop () {
@@ -8,10 +8,8 @@ poll_eth_loop () {
 		if [ $eth_ip -lt 1 ]; then
 			logger "Requesting DHCP!"
 			ifup eth0
-		else 
-			echo "Nothing"
 		fi
-		sleep 1;
+		sleep 15;
 	done
 }
 

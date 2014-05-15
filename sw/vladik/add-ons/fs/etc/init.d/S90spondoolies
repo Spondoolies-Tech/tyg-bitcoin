@@ -8,7 +8,7 @@
 
 export PATH=$PATH:/usr/local/bin
 
-DAEMON=miner_starter
+DAEMON=miner_starter_simple
 
 case "$1" in
 start)
@@ -32,15 +32,14 @@ start)
 
 	echo "NORMALBOOT=${NORMALBOOT}"
 	if [ ${NORMALBOOT} -eq 1 ]; then 
-		read state < ${MINING_STATUS}
-		[ ${state} -eq 1 ] && state='active' || state='passive'
-		${DAEMON} stop
-		${DAEMON} ${state} &
+		${DAEMON} start
 		/usr/local/bin/ifup-requester &
 		echo $! > /var/run/ifup-requester.pid
+		/usr/local/bin/mining_watchdog start
 	fi
 	;;
 stop)
+	/usr/local/bin/mining_watchdog stop
 	${DAEMON} stop
 	if [ -f "/var/run/ifup-requester.pid" ]
 	then

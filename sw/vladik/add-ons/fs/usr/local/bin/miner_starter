@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Control sponrunner according to IP address(es) status.
-# Written by Vladik Goytin.
+# Written by Spondoolies
 
 . /etc/common-defs
 
