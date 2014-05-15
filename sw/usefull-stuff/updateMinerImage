@@ -15,13 +15,13 @@ if [ ! -e $IMAGE ] ;
 fi
 echo file $IMAGE exist
 
-strings $IMAGE | grep Linux-3.8.13  > /dev/null 2>&1
+#strings $IMAGE | grep Linux-3.8.13  > /dev/null 2>&1
 
-if [ ! $? -eq 0 ] ; 
-	then echo "\n $IMAGE doesnt seem a valid image file. Aborting!"
-	exit 3
-fi
-echo $IMAGE seem a valid image file. 
+#if [ ! $? -eq 0 ] ; 
+#	then echo "\n $IMAGE doesnt seem a valid image file. Aborting!"
+#	exit 3
+#fi
+#echo $IMAGE seem a valid image file. 
 
 ping -c 1 $MINER > /dev/null 2>&1
 
