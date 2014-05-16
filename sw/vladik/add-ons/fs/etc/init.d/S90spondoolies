@@ -3,8 +3,12 @@
 # Handle SPI.
 #
 
-export PATH=$PATH:/usr/local/bin:/bin
 
+. /etc/common-defs
+
+export PATH=$PATH:/usr/local/bin
+
+DAEMON=miner_starter_simple
 
 case "$1" in
 start)
@@ -28,15 +32,26 @@ start)
 
 	echo "NORMALBOOT=${NORMALBOOT}"
 	if [ ${NORMALBOOT} -eq 1 ]; then 
-		/usr/local/bin/spond-manager start
+		${DAEMON} start
+		/usr/local/bin/ifup-requester &
+		echo $! > /var/run/ifup-requester.pid
+		/usr/local/bin/mining_watchdog start
 	fi
 	;;
 stop)
-	/usr/local/bin/spond-manager stop
+	/usr/local/bin/mining_watchdog stop
+	${DAEMON} stop
+	if [ -f "/var/run/ifup-requester.pid" ]
+	then
+		pid1=`cat /var/run/ifup-requester.pid`
+		rm /var/run/ifup-requester.pid
+		kill -9 $pid1
+	fi
+	sleep 3
 	;;
 restart|reload)
-	/usr/local/bin/spond-manager start
-	/usr/local/bin/spond-manager stop
+	$0 stop
+	$0 start
 	;;
 *)
 	echo "Usage: $0 {start|stop|restart}"

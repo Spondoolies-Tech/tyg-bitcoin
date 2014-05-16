@@ -1,6 +1,7 @@
 #!/bin/sh
 CURDIR=${PWD}
-vi add-ons/fw_ver
+vi add-ons/fs/fw_ver
+FV_VER=`cat add-ons/fs/fw_ver | tr ' ' '_'`
 cd ${CURDIR}/memtester-4.3.0/
 make
 
@@ -9,16 +10,20 @@ cd ${CURDIR}/../spilib/
 ./make_me
 
 cd ${CURDIR}/../../../cg-miner-git/cgminer
-./make_me
+make
+
+CC=arm-none-linux-gnueabi-gcc make -C ${CURDIR}/ipaddr_state
 
 
 #make buildroot
 cd ${CURDIR}/buildroot-2013.05/
 make
 
+
+
 #make image
 cd ${CURDIR}/kernel/kernel
-make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- uImage -j4
+make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- UIMAGE_NAME="SP10_FW:${FV_VER}" uImage -j4
 make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- spondoolies.dtb
 
 #copy results

@@ -1,0 +1,104 @@
+#!/bin/sh
+#
+# Handle SPI.
+# Written by Spondoolies
+
+
+MINERGATE_CMD="nohup chrt -f 90 /usr/local/bin/miner_gate_arm > /dev/null 2>&1"
+CGMINER_CMD="nohup /etc/bin/cgminer --config /etc/cgminer.conf"
+export PATH=$PATH:/usr/local/bin:/bin
+
+
+
+
+miner_gate_arm_watchdog () {
+	$MINERGATE_CMD &
+	echo $! > /var/run/miner_gate_arm.pid
+	sleep 5
+	$CGMINER_CMD &
+	echo $! > /var/run/cgminer_arm.pid
+
+	while true; do
+		pidm=`cat /var/run/miner_gate_arm.pid`
+		if [ ! -e /proc/$pidm -a /proc/$pidm/exe ]; then
+			echo "Minergate died and restarted"
+			$MINERGATE_CMD &
+			echo $! > /var/run/miner_gate_arm.pid
+		fi
+
+		pidc=`cat /var/run/cgminer_arm.pid`
+		if [ ! -e /proc/$pidc -a /proc/$pidc/exe ]; then
+			echo "Cgminer died and restarted"
+			$CGMINER_CMD &
+			echo $! > /var/run/cgminer_arm.pid
+		fi
+		sleep 3;
+	done
+}
+
+
+
+
+start_mg() {
+		logger spond-manager:start_mg
+		if [ -f "/var/run/spond-manager.running" ]; then
+			echo "minergate is already running"
+		else
+			echo 1 > /var/run/spond-manager.running
+			miner_gate_arm_watchdog &
+			echo $! > /var/run/miner_gate_arm_watchdog.pid
+		fi
+}
+
+
+stop_mg() {
+		logger spond-manager:stop_mg
+		if [ ! -f "/var/run/spond-manager.running" ]
+		then
+			echo "Mining manager not running"
+		else
+			pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
+			pid2=`cat /var/run/cgminer_arm.pid`
+			pid3=`cat /var/run/miner_gate_arm.pid`
+			kill $pid1
+			kill $pid2
+			kill $pid3
+			rm /var/run/miner_gate_arm_watchdog.pid
+			rm /var/run/miner_gate_arm.pid
+			rm /var/run/cgminer_arm.pid
+			rm /var/run/spond-manager.running
+		fi
+}
+
+
+
+case "$1" in
+start)
+	start_mg
+	;;
+stop)
+	stop_mg
+	;;
+restart|reload)
+	"$0" stop
+	sleep 3
+	"$0" start
+	;;
+status)
+	if [ ! -f "/var/run/spond-manager.running" ]
+	then
+		echo "not running"
+	else
+		echo "running"
+	fi
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+

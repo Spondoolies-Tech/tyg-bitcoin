@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# Handle SPI.
+# Written by Spondoolies
+
+. /etc/common-defs
+
+
+export PATH=$PATH:/usr/local/bin:
+
+#DAEMON=/usr/local/bin/miner_starter
+
+case "$1" in
+start)
+	echo 1 > ${MINING_STATUS}
+	#${DAEMON} stop
+	#${DAEMON} active &
+	;;
+stop)
+	echo 0 > ${MINING_STATUS}
+	#/usr/local/bin/spond-runner stop
+	#${DAEMON} stop
+	#${DAEMON} passive &
+	;;
+restart|reload)
+	/usr/local/bin/spond-runner stop		
+	#IT WILL BOOT ITSELF
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
+
+

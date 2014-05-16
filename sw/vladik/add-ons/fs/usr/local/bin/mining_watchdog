@@ -1,0 +1,99 @@
+#!/bin/sh
+
+WATCHDOG_FILE="/var/run/dont_reboot"
+NVM_LOG="/mnt/mmc-config/log/mining-watchdog-reboot.log"
+SYSLOG_FILE="/mnt/mmc-config/log/messages"
+MAX_NVM_LOG_SIZE=5000
+
+reboot_miner_safe() {
+	NVM_LOG_SIZE=$(du -a "$NVM_LOG" | cut -f 1)
+	if [ $NVM_LOG_SIZE -ge $MAX_NVM_LOG_SIZE ]; then
+		echo "removing huge log file"
+		rm $NVM_LOG
+	fi
+
+	echo "-----------------------" >> $NVM_LOG
+	echo -e "Not mining, reboot!" >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	echo `date` >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	ps >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	cat /proc/meminfo >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	cat /var/log/asics >> $NVM_LOG
+	echo "-----------------------" >> $NVM_LOG
+	pid1=`cat /var/run/miner_gate_arm_watchdog.pid`
+	pid3=`cat /var/run/miner_gate_arm.pid`
+	kill $pid3
+	sleep 1
+	kill $pid3
+	sync
+	sleep 3
+	sync
+        reboot
+}
+
+
+loop() {
+while true; do
+	sleep 260
+	# test free memory
+	FREE_MEM=`awk '/MemFree/ {printf( "%.2d\n", $2 / 1024 )}' /proc/meminfo`
+	[ $FREE_MEM -lt 100 ] && reboot_miner_safe 
+	
+	# test mining
+	if [ -f $WATCHDOG_FILE ] 
+	then
+		rm $WATCHDOG_FILE
+	else
+		mining_watchdog=`cat /etc/mining_watchdog`
+		mining_status=`cat /etc/mining_status`
+		[ $mining_watchdog -gt 0 ] && [ $mining_status -gt 0 ] && reboot_miner_safe 
+	fi
+	done
+}
+
+
+
+case "$1" in
+start)
+	if [ -f "/var/run/fmw.pid" ]
+	then
+		echo "Already running"
+	else
+		loop &
+		echo $! > /var/run/fmw.pid
+	fi
+	;;
+stop)
+	if [ ! -f "/var/run/fmw.pid" ]
+	then
+		echo "Not running"
+	else
+		pid=`cat /var/run/fmw.pid`
+		kill $pid
+		rm /var/run/fmw.pid
+	fi
+	;;
+restart|reload)
+	"$0" stop
+	sleep 1
+	"$0" start
+	;;
+status)
+	if [ ! -f "/var/run/fmw.pid" ]
+	then
+		echo "off"
+	else
+		echo "on"
+	fi
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart|status}"
+	exit 1
+esac
+
+exit $?
+
+

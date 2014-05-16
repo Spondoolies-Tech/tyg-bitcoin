@@ -16,6 +16,11 @@ SPON_PUBLIC_KEY=/etc/spondoolies-pub.pem
 # Hotplug script
 HOTPLUG=/usr/local/bin/hotplug.sh
 
+# 0 (disabled) or 1 (enabled)
+MINING_STATUS=/etc/mining_status
+
+SPOND_RUNNER=/usr/local/bin/spond-runner
+
 ###
 ### Mount points
 ###
