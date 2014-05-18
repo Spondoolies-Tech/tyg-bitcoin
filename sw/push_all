@@ -12,31 +12,31 @@ TAG=$2
 WD=`pwd`
 
 git commit -a -m "$COMMENT"
-git tag -a v1.4 -m "$COMMENT"
+git tag -a "$TAG" -m "$COMMENT"
 git push
 
 cd $WD/vladik/kernel/kernel
 git commit -a -m "$COMMENT"
-git tag -a v1.4 -m "$COMMENT"
+git tag -a "$TAG" -m "$COMMENT"
 git push
 
 cd $WD/../../cg-miner-git/cgminer
 git commit -a -m "$COMMENT"
-git tag -a v1.4 -m "$COMMENT"
+git tag -a "$TAG" -m "$COMMENT"
 #git push
 
 cd $WD/../../minepeon/
 git commit -a -m "$COMMENT"
-git tag -a v1.4 -m "$COMMENT"
+git tag -a "$TAG" -m "$COMMENT"
 git push
 
 cd $WD/../../u-boot/
 git commit -a -m "$COMMENT"
-git tag -a v1.4 -m "$COMMENT"
+git tag -a "$TAG" -m "$COMMENT"
 git push
 
 cd $WD/spilib/
 git commit -a -m "$COMMENT"
-git tag -a v1.4 -m "$COMMENT"
+git tag -a "$TAG" -m "$COMMENT"
 git push
 
