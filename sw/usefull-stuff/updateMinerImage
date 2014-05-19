@@ -15,7 +15,7 @@ if [ ! -e $IMAGE ] ;
 fi
 echo file $IMAGE exist
 
-<<<<<<< HEAD
+
 #strings $IMAGE | grep Linux-3.8.13  > /dev/null 2>&1
 
 #if [ ! $? -eq 0 ] ; 
@@ -23,18 +23,7 @@ echo file $IMAGE exist
 #	exit 3
 #fi
 #echo $IMAGE seem a valid image file. 
-=======
-mkimage -l $IMAGE | grep SP10_FW  > /dev/null 2>&1
-if [ ! $? -eq 0 ] ; 
-	then strings $IMAGE | grep Linux-3.8.13  > /dev/null 2>&1
-	if [ ! $? -eq 0 ] ; 
-		then echo "\n $IMAGE doesnt seem a valid image file. Aborting!"
-		exit 3
-	fi
-fi
 
-echo $IMAGE seem a valid image file. 
->>>>>>> 8a0e99aa18314bc8776caed9cbab07e536e6609f
 
 ping -c 1 $MINER > /dev/null 2>&1
 
@@ -57,12 +46,17 @@ fi
 
 echo sshpass -e ssh root@$MINER mount /mnt/mmc-boot
 sshpass -e ssh root@$MINER mount /mnt/mmc-boot
-echo sshpass -e scp $IMAGE root@$MINER:/mnt/mmc-boot/
-sshpass -e scp $IMAGE root@$MINER:/mnt/mmc-boot/
+echo sshpass -e ssh root@$MINER mount /mnt/sd-boot
+sshpass -e ssh root@$MINER mount /mnt/sd-boot
+echo sshpass -e scp $IMAGE root@$MINER:/mnt/boot/
+sshpass -e scp $IMAGE root@$MINER:/mnt/boot/
 echo sshpass -e ssh root@$MINER sync
 sshpass -e ssh root@$MINER sync
 echo sshpass -e ssh root@$MINER umount /mnt/mmc-boot
 sshpass -e ssh root@$MINER umount /mnt/mmc-boot
+echo sshpass -e ssh root@$MINER umount /mnt/sd-boot
+sshpass -e ssh root@$MINER umount /mnt/sd-boot
+
 sleep 3
 echo sshpass -e ssh root@$MINER /sbin/reboot
 sshpass -e ssh root@$MINER /sbin/reboot

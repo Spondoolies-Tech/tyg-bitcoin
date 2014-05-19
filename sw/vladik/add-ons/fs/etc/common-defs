@@ -27,12 +27,15 @@ SPOND_RUNNER=/usr/local/bin/spond-runner
 
 # SD Card boot partition mount point.
 MP_SD_BOOT=/mnt/sd-boot
-
+# SD Card config partition mount point.
+MP_SD_CONF=/mnt/sd-config
 # eMMC boot partition mount point.
 MP_MMC_BOOT=/mnt/mmc-boot
-
 # eMMC configuration partition mount point.
 MP_MMC_CONF=/mnt/mmc-config
+
+MP_CONF=/mnt/config
+MP_BOOT=/mnt/boot
 
 # NFS mount point.
 MP_NFS=/mnt/nfs

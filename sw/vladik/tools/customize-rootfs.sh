@@ -115,15 +115,14 @@ generate_fstab()
 	cat<<-EOF
 	# SD Card exists mounts
 	/dev/mmcblk0p1	${MP_SD_BOOT}	vfat	defaults,noauto,noatime	0 0 # SD=yes
+	/dev/mmcblk0p2	${MP_SD_CONF}	xfs	defaults,noauto,noatime	0 0 # SD=yes
 	/dev/mmcblk1p1	${MP_MMC_BOOT}	vfat	defaults,noauto,noatime	0 0 # SD=yes
 	/dev/mmcblk1p2	${MP_MMC_CONF}	xfs	defaults,noauto,noatime	0 0 # SD=yes
-	#/dev/mmcblk1p3	/var/log	xfs	defaults,noauto,noatime	0 0 # SD=yes
+	unionfs		/etc		unionfs	noauto,dirs=${MP_SD_CONF}/etc=rw:/etc=ro 0 0 # SD=yes
 	# SD Card does NOT exist mounts
 	/dev/mmcblk0p1	${MP_MMC_BOOT}	vfat	defaults,noauto,noatime	0 0 # SD=no
 	/dev/mmcblk0p2	${MP_MMC_CONF}	xfs	defaults,noauto,noatime	0 0 # SD=no
-	#/dev/mmcblk0p3	/var/log	xfs	defaults,noauto,noatime	0 0 # SD=no
-
-	unionfs		/etc		unionfs	noauto,dirs=${MP_MMC_CONF}/etc=rw:/etc=ro 0 0
+	unionfs		/etc		unionfs	noauto,dirs=${MP_MMC_CONF}/etc=rw:/etc=ro 0 0 # SD=no
 	EOF
 }
 

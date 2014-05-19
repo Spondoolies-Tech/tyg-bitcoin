@@ -1,8 +1,8 @@
 #!/bin/sh
 
 WATCHDOG_FILE="/var/run/dont_reboot"
-NVM_LOG="/mnt/mmc-config/log/mining-watchdog-reboot.log"
-SYSLOG_FILE="/mnt/mmc-config/log/messages"
+NVM_LOG="/mnt/config/log/mining-watchdog-reboot.log"
+SYSLOG_FILE="/mnt/config/log/messages"
 MAX_NVM_LOG_SIZE=5000
 
 reboot_miner_safe() {

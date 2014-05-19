@@ -5,9 +5,9 @@
 
 rrd_dirs()
 {
-	[ -d /mnt/mmc-config/rrd ] && rm -rf /mnt/mmc-config/rrd
+	[ -d /mnt/config/rrd ] && rm -rf /mnt/config/rrd
 	mkdir /tmp/rrd
-	cd /mnt/mmc-config
+	cd /mnt/config
 	ln -s /tmp/rrd ./
 	cd /var/www
 	ln -s /tmp/rrd ./
