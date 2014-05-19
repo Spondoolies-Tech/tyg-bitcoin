@@ -15,9 +15,10 @@ endif
 all:				shar
 
 
-shar:				data/uImage data/spondoolies.dtb ../add-ons/fs/fw_ver ../../../../u-boot/u-boot.img
+shar:	../add-ons/fs/fw_ver ../../../../u-boot/u-boot.img
 	cd ../ ; ./make_image
 	cp ../image/uImage data/
+	cp ../image/spondoolies.dtb data/
 	cp ../add-ons/fs/fw_ver data/
 	cp ../../../../u-boot/u-boot.img data/
 	@echo -------------------------------
