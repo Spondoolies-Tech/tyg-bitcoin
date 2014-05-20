@@ -9,7 +9,7 @@ TARGET_DIR=$1
 CUR_DIR=${PWD}
 
 DIRS_TO_ADD='etc/cron.d/crontabs lib/modules'
-DIRS_TO_ADD=${DIRS_TO_ADD}" ${MP_SD_BOOT} ${MP_MMC_BOOT} ${MP_MMC_CONF} ${MP_NFS}"
+DIRS_TO_ADD=${DIRS_TO_ADD}" ${MP_SD_BOOT} ${MP_MMC_BOOT} ${MP_MMC_CONF} ${MP_SD_CONF} ${MP_NFS}"
 TO_REMOVE='etc/init.d/S??urandom usr/lib/pkgconfig etc/resolv.conf'
 TO_REMOVE=${TO_REMOVE}' sbin/fsck.xfs sbin/xfs_repair usr/sbin/xfs*'
 
