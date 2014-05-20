@@ -7,7 +7,7 @@ fi
 IMAGE=$1
 MINER=$2
 CHECK=$3
-export SSHPASS=root
+SSH_PASS=root
 
 if [ ! -e $IMAGE ] ;
 	then echo "Image file $IMAGE not found"
@@ -24,7 +24,7 @@ if [ ! $? -eq 0 ] ;
 	fi
 fi
  
-echo $IMAGE seem a valid image file. 
+echo "${IMAGE} seems valid [`mkimage -l ${IMAGE} | grep Name:`] ."
 
 ping -c 1 $MINER > /dev/null 2>&1
 
@@ -45,22 +45,31 @@ if [ "$CHECK" == "-check" ] ; then
 	fi
 fi
 
-echo sshpass -e ssh root@$MINER mount /mnt/mmc-boot
-sshpass -e ssh root@$MINER mount /mnt/mmc-boot
-echo sshpass -e ssh root@$MINER mount /mnt/sd-boot
-sshpass -e ssh root@$MINER mount /mnt/sd-boot
-echo sshpass -e scp $IMAGE root@$MINER:/mnt/boot/
-sshpass -e scp $IMAGE root@$MINER:/mnt/boot/
-echo sshpass -e ssh root@$MINER sync
-sshpass -e ssh root@$MINER sync
-echo sshpass -e ssh root@$MINER umount /mnt/mmc-boot
-sshpass -e ssh root@$MINER umount /mnt/mmc-boot
-echo sshpass -e ssh root@$MINER umount /mnt/sd-boot
-sshpass -e ssh root@$MINER umount /mnt/sd-boot
+echo mount /mnt/mmc-boot
+sshpass -p ${SSH_PASS} ssh root@$MINER mount /mnt/mmc-boot
+
+echo mount /mnt/sd-boot
+sshpass -p ${SSH_PASS} ssh root@$MINER mount /mnt/sd-boot
+
+echo scp $IMAGE root@$MINER:/mnt/sd-boot
+sshpass -p ${SSH_PASS} scp $IMAGE root@$MINER:/mnt/sd-boot
+
+echo scp $IMAGE root@$MINER:/mnt/mmc-boot
+sshpass -p ${SSH_PASS} scp $IMAGE root@$MINER:/mnt/mmc-boot
+
+echo sync
+sshpass -p ${SSH_PASS} ssh root@$MINER sync
+
+echo umount /mnt/mmc-boot
+sshpass -p ${SSH_PASS} ssh root@$MINER umount /mnt/mmc-boot
+
+echo umount /mnt/sd-boot
+sshpass -p ${SSH_PASS} ssh root@$MINER umount /mnt/sd-boot
 
 sleep 3
-echo sshpass -e ssh root@$MINER /sbin/reboot
-sshpass -e ssh root@$MINER /sbin/reboot
+
+echo /sbin/reboot
+sshpass -p ${SSH_PASS} ssh root@$MINER /sbin/reboot
 
 
 
