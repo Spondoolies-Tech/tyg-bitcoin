@@ -40,7 +40,7 @@ miner_gate_arm_watchdog () {
 
 
 start_mg() {
-		logger spond-manager:start_mg
+		logger spond-runner:start_mg
 		if [ -f "/var/run/spond-manager.running" ]; then
 			echo "minergate is already running"
 		else
@@ -52,7 +52,7 @@ start_mg() {
 
 
 stop_mg() {
-		logger spond-manager:stop_mg
+		logger spond-runner:stop_mg
 		if [ ! -f "/var/run/spond-manager.running" ]
 		then
 			echo "Mining manager not running"
@@ -66,6 +66,7 @@ stop_mg() {
 			rm /var/run/miner_gate_arm_watchdog.pid
 			rm /var/run/miner_gate_arm.pid
 			rm /var/run/cgminer_arm.pid
+			sleep 3
 			rm /var/run/spond-manager.running
 		fi
 }
