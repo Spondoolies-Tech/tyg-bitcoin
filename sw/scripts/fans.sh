@@ -1,0 +1,1 @@
+../vladik/add-ons/fs/usr/local/bin/fans.sh
