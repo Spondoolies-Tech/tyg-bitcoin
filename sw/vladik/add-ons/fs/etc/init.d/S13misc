@@ -5,17 +5,24 @@
 
 rrd_dirs()
 {
-	[ -d /mnt/config/rrd ] && rm -rf /mnt/config/rrd
-	mkdir /tmp/rrd
-	cd /mnt/config
-	ln -s /tmp/rrd ./
+
+#	[ -d /mnt/config/rrd ] && rm -rf /mnt/config/rrd
+#	mkdir /tmp/rrd
+#	cd /mnt/config
+#	ln -s /tmp/rrd ./
+#	cd /var/www
+#	ln -s /tmp/rrd ./
+	[ -L /mnt/config/rrd ] && rm /mnt/config/rrd
+	[ ! -d /mnt/config/rrd ] && mkdir /mnt/config/rrd
 	cd /var/www
-	ln -s /tmp/rrd ./
+	
+	ln -s /mnt/config/rrd ./
 }
 
 misc_start()
 {
 	rrd_dirs
+	/usr/local/bin/setdcrind -both > /tmp/setdcrind
 }
 
 fans_off()

@@ -3,7 +3,7 @@ SHAR				:= spon.shar
 TAR_FILE			:= spon.tar
 TAR_LATEST_FILE			:= spon-latest.tar
 SCRIPT				:= ./sw-upgrade.sh
-
+PRIVATE_KEY			:= spondoolies.pem
 MAKESELF_FLAGS			:= --nocomp
 
 ifeq ($(PRIVATE_KEY),)
