@@ -33,7 +33,7 @@ if [ ! $? -eq 0 ] ;
 	exit 4
 fi
 
-echo $MINER accessible
+echo " ${MINER} accessible"
 
 if [ "$CHECK" == "-check" ] ; then
 	echo -e "\n"

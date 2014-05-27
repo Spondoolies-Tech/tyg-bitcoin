@@ -29,7 +29,10 @@ if [ ! -e ${SRC_IP_FILE} ] ; then
 fi
 
 IP_FILE=`mktemp`
+
 cat $SRC_IP_FILE | cut -d ' ' -f 1 | cut -d , -f 1 > $IP_FILE
+
+dos2unix $IP_FILE
 
 
 index=0

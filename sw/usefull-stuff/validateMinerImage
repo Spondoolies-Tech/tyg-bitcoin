@@ -5,22 +5,24 @@
 # reads the fw_ver and compares with the string
 
 
-MINER=$1
-FVER_DESIRED=$2
+MINER="$1"
+FVER_DESIRED="$2"
 SSHPASS=root
+
 
 FVER_ACTUAL=`sshpass -p $SSHPASS ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@${MINER} cat /fw_ver`
 
 ERR=$?
 if [ $ERR -eq 0 ] ; then
 	if [ ${FVER_ACTUAL} = ${FVER_DESIRED} ] ; then
-		echo "${MINER},VERFIED,${FVER_ACTUAL},${FVER_DESIRED}"
+		echo ${MINER},VERIFIED,${FVER_ACTUAL},${FVER_DESIRED}
 	else
-		echo "${MINER},FAILED-VERFICATION,${FVER_ACTUAL},${FVER_DESIRED}"
+		echo ${MINER},FAILED-VERFICATION,${FVER_ACTUAL},${FVER_DESIRED}
 	fi
 elif [ $ERR -eq 255 ] ; then
-	echo "${MINER},NOT_ACCESSIBLE"
+	echo ${MINER},NOT_ACCESSIBLE
 else
-	echo "${MINER},VERIFICATION-ERROR"
+	echo ${MINER},VERIFICATION-ERROR
 fi
 
+#echo MINER ${#MINER} ${MINER}
