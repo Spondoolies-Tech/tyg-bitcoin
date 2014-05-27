@@ -46,30 +46,30 @@ if [ "$CHECK" == "-check" ] ; then
 fi
 
 echo mount /mnt/mmc-boot
-sshpass -p ${SSH_PASS} ssh root@$MINER mount /mnt/mmc-boot
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER mount /mnt/mmc-boot
 
 echo mount /mnt/sd-boot
-sshpass -p ${SSH_PASS} ssh root@$MINER mount /mnt/sd-boot
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER mount /mnt/sd-boot
 
 echo scp $IMAGE root@$MINER:/mnt/sd-boot
-sshpass -p ${SSH_PASS} scp $IMAGE root@$MINER:/mnt/sd-boot
+sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@$MINER:/mnt/sd-boot
 
 echo scp $IMAGE root@$MINER:/mnt/mmc-boot
-sshpass -p ${SSH_PASS} scp $IMAGE root@$MINER:/mnt/mmc-boot
+sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@$MINER:/mnt/mmc-boot
 
 echo sync
-sshpass -p ${SSH_PASS} ssh root@$MINER sync
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER sync
 
 echo umount /mnt/mmc-boot
-sshpass -p ${SSH_PASS} ssh root@$MINER umount /mnt/mmc-boot
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER umount /mnt/mmc-boot
 
 echo umount /mnt/sd-boot
-sshpass -p ${SSH_PASS} ssh root@$MINER umount /mnt/sd-boot
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER umount /mnt/sd-boot
 
 sleep 3
 
 echo /sbin/reboot
-sshpass -p ${SSH_PASS} ssh root@$MINER /sbin/reboot
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER /sbin/reboot
 
 
 

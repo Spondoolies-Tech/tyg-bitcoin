@@ -2,7 +2,7 @@
 
 usage()
 {
-	echo "Usage: $0 <script_file> <ip_addr_file> <extra> [xtr2 xtr3 ...]"
+	echo "Usage: $0 <script_file> <ip_addr_file> <operative> [filter]"
 	echo "	if the script doesn't really require extra parm, just add a non-sense one"
 
 }
@@ -12,8 +12,10 @@ if [ $# -lt 3 ] ; then
 	exit 1
 fi
 
-IP_FILE=$2
+SRC_IP_FILE=$2
 SCRIPT_FILE=$1
+#OPERRATIVE=$3
+#FILTER=$4
 SCRIPT_PARMS=${@:3}
 
 if [ ! -e ${SCRIPT_FILE} ] ; then
@@ -21,17 +23,32 @@ if [ ! -e ${SCRIPT_FILE} ] ; then
 	exit 2
 fi
 
-if [ ! -e ${IP_FILE} ] ; then
+if [ ! -e ${SRC_IP_FILE} ] ; then
 	echo "IP Addresses File ${IP_FILE} not found."
 	exit 3
 fi
 
-MINERS=$(<${IP_FILE})
+IP_FILE=`mktemp`
+cat $SRC_IP_FILE | cut -d ' ' -f 1 | cut -d , -f 1 > $IP_FILE
 
-for MINER in ${MINERS}; do
-#	echo "calling ${SCRIPT_FILE} ${MINER} ${SCRIPT_PARMS} "
-	${SCRIPT_FILE} ${MINER} ${SCRIPT_PARMS} 	
+
+index=0
+while read line ; do
+	MINERS[$index]="${line}"
+	index=$(($index+1))
+done < ${IP_FILE}
+
+OIFS="$IFS"
+IFS=' '
+read -a PARAMS <<< "${SCRIPT_PARMS}"
+IFS="$OIFS"
+
+#echo miners ${MINERS[@]} ${#MINERS[@]} 
+#echo params ${PARAMS[@]} ${#PARAMS[@]}
+
+for MINER in ${MINERS[@]}; do
+#	echo "calling ${SCRIPT_FILE} ${MINER} ${PARAMS[@]}" 
+	${SCRIPT_FILE} ${MINER} ${PARAMS[@]}	
 done
 
-
-
+rm ${IP_FILE}

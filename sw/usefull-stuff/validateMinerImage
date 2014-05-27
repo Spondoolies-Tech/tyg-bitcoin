@@ -9,7 +9,7 @@ MINER=$1
 FVER_DESIRED=$2
 SSHPASS=root
 
-FVER_ACTUAL=`sshpass -p $SSHPASS ssh -o connecttimeout=2 root@${MINER} cat /fw_ver`
+FVER_ACTUAL=`sshpass -p $SSHPASS ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@${MINER} cat /fw_ver`
 
 ERR=$?
 if [ $ERR -eq 0 ] ; then
