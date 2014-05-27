@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [ $# -lt 2 ] ; then
+	echo "usage: $0 ipfile imageFile"
+	exit 1
+fi
+BIGF=$1
+IMG=$2
+FS=`cat ${BIGF} |wc -l `
+
+echo $FS
+if [ $FS -gt 30 ] ; then
+	DOSPLIT=TRUE
+	/usr/bin/split -l 20 ${BIGF} ${BIGF}_
+fi
+
+if [ "${DOSPLIT}" == "TRUE" ] ; then
+	 echo SPLITS
+	fnum=0
+	for fn in ${BIGF}_*
+	do
+		fnum=$(($fnum+1))
+	#	echo  $fnum $fn
+	#	cat $fn
+
+	#	echo -----------
+		./apply_on_ips.sh ./updateMinerCaller ${fn} ${IMG} | tee > ${fn}.log &
+
+	done
+else
+	./apply_on_ips.sh ./updateMinerCaller ${BIGF} ${IMG} | tee > ${BIGF}.log &
+fi
