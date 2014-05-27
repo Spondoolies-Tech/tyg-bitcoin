@@ -45,31 +45,45 @@ if [ "$CHECK" == "-check" ] ; then
 	fi
 fi
 
-echo mount /mnt/mmc-boot
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER mount /mnt/mmc-boot
+#> /dev/null 2>&1
+echo "mount /mnt/mmc-boot"
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/mmc-boot > /dev/null 2>&1
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} ls /mnt/mmc-boot/MLO > /dev/null 2>&1
+if [ $? -eq 0 ] ; then
+	echo scp $IMAGE root@${MINER} :/mnt/mmc-boot
+	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/mmc-boot > /dev/null 2>&1
 
-echo mount /mnt/sd-boot
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER mount /mnt/sd-boot
+	echo "sync"
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} sync
 
-echo scp $IMAGE root@$MINER:/mnt/sd-boot
-sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@$MINER:/mnt/sd-boot
+	echo "umount /mnt/mmc-boot"
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} umount /mnt/mmc-boot
 
-echo scp $IMAGE root@$MINER:/mnt/mmc-boot
-sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@$MINER:/mnt/mmc-boot
+else
+	echo "${MINER} without MMC. Oh Boy."
+fi
 
-echo sync
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER sync
+echo "mount /mnt/sd-boot"
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/sd-boot > /dev/null 2>&1
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} ls /mnt/sd-boot/MLO > /dev/null 2>&1
+if [ $? -eq 0 ] ; then
+	echo scp $IMAGE root@${MINER} :/mnt/sd-boot
+	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/sd-boot
 
-echo umount /mnt/mmc-boot
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER umount /mnt/mmc-boot
+	echo "sync"
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} sync
 
-echo umount /mnt/sd-boot
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER umount /mnt/sd-boot
+	echo "umount /mnt/sd-boot"
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} umount /mnt/sd-boot
+
+else
+	echo "${MINER} without SD-CARD"
+fi
 
 sleep 3
 
-echo /sbin/reboot
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@$MINER /sbin/reboot
+echo "reboot"
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} /sbin/reboot
 
 
 
