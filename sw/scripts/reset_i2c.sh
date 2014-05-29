@@ -1,0 +1,1 @@
+../vladik/add-ons/fs/usr/local/bin/reset_i2c.sh

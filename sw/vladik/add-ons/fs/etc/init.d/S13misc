@@ -5,30 +5,70 @@
 
 rrd_dirs()
 {
-	[ -d /mnt/mmc-config/rrd ] && rm -rf /mnt/mmc-config/rrd
-	mkdir /tmp/rrd
-	cd /mnt/mmc-config
-	ln -s /tmp/rrd ./
+
+#	[ -d /mnt/config/rrd ] && rm -rf /mnt/config/rrd
+#	mkdir /tmp/rrd
+#	cd /mnt/config
+#	ln -s /tmp/rrd ./
+#	cd /var/www
+#	ln -s /tmp/rrd ./
+	[ -L /mnt/config/rrd ] && rm /mnt/config/rrd
+	[ ! -d /mnt/config/rrd ] && mkdir /mnt/config/rrd
 	cd /var/www
-	ln -s /tmp/rrd ./
+	
+	ln -s /mnt/config/rrd ./
 }
 
 misc_start()
 {
 	rrd_dirs
+	/usr/local/bin/setdcrind -both > /tmp/setdcrind
+}
+
+fans_off()
+{
+	GP=110
+	CMD=1
+#	if [ "$1" = "ON" ]; then
+#		CMD=0
+#	fi
+#
+#	if [ "$1" = "OFF" ]; then
+#		CMD=1
+#	fi
+	if [ ! -e /sys/class/gpio/gpio${GP}/ ] ; then
+		echo ${GP} > /sys/class/gpio/export
+	fi
+	echo out > /sys/class/gpio/gpio${GP}/direction
+	echo ${CMD} > /sys/class/gpio/gpio${GP}/value
+}
+
+reset_i2c()
+{
+	GP=111
+	if [ ! -e /sys/class/gpio/gpio${GP}/ ] ; then
+		echo ${GP} > /sys/class/gpio/export
+	fi
+	echo out > /sys/class/gpio/gpio${GP}/direction
+	echo 0 > /sys/class/gpio/gpio${GP}/value
+	usleep 50000
+	echo 1 > /sys/class/gpio/gpio${GP}/value
+	usleep 50000
 }
 
 led_init()
 {
 	echo 22 > /sys/class/gpio/export
-	echo "on" > /sys/class/gpio/gpio22/direction
+	echo "out" > /sys/class/gpio/gpio22/direction
 	echo 51 > /sys/class/gpio/export
-	echo "on" > /sys/class/gpio/gpio51/direction
+	echo "out" > /sys/class/gpio/gpio51/direction
 }
 
 
 case "$1" in
 start)
+	reset_i2c
+	fans_off	
 	misc_start
 	led_init
 	;;

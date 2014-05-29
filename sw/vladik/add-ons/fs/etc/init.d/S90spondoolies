@@ -17,7 +17,6 @@ start)
 	#	mount /mnt/sd-boot
 	#	mount /mnt/mmc-config
 	#	mount /mnt/mmc-boot
-
 	if [ -e "/mnt/mmc-config/autorun" ]; then
 		NORMALBOOT=0
 		/mnt/mmc-config/autorun
@@ -40,7 +39,7 @@ start)
 	;;
 stop)
 	/usr/local/bin/mining_watchdog stop
-	${DAEMON} stop
+	${DAEMON} stop	
 	if [ -f "/var/run/ifup-requester.pid" ]
 	then
 		pid1=`cat /var/run/ifup-requester.pid`

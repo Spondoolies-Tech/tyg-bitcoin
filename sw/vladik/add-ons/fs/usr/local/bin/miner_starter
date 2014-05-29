@@ -3,6 +3,11 @@
 # Control sponrunner according to IP address(es) status.
 # Written by Spondoolies
 
+#
+#
+#   NOT USED!!!
+#
+
 . /etc/common-defs
 
 active_ifaces=0

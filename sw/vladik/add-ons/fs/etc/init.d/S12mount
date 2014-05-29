@@ -19,8 +19,12 @@ detect_media()
 
 		case ${dev_type} in
 		SD)	comment_out='SD=no'
+			ln -s /mnt/sd-config /mnt/config
+			ln -s /mnt/sd-boot /mnt/boot
 			;;
 		MMC)
+			ln -s /mnt/mmc-config /mnt/config
+			ln -s /mnt/mmc-boot /mnt/boot
 			;;
 		*)	echo "Unknown device type: ${dev_type}"
 		esac

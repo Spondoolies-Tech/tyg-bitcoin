@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# gets an IP of miner, and a string
+# connect to the miner via ssh (assumes root/root)
+# reads the fw_ver and compares with the string
+
+
+MINER="$1"
+FVER_DESIRED="$2"
+SSHPASS=root
+
+
+FVER_ACTUAL=`sshpass -p $SSHPASS ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@${MINER} cat /fw_ver`
+
+ERR=$?
+if [ $ERR -eq 0 ] ; then
+	if [ ${FVER_ACTUAL} = ${FVER_DESIRED} ] ; then
+		echo ${MINER},VERIFIED,${FVER_ACTUAL},${FVER_DESIRED}
+	else
+		echo ${MINER},FAILED-VERFICATION,${FVER_ACTUAL},${FVER_DESIRED}
+	fi
+elif [ $ERR -eq 255 ] ; then
+	echo ${MINER},NOT_ACCESSIBLE
+else
+	echo ${MINER},VERIFICATION-ERROR
+fi
+
+#echo MINER ${#MINER} ${MINER}

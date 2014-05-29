@@ -1,0 +1,77 @@
+#!/bin/sh
+
+# Control sponrunner according to IP address(es) status.
+# Written by Spondoolies
+
+
+
+poll_eth_loop () {
+	while true; do
+		mining_wanted=`cat /etc/mining_status`
+		if [ -f "/var/run/spond-manager.running" ]; then
+			mining_running=1
+		else
+			mining_running=0
+		fi
+		ip_count=`ifconfig | grep "inet addr" | grep -v 127.0.0.1 | wc -l`
+
+		# Has IP, wants to RUN but not running:
+		if [ $ip_count -gt 0 ] && [ $mining_wanted -gt 0 ] && [ $mining_running -eq 0 ]; then
+			/usr/local/bin/spond-runner start
+			logger "Starting spond runner"
+		fi
+
+		# No IP OR not wants to RUN but running:
+		if [ $ip_count -eq 0 ] || [ $mining_wanted -eq 0 ]; then
+			if [ $mining_running -eq 1 ]; then
+				/usr/local/bin/spond-runner stop
+				logger "Stopping spond runner"
+			fi
+		fi
+
+		sleep 3;
+	done
+}
+
+
+
+case "$1" in
+start)
+	if [ -f "/var/run/miner_starter_simple.pid" ]; then
+		echo "Already running"
+	else
+		poll_eth_loop &
+		echo $! > /var/run/miner_starter_simple.pid
+	fi
+	;;
+stop)
+	if [ ! -f "/var/run/miner_starter_simple.pid" ]; then
+		echo "Not running"
+	else
+		pid=`cat /var/run/miner_starter_simple.pid`
+		kill $pid
+		rm /var/run/miner_starter_simple.pid
+	fi
+	;;
+restart|reload)
+	"$0" stop
+	sleep 1
+	"$0" start
+	;;
+status)
+	if [ ! -f "/var/run/miner_starter_simple.pid" ]; then
+		echo "off"
+	else
+		echo "on"
+	fi
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart|status}"
+	exit 1
+esac
+
+exit $?
+
+
+
+
