@@ -53,12 +53,11 @@ if [ $? -eq 0 ] ; then
 	echo scp $IMAGE root@${MINER} :/mnt/mmc-boot
 	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/mmc-boot > /dev/null 2>&1
 
-	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} /usr/local/bin/spond-manager stop > /dev/null 2>&1
 	
         sleep 5
 	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/mmc-config > /dev/null 2>&1
 
-	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -rf /mnt/mmc-config/etc/* 
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/mmc-config/etc/cgminer.conf 
 
 
 	echo "sync"
