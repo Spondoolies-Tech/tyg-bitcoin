@@ -1,0 +1,34 @@
+#!/bin/bash
+
+if [ $# -lt 3 ] ; then
+	echo "usage: $0 <scriptfile> <ipfile> params ..."
+	exit 1
+fi
+
+WD=`dirname $0`
+SCRIPT=$1
+BIG_IP_LIST=$2
+PARAMS=${@:3}
+
+#echo $PARAMS
+
+FILE_SIZE=`cat ${BIG_IP_LIST} |wc -l `
+
+echo $FILE_SIZE
+if [ $FILE_SIZE -gt 30 ] ; then
+	DOSPLIT=TRUE
+	/usr/bin/split -l 20 ${BIG_IP_LIST} ${BIG_IP_LIST}_
+fi
+
+if [ "${DOSPLIT}" == "TRUE" ] ; then
+	 echo SPLITS
+	fnum=0
+	for fn in ${BIG_IP_LIST}_*
+	do
+		fnum=$(($fnum+1))
+		${WD}/apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS} | tee > ${fn}.log &
+#		echo "${WD}/apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS} | tee > ${fn}.log "
+	done
+else
+	./apply_on_ips.sh ${SCRIPT} ${BIG_IP_LIST} ${PARAMS} | tee > ${BIG_IP_LIST}.log 
+fi
