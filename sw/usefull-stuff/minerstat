@@ -1,0 +1,53 @@
+#!/bin/bash
+
+if [ $# -lt 1 ] ; then
+	echo "usage: $0 <miner>"
+	exit 2
+fi
+
+jq > /dev/null 2>&1
+if [ ! $? -eq 1 ] ; then
+	echo "jq (JSON parser) is not installed, or not in path. Install it!"
+	exit 127
+fi
+		
+IP=$1
+HEADER=$2
+
+ping -c 1 -W 1 $IP > /dev/null 2>&1
+if [ $? -eq 0 ] ; then
+
+
+	MINER_MON=`wget http://admin:admin@${IP}/monitor.php -O- 2>/dev/null`
+
+	if [ $? -eq 0 ] ; then 
+		MINER_SN=`echo ${MINER_MON} | jq .miner.board_ver`
+		MINER_FWVER=`echo ${MINER_MON} | jq .miner.fw_ver`
+		MINER_GATE_STATUS=`echo ${MINER_MON} | jq .mg_status`
+
+		MINER_GH=$((`echo ${MINER_MON} | jq .stats.ASICstotalrate`/1000))
+		FRONT_TEMP=`echo ${MINER_MON} | jq .stats.Temparaturefront`
+		REAR_TEMP=`echo ${MINER_MON} | jq .stats.Temparaturerear`
+
+		POOL1_URL=`echo ${MINER_MON} | jq .conf.pools[0].url`
+		POOL1_WALLET=`echo ${MINER_MON} | jq .conf.pools[0].user`
+		POOL2_URL=`echo ${MINER_MON} | jq .conf.pools[1].url`
+		POOL2_WALLET=`echo ${MINER_MON} | jq .conf.pools[1].user`
+		POOL3_URL=`echo ${MINER_MON} | jq .conf.pools[2].url`
+		POOL3_WALLET=`echo ${MINER_MON} | jq .conf.pools[2].user`
+
+		UNIT_UPTIME=`echo ${MINER_MON} | jq .miner.uptime`
+		CGMINER_UPTIME=`echo ${MINER_MON} | jq .stats.Elapsed`
+
+		if [ "$HEADER" == "1" ] ; then
+			echo "IP,MINER_SN,MINER_FWVER,MINER_GATE_STATUS,MINER_GH,FRONT_TEMP,REAR_TEMP,POOL1_URL,POOL1_WALLET,POOL2_URL,POOL2_WALLET,POOL3_URL,POOL3_WALLET,UNIT_UPTIME,CGMINER_UPTIME"
+		fi
+
+		echo "$IP,$MINER_SN,$MINER_FWVER,$MINER_GATE_STATUS,$MINER_GH,$FRONT_TEMP,$REAR_TEMP,$POOL1_URL,$POOL1_WALLET,$POOL2_URL,$POOL2_WALLET,$POOL3_URL,$POOL3_WALLET,$UNIT_UPTIME,$CGMINER_UPTIME"
+	else
+		echo $IP,WGET-FAIL
+	fi
+
+else
+	echo $IP,NO-PING
+fi
