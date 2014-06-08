@@ -6,8 +6,8 @@
 ssl_cert()
 {
 	# generate an ssl certificate for the IP of this server (assumes eth0)
-	if [ ! -e /etc/spondoolies-cert.pem ]; then
- 		echo -e "\n\n\nSpondoolies-tech\n\n`ifconfig eth0 | grep inet | awk '{print $2}' | cut -c6-`\nwebmaster@localhost\n" | openssl req -x509 -nodes -days 14000 -newkey rsa:1024 -keyout /etc/spondoolies-cert.pem -out /etc/spondoolies-cert.pem  >/dev/null 2>&1 
+	if [ ! -e /tmp/spondoolies-cert.pem ]; then
+ 		echo -e "\n\n\nSpondoolies-tech\n\n`ifconfig eth0 | grep inet | awk '{print $2}' | cut -c6-`\nwebmaster@localhost\n" | openssl req -x509 -nodes -days 14000 -newkey rsa:1024 -keyout /tmp/spondoolies-cert.pem -out /tmp/spondoolies-cert.pem  >/dev/null 2>&1 
 	# restart lightpd. the restart service is not sufficient
 	 kill `ps -l | awk '$10~/lighttpd/{print $3}'`
 	 /etc/init.d/S50lighttpd start
