@@ -19,6 +19,7 @@ if [ ! $? -eq 0 ] ; then
 	exit 11
 fi
 
+#sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${MINER} cp ${FILE_TRG} ${FILE_TRG}.back
 sshpass -p ${PASS} scp -o StrictHostKeyChecking=no ${FILE_SRC} ${USER}@${MINER}:${FILE_TRG}
 RC=$?
 sshpass -p ${PASS} ssh ${USER}@${MINER} ${RESTART}

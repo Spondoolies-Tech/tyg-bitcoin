@@ -17,10 +17,19 @@ HEADER=$2
 ping -c 1 -W 1 $IP > /dev/null 2>&1
 if [ $? -eq 0 ] ; then
 
-
 	MINER_MON=`wget http://admin:admin@${IP}/monitor.php -O- 2>/dev/null`
 
-	if [ $? -eq 0 ] ; then 
+	if [ $? -eq 0 ] ; then
+		echo ${MINER_MON} | jq . >/dev/null 2>&1
+		if [ ! $? -eq 0 ] ; then
+			wget --post-data "agree=true" "http://admin:admin@${IP}/settings.php" 2>/dev/null
+			MINER_MON=`wget http://admin:admin@${IP}/monitor.php -O- 2>/dev/null`
+			echo ${MINER_MON} | jq . >/dev/null 2>&1
+			if [ ! $? -eq 0 ] ; then
+				echo $IP,WGET-FAIL
+				exit 1	
+			fi
+		fi
 		MINER_SN=`echo ${MINER_MON} | jq .miner.board_ver`
 		MINER_FWVER=`echo ${MINER_MON} | jq .miner.fw_ver`
 		MINER_GATE_STATUS=`echo ${MINER_MON} | jq .mg_status`
