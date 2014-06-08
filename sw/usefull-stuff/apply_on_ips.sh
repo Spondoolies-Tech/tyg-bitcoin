@@ -2,7 +2,7 @@
 
 usage()
 {
-	echo "Usage: $0 <script_file> <ip_addr_file> <operative> [filter]"
+	echo "Usage: $0 <script_file> <ip_addr_file> params"
 	echo "	if the script doesn't really require extra parm, just add a non-sense one"
 
 }

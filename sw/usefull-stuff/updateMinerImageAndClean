@@ -1,0 +1,98 @@
+#!/bin/bash
+
+if [ $# -lt 2 ] ; 
+    then echo "$0 <uImage_path> <miner-IP> [-check]"
+    exit 1
+fi
+IMAGE=$1
+MINER=$2
+CHECK=$3
+SSH_PASS=root
+
+if [ ! -e $IMAGE ] ;
+	then echo "Image file $IMAGE not found"
+	exit 2
+fi
+echo file $IMAGE exist
+
+mkimage -l $IMAGE | grep SP10_FW  > /dev/null 2>&1
+if [ ! $? -eq 0 ] ; 
+	then mkimage -l $IMAGE | grep Linux-3.8.13  > /dev/null 2>&1
+	if [ ! $? -eq 0 ] ; 
+		then echo "\n $IMAGE doesnt seem a valid image file. Aborting!"
+		exit 3
+	fi
+fi
+ 
+echo "${IMAGE} seems valid [`mkimage -l ${IMAGE} | grep Name:`] ."
+
+ping -c 1 $MINER > /dev/null 2>&1
+
+if [ ! $? -eq 0 ] ; 
+	then echo $MINER is not accessible
+	exit 4
+fi
+
+echo " ${MINER} accessible"
+
+if [ "$CHECK" == "-check" ] ; then
+	echo -e "\n"
+	read -p "....Push Image $IMAGE onto Miner $MINER ?" -n 1 -r
+	echo    # (optional) move to a new line
+	if [[ ! $REPLY =~ ^[Yy]$ ]] ; then
+		echo Aborting
+		exit 5
+	fi
+fi
+
+#> /dev/null 2>&1
+echo "mount /mnt/mmc-boot"
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/mmc-boot > /dev/null 2>&1
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} ls /mnt/mmc-boot/MLO > /dev/null 2>&1
+if [ $? -eq 0 ] ; then
+	echo scp $IMAGE root@${MINER} :/mnt/mmc-boot
+	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/mmc-boot > /dev/null 2>&1
+
+	
+        sleep 5
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/mmc-config > /dev/null 2>&1
+
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/mmc-config/etc/cgminer.conf 
+
+
+	echo "sync"
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} sync
+
+	echo "umount /mnt/mmc-boot"
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} umount /mnt/mmc-boot
+
+else
+	echo "${MINER} without MMC. Oh Boy."
+fi
+
+echo "mount /mnt/sd-boot"
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/sd-boot > /dev/null 2>&1
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} ls /mnt/sd-boot/MLO > /dev/null 2>&1
+if [ $? -eq 0 ] ; then
+	echo scp $IMAGE root@${MINER} :/mnt/sd-boot
+	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/sd-boot
+
+	echo "sync"
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} sync
+
+	echo "umount /mnt/sd-boot"
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} umount /mnt/sd-boot
+
+else
+	echo "${MINER} without SD-CARD"
+fi
+
+sleep 3
+
+echo "reboot"
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} /sbin/reboot
+
+
+
+
+

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+MINER=$1
+FILE2RM=$2
+RESTART="/usr/local/bin/spond-manager restart"
+PASS=root
+USER=root
+ping -c 1 -W 1 ${MINER} >/dev/null 2>&1
+if [ ! $? -eq 0 ] ; then
+	echo ${MINER},NO-PING
+	exit 11
+fi
+
+sshpass -p ${PASS} ssh ${USER}@${MINER} rm ${FILE2RM}
+sshpass -p ${PASS} ssh ${USER}@${MINER} ${RESTART}
+

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# this is a simple parms arrangement script
+# it's switch order of the params and call the real script which is updateMinerImage
+#
+# we assume this script resides in same folder of the updateMinerImage script!
+SCRIPT=`dirname $0`/updateMinerImageAndClean
+
+if [ ! -e ${SCRIPT} ] ; then
+	echo Script ${SCRIPT} not found
+	exit 1
+fi
+IMAGE=$2
+MINER=$1
+PARMS=${@:2}
+${SCRIPT} ${IMAGE} ${MINER} ${PARMS}
+

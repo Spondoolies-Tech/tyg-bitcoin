@@ -1,0 +1,32 @@
+#!/bin/bash
+if [ $# -lt 3 ] ; 
+    then echo "$0 <miner> <srcfile> <destfile> "
+    exit 1
+fi
+
+RESTART="/usr/local/bin/spond-manager restart"
+START="/usr/local/bin/spond-manager start"
+STOP="/usr/local/bin/spond-manager stop"
+
+MINER=$1
+FILE_SRC=$2
+FILE_TRG=$3
+PASS=root
+USER=root
+ping -c 1 -W 1 ${MINER} >/dev/null 2>&1
+if [ ! $? -eq 0 ] ; then
+	echo ${MINER},NO-PING
+	exit 11
+fi
+
+#sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${MINER} cp ${FILE_TRG} ${FILE_TRG}.back
+sshpass -p ${PASS} scp -o StrictHostKeyChecking=no ${FILE_SRC} ${USER}@${MINER}:${FILE_TRG}
+RC=$?
+sshpass -p ${PASS} ssh ${USER}@${MINER} ${RESTART}
+if [ ! ${RC} -eq 0 ] ; then
+	echo ${MINER},SCP-ERROR
+	exit 12
+else
+	echo "${MINER},${FILE_TRG},`head -n 1 ${FILE_SRC}`"
+fi
+
