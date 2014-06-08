@@ -5,7 +5,7 @@
 
 
 MINERGATE_CMD="nohup chrt -f 90 /usr/local/bin/miner_gate_arm > /dev/null 2>&1"
-CGMINER_CMD="nohup /etc/bin/cgminer --config /etc/cgminer.conf"
+CGMINER_CMD="nohup /etc/bin/cgminer --text-only --config /etc/cgminer.conf"
 export PATH=$PATH:/usr/local/bin:/bin
 
 
