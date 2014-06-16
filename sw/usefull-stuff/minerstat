@@ -66,9 +66,9 @@ if [ $? -eq 0 ] ; then
 		MINER_GATE_STATUS=`echo ${MINER_MON} | jq .mg_status`
 
 		MINER_GH=$((`echo ${MINER_MON} | jq .stats.ASICstotalrate`/1000))
-		CGMINER_5S_GH=$((`echo ${MINER_MON} | .summary[0].MHS5s`/1000))
-		ERRORS=`echo ${MINER_MON} | .summary[0].HardwareErrors`
-		ACCEPTED=`echo ${MINER_MON} | .summary[0].Accepted`
+		CGMINER_5S_GH=$((`echo ${MINER_MON} | jq .summary[0].MHS5s`/1000))
+		ERRORS=`echo ${MINER_MON} | jq .summary[0].HardwareErrors`
+		ACCEPTED=`echo ${MINER_MON} | jq .summary[0].Accepted`
 
 		FRONT_TEMP=`echo ${MINER_MON} | jq .stats.Temparaturefront`
 		REAR_TEMP=`echo ${MINER_MON} | jq .stats.Temparaturerear`
