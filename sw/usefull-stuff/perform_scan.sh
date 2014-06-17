@@ -14,6 +14,15 @@ SRC_IP_FILE=$1
 SCRIPT_FILE=`dirname $0`/minerstat
 SCRIPT_PARMS=${@:3}
 
+
+if [ ! -e ~/scans ] ; then
+	mkdir ~/scans
+fi
+
+OUT_FILE=~/scans/minerstats-`date +%m%d%H%M`.csv
+
+echo "OUT_FILE ${OUT_FILE}"
+
 if [ ! -e ${SCRIPT_FILE} ] ; then
 	echo "Script file ${SCRIPT_FILE} not found."
 	exit 2
@@ -48,7 +57,14 @@ IFS="$OIFS"
 
 for MINER in ${MINERS[@]}; do
 	CUNT=$((${CUNT} + 1))
-	${SCRIPT_FILE} ${MINER} ${CUNT}	
+	${SCRIPT_FILE} ${MINER} ${CUNT}	| tee -a ${OUT_FILE}
 done
+
+echo "=============================================================="
+echo "  Scan Completed                                              "
+echo ".                                                             ."
+echo "  Results reside in file: ${OUT_FILE}  in a  csv(excel) format"
+echo "=============================================================="
+
 
 rm ${IP_FILE}
