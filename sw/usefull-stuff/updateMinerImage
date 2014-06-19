@@ -26,6 +26,8 @@ fi
  
 echo "${IMAGE} seems valid [`mkimage -l ${IMAGE} | grep Name:`] ."
 
+IMAGE_VER=`mkimage -l ${IMAGE} | grep Name: | cut -d : -f 3`
+
 ping -c 1 $MINER > /dev/null 2>&1
 
 if [ ! $? -eq 0 ] ; 
@@ -35,15 +37,31 @@ fi
 
 echo " ${MINER} accessible"
 
+PINGVER=`dirname $0`/pingver
+
+MINER_CURVER=`${PINGVER} ${MINER} | cut -d , -f 2`
+
 if [ "$CHECK" == "-check" ] ; then
 	echo -e "\n"
-	read -p "....Push Image $IMAGE onto Miner $MINER ?" -n 1 -r
+	read -p "....Push Image $IMAGE (ver ${IMAGE_VER}) onto Miner $MINER (cur ver ${MINER_CURVER})?" -n 1 -r
 	echo    # (optional) move to a new line
 	if [[ ! $REPLY =~ ^[Yy]$ ]] ; then
 		echo Aborting
 		exit 5
 	fi
+	CHECK=-force
 fi
+
+if [ "$CHECK" != "-force" ] ; then
+	if  [ "${MINER_CURVER}" == "${IMAGE_VER}" ] ; then
+		echo -e "\n"
+		echo ".... Miner ${MINER} already has Image with the same version as ${IMAGE} ( ${IMAGE_VER})"
+		echo "Skipping !"
+		exit 6
+	fi
+fi
+
+
 
 #> /dev/null 2>&1
 echo "mount /mnt/mmc-boot"
