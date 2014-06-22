@@ -7,8 +7,10 @@
 cron_start()
 {
 	ntpd -qdn -p pool.ntp.org
-	[ `date +"%Y"` -le 2010 ] && `ntpd -qdn -p de.pool.ntp.org`
-	[ `date +"%Y"` -le 2010 ] && `ntpd -qdn -p us.pool.ntp.org`
+	[ `date +"%Y"` -le 2013 ] && `ntpd -qdn -p de.pool.ntp.org`
+	[ `date +"%Y"` -le 2013 ] && `ntpd -qdn -p us.pool.ntp.org`
+	[ `date +"%Y"` -le 2013 ] && `ntpd -qdn -p asia.pool.ntp.org`
+	[ `date +"%Y"` -le 2013 ] && `ntpd -qdn -p ch.pool.ntp.org`
 	/usr/sbin/crond
 }
 
