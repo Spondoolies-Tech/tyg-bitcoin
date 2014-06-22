@@ -57,9 +57,9 @@ mount_partitions()
 
 mount_unionfs()
 {
-	grep "${MP_MMC_CONF}" /proc/mounts &&
-		mount unionfs ||
-		echo 'WARNING: UnionFS is NOT mounted!'
+	# grep "${MP_MMC_CONF}" /proc/mounts &&
+	mount unionfs ||
+		echo 'UnionFS is NOT mounted!'
 }
 
 mount_media()

@@ -1,5 +1,36 @@
 #!/bin/bash
 
+#  "Lastgetwork": 1402929178,
+#  "PoolStale%": 0,
+#  "PoolRejected%": 0.7822,
+#  "DeviceRejected%": 10.3391,
+#  "DeviceHardware%": 0.0126,
+#  "BestShare": 390309,
+#  "DifficultyStale": 0,
+#  "DifficultyRejected": 4095.9375,
+#  "DifficultyAccepted": 519544.07226562,
+#  "WorkUtility": 1319.99,
+#  "TotalMH": 2249909000,
+#  "NetworkBlocks": 5,
+#  "RemoteFailures": 0,
+#  "Getworks": 48,
+#  "FoundBlocks": 0,
+#  "MHS15m": 1079514.38,
+#  "MHS5m": 1242943.7,
+#  "MHS1m": 1244568.43,
+#  "MHS5s": 1244226.64,
+#  "MHSav": 1249435.63,
+#  "Elapsed": 1801,
+#  "Accepted": 294,
+#  "Rejected": 2,
+#  "HardwareErrors": 5,
+#  "Utility": 9.8,
+#  "Discarded": 1030,
+#  "Stale": 0,
+#  "GetFailures": 0,
+#  "LocalWork": 30743
+
+
 if [ $# -lt 1 ] ; then
 	echo "usage: $0 <miner>"
 	exit 2
@@ -34,7 +65,11 @@ if [ $? -eq 0 ] ; then
 		MINER_FWVER=`echo ${MINER_MON} | jq .miner.fw_ver`
 		MINER_GATE_STATUS=`echo ${MINER_MON} | jq .mg_status`
 
-		MINER_GH=$((`echo ${MINER_MON} | jq .stats.ASICstotalrate`/1000))
+		MINER_GH=`echo ${MINER_MON} | jq .stats.ASICstotalrate`
+		CGMINER_5S_GH=`echo ${MINER_MON} | jq .summary[0].MHS5s`
+		ERRORS=`echo ${MINER_MON} | jq .summary[0].HardwareErrors`
+		ACCEPTED=`echo ${MINER_MON} | jq .summary[0].Accepted`
+
 		FRONT_TEMP=`echo ${MINER_MON} | jq .stats.Temparaturefront`
 		REAR_TEMP=`echo ${MINER_MON} | jq .stats.Temparaturerear`
 
@@ -47,12 +82,15 @@ if [ $? -eq 0 ] ; then
 
 		UNIT_UPTIME=`echo ${MINER_MON} | jq .miner.uptime`
 		CGMINER_UPTIME=`echo ${MINER_MON} | jq .stats.Elapsed`
+		
+		
+
 
 		if [ "$HEADER" == "1" ] ; then
-			echo "IP,MINER_SN,MINER_FWVER,MINER_GATE_STATUS,MINER_GH,FRONT_TEMP,REAR_TEMP,POOL1_URL,POOL1_WALLET,POOL2_URL,POOL2_WALLET,POOL3_URL,POOL3_WALLET,UNIT_UPTIME,CGMINER_UPTIME"
+			echo "IP,MINER_SN,MINER_FWVER,MINER_GATE_STATUS,MINER_GH,CGMINER_5S_GH,ERRORS,ACCEPTED,FRONT_TEMP,REAR_TEMP,POOL1_URL,POOL1_WALLET,POOL2_URL,POOL2_WALLET,POOL3_URL,POOL3_WALLET,UNIT_UPTIME,CGMINER_UPTIME"
 		fi
 
-		echo "$IP,$MINER_SN,$MINER_FWVER,$MINER_GATE_STATUS,$MINER_GH,$FRONT_TEMP,$REAR_TEMP,$POOL1_URL,$POOL1_WALLET,$POOL2_URL,$POOL2_WALLET,$POOL3_URL,$POOL3_WALLET,$UNIT_UPTIME,$CGMINER_UPTIME"
+		echo "$IP,$MINER_SN,$MINER_FWVER,$MINER_GATE_STATUS,$MINER_GH,$CGMINER_5S_GH,$ERRORS,$ACCEPTED,$FRONT_TEMP,$REAR_TEMP,$POOL1_URL,$POOL1_WALLET,$POOL2_URL,$POOL2_WALLET,$POOL3_URL,$POOL3_WALLET,$UNIT_UPTIME,$CGMINER_UPTIME"
 	else
 		echo $IP,WGET-FAIL
 	fi
