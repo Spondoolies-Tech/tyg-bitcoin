@@ -11,6 +11,7 @@ cron_start()
 	[ `date +"%Y"` -le 2013 ] && `ntpd -qdn -p us.pool.ntp.org`
 	[ `date +"%Y"` -le 2013 ] && `ntpd -qdn -p asia.pool.ntp.org`
 	[ `date +"%Y"` -le 2013 ] && `ntpd -qdn -p ch.pool.ntp.org`
+	[ `date +"%Y"` -le 2013 ] && rm /mnt/config/rrd/*.rrd # wrong time will corrupt rrd file, so delete, and start fresh
 	/usr/sbin/crond
 }
 
