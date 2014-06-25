@@ -2,10 +2,10 @@
 
 usage()
 {
-	echo "Usage: $0 <ip_addr_file> "
+	echo "Usage: $0 <ip_addr_file> [outputfilename|nofile]"
 }
 
-if [ $# -gt 1 ] ; then
+if [ $# -gt 2 ] ; then
 	usage
 	exit 1
 fi
@@ -19,7 +19,17 @@ if [ ! -e ~/scans ] ; then
 	mkdir ~/scans
 fi
 
-OUT_FILE=~/scans/minerstats-`date +%m%d%H%M`.csv
+OUT_FILE=$2
+
+if [ "${OUT_FILE}" == "nofile" ] ; then
+	OUT_FILE=/dev/null
+fi
+
+if [ "${OUT_FILE}" == "" ] ; then
+	OUT_FILE=~/scans/minerstats-`date +%m%d%H%M`.csv
+fi
+
+
 
 echo "OUT_FILE ${OUT_FILE}"
 
