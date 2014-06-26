@@ -26,7 +26,6 @@ if [ ! -e ~/scans ] ; then
 	mkdir ~/scans
 fi
 
-OUT_FILE=$2
 
 if [ ! -e ${SRC_IP_FILE} ] ; then
 	echo "IP Addresses File ${IP_FILE} not found."
