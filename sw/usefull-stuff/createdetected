@@ -1,0 +1,57 @@
+#!/bin/bash
+
+if [ $# -lt 1 ] ; then
+	echo "usage: $0 <ipfile> [<outfile>]"
+	exit 1
+fi
+
+WD=`dirname $0`
+INPAR=$WD/inpar
+PINGVER=$WD/pingver
+
+SRC_IP_FILE=$1
+OUT_FILE=$2
+
+
+if [ "${OUT_FILE}" == "nofile" ] ; then
+	OUT_FILE=/dev/null
+fi
+
+if [ "${OUT_FILE}" == "" ] ; then
+	OUT_FILE=~/scans/detected-`date +%m%d%H%M`.csv
+fi
+
+
+if [ ! -e ~/scans ] ; then
+	mkdir ~/scans
+fi
+
+OUT_FILE=$2
+
+if [ ! -e ${SRC_IP_FILE} ] ; then
+	echo "IP Addresses File ${IP_FILE} not found."
+	exit 3
+fi
+
+${INPAR} ${PINGVER} ${SRC_IP_FILE}
+
+echo "Waiting 40 seconds"
+for i in `seq 1 40` ; do
+	echo -n .
+	sleep 1
+done
+echo
+
+for LOG in ${SRC_IP_FILE}_*.log ; do
+	cat ${LOG} | grep -v NO-PING | tee -a ${OUT_FILE}
+done
+
+
+echo "=============================================================="
+echo "  Scan Completed                                              "
+echo ".                                                             ."
+echo "  Results reside in file: ${OUT_FILE}  in a  csv(excel) format"
+echo "=============================================================="
+
+
+
