@@ -46,6 +46,8 @@ for LOG in ${SRC_IP_FILE}_*.log ; do
 	cat ${LOG} | grep -v NO-PING | tee -a ${OUT_FILE}
 done
 
+rm ${SRC_IP_FILE}_??.log ${SRC_IP_FILE}_??
+
 
 echo "=============================================================="
 echo "  Scan Completed                                              "
