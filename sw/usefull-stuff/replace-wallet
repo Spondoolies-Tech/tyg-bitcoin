@@ -1,0 +1,77 @@
+#!/bin/bash
+
+
+
+# 1. cgminer conf template file
+# 2. IP address of miner.
+CGMINER_TMPLATE=$2
+CGMINER_TRG=/etc/cgminer.conf
+MINER_IP=$1
+USER=root
+PASS=root
+WID=WID
+WIDTO=${MINER_IP}
+SUBSTYPE=0
+WD=`dirname $0`
+# 1 - hostname , 2-IP
+
+if [ $# -lt 2 ] ; then
+	echo Too Few Params
+	echo "Usage: $0 <miner> <cgminer.conf.tmplfile> "
+	exit 1
+fi
+#echo cgminer.conf template file is ${CGMINER_TMPLATE}
+
+# validation:
+
+#1. check that template file actually exists:
+
+if [ ! -e ${CGMINER_TMPLATE} ] ; then
+	echo File ${CGMINER_TMPLATE} Not Found.
+	exit 2
+fi
+
+#2. validate - somewhat that the template flie is correct
+
+IS_H=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null | grep "_%h" -c `
+IS_I=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null | grep "_%i" -c `
+
+#echo "IS_H:${IS_H} , IS_I:${IS_I}"
+
+if   [ ${IS_H} -eq 1 ] ; then
+	SUBSTYPE=1
+	WID="_%h"
+elif [ ${IS_I} -eq 1 ] ; then
+	SUBSTYPE=2
+	WID="_%i"
+fi
+
+if [ ${SUBSTYPE} -eq 0 ] ; then
+	IS_USER=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null`
+
+	if [ $? -ne 0 ] ; then
+		echo "BAD template file  - not even a json.."
+		exit 4
+	fi 
+
+	if [ "${IS_USER}" == "null" ] ; then
+		echo "BAD template file, no wallet entry!!"
+		exit 5
+	fi 
+	echo "Couldnt find _%h  or _%i in wallet entry. using conf file without substitution"
+fi
+
+if [ ${SUBSTYPE} -eq 1 ] ; then
+	MINER_HOST=`sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} hostname`
+	WIDTO=${MINER_HOST:6}
+#	echo "Host name of ${MINER_IP} is ${MINER_HOST} , we shall use ${WIDTO}"
+fi
+
+CUSTOMFILE=`mktemp`
+sed s/${WID}/_${WIDTO}/g ${CGMINER_TMPLATE} > ${CUSTOMFILE}
+
+
+${WD}/cpfile ${MINER_IP} ${CUSTOMFILE} ${CGMINER_TRG}
+rm -f ${CUSTOMFILE}
+
+
