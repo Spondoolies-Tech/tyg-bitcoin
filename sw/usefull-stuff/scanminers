@@ -1,0 +1,6 @@
+#!/bin/bash
+F2=/tmp/lastscan
+F1=`mktemp`
+/home/remo/miner_scripts/createdetected /home/remo/scans/IPS-full-90-93-range ${F1}
+sleep 33
+/home/remo/miner_scripts/perform_scan.sh ${F1} ${F2}
