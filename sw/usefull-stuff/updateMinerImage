@@ -1,13 +1,14 @@
 #!/bin/bash
 
 if [ $# -lt 2 ] ; 
-    then echo "$0 <uImage_path> <miner-IP> [-check]"
+    then echo "$0 <uImage_path> <miner-IP> [-check] [-p PATTERN]"
     exit 1
 fi
 IMAGE=$1
 MINER=$2
 CHECK=$3
 SSH_PASS=root
+PATTERN=0_FW
 
 if [ ! -e $IMAGE ] ;
 	then echo "Image file $IMAGE not found"
@@ -15,7 +16,11 @@ if [ ! -e $IMAGE ] ;
 fi
 echo file $IMAGE exist
 
-mkimage -l $IMAGE | grep SP10_FW  > /dev/null 2>&1
+if [ "$3" == "-p" ] ; then
+	PATTERN=$4
+fi
+
+mkimage -l $IMAGE | grep ${PATTERN}  > /dev/null 2>&1
 if [ ! $? -eq 0 ] ; 
 	then mkimage -l $IMAGE | grep Linux-3.8.13  > /dev/null 2>&1
 	if [ ! $? -eq 0 ] ; 

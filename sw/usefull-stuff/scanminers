@@ -1,6 +1,7 @@
 #!/bin/bash
 F2=/var/www/html/production/tmp/lastscan
+IPFILE=/home/remo/scans/IPS-FULL-80-95-RANGE
 F1=`mktemp`
-/home/remo/miner_scripts/createdetected /home/remo/scans/IPS-full-90-93-range ${F1}
+/home/remo/miner_scripts/createdetected ${IPFILE} ${F1}
 sleep 33
 /home/remo/miner_scripts/perform_scan.sh ${F1} ${F2}
