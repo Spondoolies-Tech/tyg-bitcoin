@@ -20,6 +20,12 @@ if [ "$3" == "-p" ] ; then
 	PATTERN=$4
 fi
 
+if [ "$4" == "-p" ] ; then
+	PATTERN=$5
+fi
+
+
+
 mkimage -l $IMAGE | grep ${PATTERN}  > /dev/null 2>&1
 if [ ! $? -eq 0 ] ; 
 	then mkimage -l $IMAGE | grep Linux-3.8.13  > /dev/null 2>&1
@@ -31,7 +37,12 @@ fi
  
 echo "${IMAGE} seems valid [`mkimage -l ${IMAGE} | grep Name:`] ."
 
-IMAGE_VER=`mkimage -l ${IMAGE} | grep Name: | cut -d : -f 3`
+VER_LINE=`mkimage -l ${IMAGE} | grep Name:`
+IMAGE_VER=${VER_LINE:22:30}
+FW_MODEL=${VER_LINE:14:4}
+
+#IMAGE_VER=`mkimage -l ${IMAGE} | grep Name: | cut -d : -f 3`
+
 
 ping -c 1 $MINER > /dev/null 2>&1
 
@@ -45,6 +56,7 @@ echo " ${MINER} accessible"
 PINGVER=`dirname $0`/pingver
 
 MINER_CURVER=`${PINGVER} ${MINER} | cut -d , -f 2`
+MINER_MODEL=`sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} "cat /model_id" 2>/dev/null` 
 
 if [ "$CHECK" == "-check" ] ; then
 	echo -e "\n"
@@ -64,6 +76,14 @@ if [ "$CHECK" != "-force" ] ; then
 		echo "Skipping !"
 		exit 6
 	fi
+
+	if  [ ! "${FW_MODEL}" == "${MINER_MODEL}" ] ; then
+		echo -e "\n"
+		echo ".... Miner ${MINER} is an ${MINER_MODEL} ; Image file ${IMAGE} is designed for ${FW_MODEL}"
+		echo "DITCHING !!"
+		exit 7
+	fi
+
 fi
 
 
