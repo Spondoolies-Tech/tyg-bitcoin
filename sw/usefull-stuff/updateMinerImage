@@ -123,6 +123,9 @@ else
 	echo "${MINER} without SD-CARD"
 fi
 
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/* /mnt/config/etc/mg_custom_mode /mnt/mmc-config/etc/mg_custom_mode > /dev/null 2>&1
+
+
 sleep 3
 
 echo "reboot"
