@@ -33,17 +33,15 @@ fi
 
 #2. validate - somewhat that the template flie is correct
 
-IS_H=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null | grep "_%h" -c `
-IS_I=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null | grep "_%i" -c `
+IS_H=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null | grep "%h" -c `
+IS_I=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null | grep "%i" -c `
 
 #echo "IS_H:${IS_H} , IS_I:${IS_I}"
 
 if   [ ${IS_H} -eq 1 ] ; then
-	SUBSTYPE=1
-	WID="_%h"
+	SUBSTYPE=$((${SUBSTYPE}+1))
 elif [ ${IS_I} -eq 1 ] ; then
-	SUBSTYPE=2
-	WID="_%i"
+	SUBSTYPE=$((${SUBSTYPE}+2))
 fi
 
 if [ ${SUBSTYPE} -eq 0 ] ; then
@@ -58,20 +56,24 @@ if [ ${SUBSTYPE} -eq 0 ] ; then
 		echo "BAD template file, no wallet entry!!"
 		exit 5
 	fi 
-	echo "Couldnt find _%h  or _%i in wallet entry. using conf file without substitution"
+	echo "Couldnt find %h  or %i in wallet entry. using conf file without substitution"
 fi
 
-if [ ${SUBSTYPE} -eq 1 ] ; then
-	MINER_HOST=`sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} hostname`
-	WIDTO=${MINER_HOST:6}
-#	echo "Host name of ${MINER_IP} is ${MINER_HOST} , we shall use ${WIDTO}"
-fi
+MINER_HOST=`sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} hostname`
+MINER_HOST=${MINER_HOST:6}
 
-CUSTOMFILE=`mktemp`
-sed s/${WID}/_${WIDTO}/g ${CGMINER_TMPLATE} > ${CUSTOMFILE}
+CUSTOMFILE1=`mktemp`
+CUSTOMFILE2=`mktemp`
 
+WID=%i
+WIDTO=${MINER_IP}
+sed s/${WID}/${WIDTO}/g ${CGMINER_TMPLATE} > ${CUSTOMFILE1}
 
-${WD}/cpfile ${MINER_IP} ${CUSTOMFILE} ${CGMINER_TRG}
-rm -f ${CUSTOMFILE}
+WID=%h
+WIDTO=${MINER_HOST}
+sed s/${WID}/${WIDTO}/g ${CGMINER_TMPLATE1} > ${CUSTOMFILE2}
+
+${WD}/cpfile ${MINER_IP} ${CUSTOMFILE2} ${CGMINER_TRG}
+rm -f ${CUSTOMFILE1} ${CUSTOMFILE2}
 
 

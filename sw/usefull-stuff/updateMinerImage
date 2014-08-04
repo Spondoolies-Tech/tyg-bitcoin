@@ -1,13 +1,14 @@
 #!/bin/bash
 
 if [ $# -lt 2 ] ; 
-    then echo "$0 <uImage_path> <miner-IP> [-check]"
+    then echo "$0 <uImage_path> <miner-IP> [-check] [-p PATTERN]"
     exit 1
 fi
 IMAGE=$1
 MINER=$2
 CHECK=$3
 SSH_PASS=root
+PATTERN=0_FW
 
 if [ ! -e $IMAGE ] ;
 	then echo "Image file $IMAGE not found"
@@ -15,7 +16,17 @@ if [ ! -e $IMAGE ] ;
 fi
 echo file $IMAGE exist
 
-mkimage -l $IMAGE | grep SP10_FW  > /dev/null 2>&1
+if [ "$3" == "-p" ] ; then
+	PATTERN=$4
+fi
+
+if [ "$4" == "-p" ] ; then
+	PATTERN=$5
+fi
+
+
+
+mkimage -l $IMAGE | grep ${PATTERN}  > /dev/null 2>&1
 if [ ! $? -eq 0 ] ; 
 	then mkimage -l $IMAGE | grep Linux-3.8.13  > /dev/null 2>&1
 	if [ ! $? -eq 0 ] ; 
@@ -26,7 +37,12 @@ fi
  
 echo "${IMAGE} seems valid [`mkimage -l ${IMAGE} | grep Name:`] ."
 
-IMAGE_VER=`mkimage -l ${IMAGE} | grep Name: | cut -d : -f 3`
+VER_LINE=`mkimage -l ${IMAGE} | grep Name:`
+IMAGE_VER=${VER_LINE:22:30}
+FW_MODEL=${VER_LINE:14:4}
+
+#IMAGE_VER=`mkimage -l ${IMAGE} | grep Name: | cut -d : -f 3`
+
 
 ping -c 1 $MINER > /dev/null 2>&1
 
@@ -40,6 +56,7 @@ echo " ${MINER} accessible"
 PINGVER=`dirname $0`/pingver
 
 MINER_CURVER=`${PINGVER} ${MINER} | cut -d , -f 2`
+MINER_MODEL=`sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} "cat /model_id" 2>/dev/null` 
 
 if [ "$CHECK" == "-check" ] ; then
 	echo -e "\n"
@@ -59,6 +76,14 @@ if [ "$CHECK" != "-force" ] ; then
 		echo "Skipping !"
 		exit 6
 	fi
+
+	if  [ ! "${FW_MODEL}" == "${MINER_MODEL}" ] ; then
+		echo -e "\n"
+		echo ".... Miner ${MINER} is an ${MINER_MODEL} ; Image file ${IMAGE} is designed for ${FW_MODEL}"
+		echo "DITCHING !!"
+		exit 7
+	fi
+
 fi
 
 
@@ -97,6 +122,9 @@ if [ $? -eq 0 ] ; then
 else
 	echo "${MINER} without SD-CARD"
 fi
+
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/* /mnt/config/etc/mg_custom_mode /mnt/mmc-config/etc/mg_custom_mode > /dev/null 2>&1
+
 
 sleep 3
 
