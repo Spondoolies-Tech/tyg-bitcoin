@@ -1,0 +1,2 @@
+#!/bin/sh
+createdetected ~/scans/IPS-FULL-80-95-RANGE /tmp/full-`date +%m%d%H%M%S`
