@@ -65,8 +65,16 @@ then
     exit 1
 fi
 
+# check that /model_name file exists
+MODEL=$(sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} cat /model_name 2>/dev/null)
+if [ -z "${MODEL}" ]
+then
+    MODEL=$(sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} cat /model_id 2>/dev/null)
+    echo ${MINER_IP},${MODEL},"UNSUPPORTED"
+    exit 1
+fi
+
 # check if this model is supported
-MODEL=$(sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} cat /model_name)
 grep ${MODEL} -i <<< ${UNSUPPORTED_MODELS} >/dev/null 2>&1
 if [ $? == "0" ]
 then
