@@ -39,16 +39,18 @@ done
 let last_subnet_ip_index=${sub_ip[3]}+${SUBNETS_RANGE}
 
 # scan all subnets and collect information
-IP_RANGES_OUTPUT_FILE=/tmp/IPS-${sub_ip[1]}.${sub_ip[2]}.${sub_ip[3]}_${last_subnet_ip_index}-RANGE
 for subnet in $(eval echo "${sub_ip[1]}.${sub_ip[2]}.{${sub_ip[3]}..${last_subnet_ip_index}}")
 do
-  rm -f ${IP_RANGES_OUTPUT_FILE}
-  for ip in {1..255}
-  do
-    echo ${subnet}.${ip} >> ${IP_RANGES_OUTPUT_FILE}
-  done
+  IPS_FILE=/tmp/IPS-${subnet}
+  if [ ! -f ${IPS_FILE} ]
+  then
+    for ip in {1..255}
+    do
+      echo ${subnet}.${ip} >> ${IPS_FILE}
+    done
+  fi
   echo "######## SCANNING SUBNET ${subnet}.0 #############"
-  createdetected ${IP_RANGES_OUTPUT_FILE} ${LIST_OF_EXPOSED_MINERS}
+  createdetected ${IPS_FILE} ${LIST_OF_EXPOSED_MINERS}
 done
 
 # lets print path for results
