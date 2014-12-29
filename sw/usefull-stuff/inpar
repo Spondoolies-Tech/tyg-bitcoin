@@ -19,39 +19,35 @@ SCRIPT=$1
 BIG_IP_LIST=$2
 PARAMS=${@:3}
 
-FILE_SIZE=`cat ${BIG_IP_LIST} |wc -l `
-
-echo $FILE_SIZE
-if [ $FILE_SIZE -gt 30 ] ; then
-	DOSPLIT=TRUE
-    # clean previous results, very critical
-    rm -fr ${BIG_IP_LIST}_*
-    rm -fr ${BIG_IP_LIST}_*.log
-	/usr/bin/split -l 20 ${BIG_IP_LIST} ${BIG_IP_LIST}_
+NUMBER_OF_IPS=`cat ${BIG_IP_LIST} |wc -l `
+if [ -z "${JOBS}" ]
+then
+    JOBS=100
 fi
 
-if [ "${DOSPLIT}" == "TRUE" ] ; then
-    echo SPLITS
-    fnum=0
-    split_files=$(ls ${BIG_IP_LIST}_*)
-    for fn in ${split_files}
-    do
-        fnum=$(($fnum+1))
-        if [ ${SHOW} -eq 1 ] ; then
-            apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS}  &
-        else
-            # lets clean previous log file
-            rm -fr ${fn}.log
-            apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS} > ${fn}.log &
-        fi
-    done
-else
+JOB_IPS_BLOCK_SIZE=$(expr $(expr ${NUMBER_OF_IPS} / ${JOBS}) + 1)
+
+# clean previous results, very critical
+rm -fr ${BIG_IP_LIST}_*
+rm -fr ${BIG_IP_LIST}_*.log
+
+# generate small job parts
+/usr/bin/split -l ${JOB_IPS_BLOCK_SIZE} ${BIG_IP_LIST} ${BIG_IP_LIST}_
+
+# execute jobs on splitted files
+fnum=0
+split_files=$(ls ${BIG_IP_LIST}_*)
+for fn in ${split_files}
+do
+    fnum=$(($fnum+1))
     if [ ${SHOW} -eq 1 ] ; then
-        apply_on_ips.sh ${SCRIPT} ${BIG_IP_LIST} ${PARAMS}  
+        apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS}  &
     else
-        apply_on_ips.sh ${SCRIPT} ${BIG_IP_LIST} ${PARAMS} > ${BIG_IP_LIST}___.log 
+        # lets clean previous log file
+        rm -fr ${fn}.log
+        apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS} > ${fn}.log &
     fi
-fi
+done
 
 # lets wait for jobs to finish
 for job in `jobs -p`
