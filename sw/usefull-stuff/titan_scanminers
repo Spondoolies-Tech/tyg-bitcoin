@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ ! "$1" == "" ] ; then
+	F2=$1
+fi
+
+IPFILE=/home/remo/scans/TITAN-IPS-81s
+F1=`mktemp`
+/home/remo/miner_scripts/createdetected_slow ${IPFILE} ${F1}
+sleep 33
+/home/remo/miner_scripts/perform_scan.sh ${F1} ${F2}

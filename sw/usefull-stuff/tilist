@@ -1,0 +1,2 @@
+#!/bin/sh
+createdetected_slow /home/remo/scans/TITAN-IPS-81s /tmp/full-`date +%m%d%H%M%S`

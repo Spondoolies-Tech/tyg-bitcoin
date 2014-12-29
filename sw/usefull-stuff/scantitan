@@ -1,0 +1,16 @@
+#!/bin/bash
+export PATH=$PATH:/usr/local/bin:/home/remo/miner_scripts
+F2=/tmp/lastscan_titan
+F15=`mktemp`
+if [ ! "$1" == "" ] ; then
+	F2=$1
+fi
+#IPFILE=/home/remo/scans/IPS-FULL-80-95-RANGE
+IPFILE=/home/remo/scans/TITAN-IPS-81s
+F1=`mktemp`
+createdetected ${IPFILE} ${F1}
+sleep 33
+perform_scan.sh ${F1}  ${F15}
+cat ${F15} | grep 10 |  cut -d , -f1,3  | sed s/\"//g  |  sed s/\,/' '/g  > ${F2}
+
+chcon -R -h -t httpd_sys_content_t ${F2}
