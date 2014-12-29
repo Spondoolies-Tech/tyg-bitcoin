@@ -19,20 +19,20 @@ SCRIPT=$1
 BIG_IP_LIST=$2
 PARAMS=${@:3}
 
-NUMBER_OF_IPS=`cat ${BIG_IP_LIST} |wc -l `
-if [ -z "${JOBS}" ]
+if [ -z "${MAX_JOBS}" ]
 then
-    JOBS=100
+    MAX_JOBS=100
 fi
 
-JOB_IPS_BLOCK_SIZE=$(expr $(expr ${NUMBER_OF_IPS} / ${JOBS}) + 1)
+JOB_IPS_NUMBER_IN_BLOCK=2
+JOBS_FILES_SUFFIX_SIZE=4
 
 # clean previous results, very critical
 rm -fr ${BIG_IP_LIST}_*
 rm -fr ${BIG_IP_LIST}_*.log
 
 # generate small job parts
-/usr/bin/split -l ${JOB_IPS_BLOCK_SIZE} ${BIG_IP_LIST} ${BIG_IP_LIST}_
+/usr/bin/split -l ${JOB_IPS_NUMBER_IN_BLOCK} -a ${JOBS_FILES_SUFFIX_SIZE} ${BIG_IP_LIST} ${BIG_IP_LIST}_
 
 # execute jobs on splitted files
 fnum=0
@@ -47,6 +47,12 @@ do
         rm -fr ${fn}.log
         apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS} > ${fn}.log &
     fi
+    current_jobs_number=$(jobs | wc -l)
+    if [ "${current_jobs_number}" -ge "${MAX_JOBS}" ]
+    then
+        pids=($(jobs -p))
+        wait ${pids[0]}
+    fi
 done
 
 # lets wait for jobs to finish
@@ -59,10 +65,13 @@ done
 if [ ! ${SHOW} -eq 1 ]
 then
 # collects all outputs to one file
+    echo "Aggregating results in file ${BIG_IP_LIST}.log ..." 
     rm -f ${BIG_IP_LIST}.log
     for fn in ${BIG_IP_LIST}_*.log
     do
         cat ${fn} >> ${BIG_IP_LIST}.log 
     done
-    echo "Aggregated results file - ${BIG_IP_LIST}.log" 
 fi
+
+echo "removing generated files"
+rm -fr ${BIG_IP_LIST}_*

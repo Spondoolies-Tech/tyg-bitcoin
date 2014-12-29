@@ -38,20 +38,21 @@ done
 # calculate value of last subnet 
 let last_subnet_ip_index=${sub_ip[3]}+${SUBNETS_RANGE}
 
-# scan all subnets and collect information
-for subnet in $(eval echo "${sub_ip[1]}.${sub_ip[2]}.{${sub_ip[3]}..${last_subnet_ip_index}}")
-do
-  IPS_FILE=/tmp/IPS-${subnet}
-  if [ ! -f ${IPS_FILE} ]
-  then
+# check and generate subnets ips file
+IPS_FILE="/tmp/IPS-${sub_ip[3]}_${last_subnet_ip_index}"
+if [ ! -f "${IPS_FILE}" ]
+then
+  for subnet in $(eval echo "${sub_ip[1]}.${sub_ip[2]}.{${sub_ip[3]}..${last_subnet_ip_index}}")
+  do
     for ip in {1..255}
     do
       echo ${subnet}.${ip} >> ${IPS_FILE}
     done
-  fi
-  echo "######## SCANNING SUBNET ${subnet}.0 #############"
-  createdetected ${IPS_FILE} ${LIST_OF_EXPOSED_MINERS}
-done
+  done
+fi
+
+echo "######## SCANNING SUBNETS ${sub_ip[1]}.${sub_ip[2]}.{${sub_ip[3]}..${last_subnet_ip_index}} #############"
+createdetected ${IPS_FILE} ${LIST_OF_EXPOSED_MINERS}
 
 # lets print path for results
 echo "file with IP ranges - ${IP_RANGES_OUTPUT_FILE}"
