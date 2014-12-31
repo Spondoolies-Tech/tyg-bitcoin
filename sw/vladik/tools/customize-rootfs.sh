@@ -136,7 +136,7 @@ mounts()
 
 sw_upgrade()
 {
-	for f in download-file.sh upgrade-software.sh verify-digest.sh
+	for f in download-file.sh upgrade-software.sh verify-digest.sh upgrade-software-from-file.sh
 	do
 		cp -a ${CUR_DIR}/../provisioning/${f} usr/local/bin
 	done

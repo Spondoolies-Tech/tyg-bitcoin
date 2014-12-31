@@ -21,7 +21,7 @@ typedef long long  int64;
 typedef unsigned long long  uint64;
 
 
-#if 0
+#if 1
 // http://blockexplorer.com/b/12345
 #define BLOK_VER   1
 #define BLOCK_PREV_HASH "0000000076876082384460fb5a231cc5a5e874b9762e15a4e7b1fc068f749cdf"
@@ -33,7 +33,7 @@ typedef unsigned long long  uint64;
 
 
 
-#if 1
+#if 0
 // http://blockexplorer.com/b/99999
 #define BLOK_VER   1
 #define BLOCK_PREV_HASH "0000000000002103637910d267190996687fb095880d432c6531a527c8ec53d1"
