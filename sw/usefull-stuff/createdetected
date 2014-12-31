@@ -34,25 +34,12 @@ fi
 
 ${INPAR} ${PINGVER} ${SRC_IP_FILE} foo
 
-echo "Waiting 30 seconds"
-for i in `seq 1 30` ; do
-	echo -n .
-	sleep 1
-done
-echo
-
-for LOG in ${SRC_IP_FILE}_*.log ; do
-	cat ${LOG} | grep -v NO-PING | tee -a ${OUT_FILE}
-done
-
-rm ${SRC_IP_FILE}_??.log ${SRC_IP_FILE}_??
-
+# select only raws that we accessed with ping
+echo "filtering results..."
+grep -v NO-PING ${SRC_IP_FILE}.log | tee -a ${OUT_FILE}
 
 echo "=============================================================="
 echo "  Scan Completed                                              "
 echo ".                                                             ."
 echo "  Results reside in file: ${OUT_FILE}  in a  csv(excel) format"
 echo "=============================================================="
-
-
-

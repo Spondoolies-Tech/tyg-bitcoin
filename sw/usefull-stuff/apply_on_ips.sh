@@ -18,7 +18,7 @@ SCRIPT_FILE=$1
 #FILTER=$4
 SCRIPT_PARMS=${@:3}
 
-if [ ! -e ${SCRIPT_FILE} ] ; then
+if [ ! -e ${SCRIPT_FILE} ] && [ ! -e `which ${SCRIPT_FILE}` ] ; then
 	echo "Script file ${SCRIPT_FILE} not found."
 	exit 2
 fi

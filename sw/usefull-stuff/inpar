@@ -1,7 +1,16 @@
 #!/bin/bash
 
-if [ $# -lt 3 ] ; then
-	echo "usage: $0 <scriptfile> <ipfile> params ..."
+SHOW=0
+
+if [ "$1" == "-show" ] || [ "$1" == "show" ]
+then
+	SHOW=1
+	shift
+fi
+
+if [ $# -lt 3 ]
+then
+	echo "usage: $0 [-show] <scriptfile> <ipfile> params ..."
 	exit 1
 fi
 
@@ -10,25 +19,59 @@ SCRIPT=$1
 BIG_IP_LIST=$2
 PARAMS=${@:3}
 
-#echo $PARAMS
-
-FILE_SIZE=`cat ${BIG_IP_LIST} |wc -l `
-
-echo $FILE_SIZE
-if [ $FILE_SIZE -gt 30 ] ; then
-	DOSPLIT=TRUE
-	/usr/bin/split -l 20 ${BIG_IP_LIST} ${BIG_IP_LIST}_
+if [ -z "${MAX_JOBS}" ]
+then
+    MAX_JOBS=100
 fi
 
-if [ "${DOSPLIT}" == "TRUE" ] ; then
-	 echo SPLITS
-	fnum=0
-	for fn in ${BIG_IP_LIST}_*
-	do
-		fnum=$(($fnum+1))
-		${WD}/apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS} | tee > ${fn}.log &
-#		echo "${WD}/apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS} | tee > ${fn}.log "
-	done
-else
-	./apply_on_ips.sh ${SCRIPT} ${BIG_IP_LIST} ${PARAMS} | tee > ${BIG_IP_LIST}.log 
+JOB_IPS_NUMBER_IN_BLOCK=2
+JOBS_FILES_SUFFIX_SIZE=4
+
+# clean previous results, very critical
+rm -fr ${BIG_IP_LIST}_*
+rm -fr ${BIG_IP_LIST}_*.log
+
+# generate small job parts
+/usr/bin/split -l ${JOB_IPS_NUMBER_IN_BLOCK} -a ${JOBS_FILES_SUFFIX_SIZE} ${BIG_IP_LIST} ${BIG_IP_LIST}_
+
+# execute jobs on splitted files
+fnum=0
+split_files=$(ls ${BIG_IP_LIST}_*)
+for fn in ${split_files}
+do
+    fnum=$(($fnum+1))
+    if [ ${SHOW} -eq 1 ] ; then
+        apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS}  &
+    else
+        # lets clean previous log file
+        rm -fr ${fn}.log
+        apply_on_ips.sh ${SCRIPT} ${fn} ${PARAMS} > ${fn}.log &
+    fi
+    current_jobs_number=$(jobs | wc -l)
+    if [ "${current_jobs_number}" -ge "${MAX_JOBS}" ]
+    then
+        pids=($(jobs -p))
+        wait ${pids[0]}
+    fi
+done
+
+# lets wait for jobs to finish
+for job in `jobs -p`
+do
+    echo "waiting for $job job to be finished"
+    wait $job || let "FAIL+=1"
+done
+
+if [ ! ${SHOW} -eq 1 ]
+then
+# collects all outputs to one file
+    echo "Aggregating results in file ${BIG_IP_LIST}.log ..." 
+    rm -f ${BIG_IP_LIST}.log
+    for fn in ${BIG_IP_LIST}_*.log
+    do
+        cat ${fn} >> ${BIG_IP_LIST}.log 
+    done
 fi
+
+echo "removing generated files"
+rm -fr ${BIG_IP_LIST}_*

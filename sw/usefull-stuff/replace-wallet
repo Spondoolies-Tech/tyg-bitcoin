@@ -1,79 +1,96 @@
 #!/bin/bash
-
-
-
-# 1. cgminer conf template file
-# 2. IP address of miner.
-CGMINER_TMPLATE=$2
-CGMINER_TRG=/etc/cgminer.conf
+# argumnents:
+#       1. cgminer conf template file
+#       2. IP address of miner.
 MINER_IP=$1
+CGMINER_TMPLATE=$2
+
+CGMINER_TRG=/etc/cgminer.conf
 USER=root
 PASS=root
 WID=WID
 WIDTO=${MINER_IP}
 SUBSTYPE=0
 WD=`dirname $0`
-# 1 - hostname , 2-IP
 
-if [ $# -lt 2 ] ; then
+stop_spond_manager() {
+    sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} /usr/local/bin/spond-manager stop
+}
+
+start_spond_manager() {
+    sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} /usr/local/bin/spond-manager start
+}
+
+if [ $# -lt 2 ]
+then
 	echo Too Few Params
 	echo "Usage: $0 <miner> <cgminer.conf.tmplfile> "
 	exit 1
 fi
-#echo cgminer.conf template file is ${CGMINER_TMPLATE}
 
-# validation:
+# validation of prerequired data
 
 #1. check that template file actually exists:
-
 if [ ! -e ${CGMINER_TMPLATE} ] ; then
 	echo File ${CGMINER_TMPLATE} Not Found.
 	exit 2
 fi
 
 #2. validate - somewhat that the template flie is correct
-
 IS_H=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null | grep "%h" -c `
 IS_I=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null | grep "%i" -c `
 
-#echo "IS_H:${IS_H} , IS_I:${IS_I}"
-
-if   [ ${IS_H} -eq 1 ] ; then
+if   [ ${IS_H} -eq 1 ]
+then
 	SUBSTYPE=$((${SUBSTYPE}+1))
-elif [ ${IS_I} -eq 1 ] ; then
+elif [ ${IS_I} -eq 1 ]
+then
 	SUBSTYPE=$((${SUBSTYPE}+2))
 fi
 
-if [ ${SUBSTYPE} -eq 0 ] ; then
+if [ ${SUBSTYPE} -eq 0 ]
+then
 	IS_USER=`cat ${CGMINER_TMPLATE} | jq .pools[].user 2>/dev/null`
 
-	if [ $? -ne 0 ] ; then
+	if [ $? -ne 0 ]
+    then
 		echo "BAD template file  - not even a json.."
 		exit 4
 	fi 
 
-	if [ "${IS_USER}" == "null" ] ; then
+	if [ "${IS_USER}" == "null" ]
+    then
 		echo "BAD template file, no wallet entry!!"
 		exit 5
 	fi 
 	echo "Couldnt find %h  or %i in wallet entry. using conf file without substitution"
 fi
 
-MINER_HOST=`sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} hostname`
-MINER_HOST=${MINER_HOST:6}
+MINER_HOST_TEMP=`sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} sh -c "hostname"`
+MINER_HOST=${MINER_HOST_TEMP:6}
 
 CUSTOMFILE1=`mktemp`
 CUSTOMFILE2=`mktemp`
 
+# injecting miner ip, by replacing %i
 WID="%i"
 WIDTO=${MINER_IP}
 sed s/${WID}/${WIDTO}/g ${CGMINER_TMPLATE} > ${CUSTOMFILE1}
 
+# injecting miner hostname, by replacing %h
 WID="%h"
 WIDTO=${MINER_HOST}
 sed s/${WID}/${WIDTO}/g ${CUSTOMFILE1} > ${CUSTOMFILE2}
 
+# copy generated cgminer.conf to miner
 ${WD}/cpfile ${MINER_IP} ${CUSTOMFILE2} ${CGMINER_TRG}
 rm -f ${CUSTOMFILE1} ${CUSTOMFILE2}
 
+# lets stop spond_manager
+stop_spond_manager
 
+# TODO: replace sleep with wait till known process closed
+sleep 30
+
+# lets start spon_manager
+start_spond_manager

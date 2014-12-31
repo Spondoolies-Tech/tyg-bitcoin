@@ -1,2 +1,59 @@
+# Copyright 2014 remo@spondoolies-tech.com
+# updated        dima@spondoolies-tech.com
 #!/bin/sh
-createdetected ~/scans/IPS-FULL-80-95-RANGE /tmp/full-`date +%m%d%H%M%S`
+LIST_OF_EXPOSED_MINERS=/tmp/full-`date +%m.%d.%Y_%H-%M-%S`
+
+# check that we have 2 parameters: first subnet in range and
+# number of subnets
+if [ ! "$#" -eq 2 ]
+then
+    echo "Wrong number of parameters"
+    echo "please run: $0 [first subnet in range] [number of subnets] # Class C only"
+    echo "example: $0 192.168.1.0 5 # will scan 192.168.{1..5}.0 range"
+    exit 1
+fi
+
+# we are working on class C only currently
+FIRST_SUBNETS_IN_RANGE=$1
+SUBNETS_RANGE=$2
+
+# disassembly subnet to 4 parts
+parts=`sed "s;\.; ;g" <<< "${FIRST_SUBNETS_IN_RANGE}"`
+for i in {1..4}
+do
+    working_line="echo ${parts} | awk '{print \$"${i}"}'" 
+    sub_ip[${i}]=$(sh -c "${working_line}")
+done
+
+# check that we have subnet
+for i in {1..4}
+do
+    if [ -z "${sub_ip[${i}]}" ]
+    then
+        echo "bad subnet format"
+        exit 1
+    fi
+done
+
+# calculate value of last subnet 
+let last_subnet_ip_index=${sub_ip[3]}+${SUBNETS_RANGE}
+
+# check and generate subnets ips file
+IPS_FILE="/tmp/IPS-${sub_ip[3]}_${last_subnet_ip_index}"
+if [ ! -f "${IPS_FILE}" ]
+then
+  for subnet in $(eval echo "${sub_ip[1]}.${sub_ip[2]}.{${sub_ip[3]}..${last_subnet_ip_index}}")
+  do
+    for ip in {1..255}
+    do
+      echo ${subnet}.${ip} >> ${IPS_FILE}
+    done
+  done
+fi
+
+echo "######## SCANNING SUBNETS ${sub_ip[1]}.${sub_ip[2]}.{${sub_ip[3]}..${last_subnet_ip_index}} #############"
+createdetected ${IPS_FILE} ${LIST_OF_EXPOSED_MINERS}
+
+# lets print path for results
+echo "file with IP ranges - ${IP_RANGES_OUTPUT_FILE}"
+echo "file with miners status - ${LIST_OF_EXPOSED_MINERS}"

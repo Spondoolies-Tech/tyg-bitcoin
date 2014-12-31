@@ -77,7 +77,7 @@ if [ "$CHECK" != "-force" ] ; then
 		exit 6
 	fi
 
-	if  [ ! "${FW_MODEL}" == "${MINER_MODEL}" ] ; then
+	if  [ ! "${FW_MODEL:0:3}" == "${MINER_MODEL:0:3}" ] ; then
 		echo -e "\n"
 		echo ".... Miner ${MINER} is an ${MINER_MODEL} ; Image file ${IMAGE} is designed for ${FW_MODEL}"
 		echo "DITCHING !!"
@@ -93,8 +93,10 @@ echo "mount /mnt/mmc-boot"
 sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/mmc-boot > /dev/null 2>&1
 sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} ls /mnt/mmc-boot/MLO > /dev/null 2>&1
 if [ $? -eq 0 ] ; then
-	echo scp $IMAGE root@${MINER} :/mnt/mmc-boot/uImage
-	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/mmc-boot/uImage > /dev/null 2>&1
+	echo scp $IMAGE root@${MINER} :/mnt/mmc-boot/uImage.new
+	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/mmc-boot/uImage.new > /dev/null 2>&1
+	echo ssh mv /mnt/mmc-boot/uImage.new /mnt/mmc-boot/uImage
+	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mv /mnt/mmc-boot/uImage.new /mnt/mmc-boot/uImage > /dev/null 2>&1
 
 	echo "sync"
 	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} sync
@@ -123,7 +125,8 @@ else
 	echo "${MINER} without SD-CARD"
 fi
 
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/* /mnt/config/etc/mg_custom_mode /mnt/mmc-config/etc/mg_custom_mode > /dev/null 2>&1
+#sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/* /mnt/config/etc/mg_custom_mode /mnt/mmc-config/etc/mg_custom_mode > /dev/null 2>&1
+sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/*  > /dev/null 2>&1
 
 
 sleep 3
