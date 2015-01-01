@@ -77,16 +77,16 @@ then
     ERRORS=`echo ${MINER_MON} | jq .summary[0].HardwareErrors`
     ACCEPTED=`echo ${MINER_MON} | jq .summary[0].Accepted`
 
-    FRONT_TEMP=`echo ${MINER_MON} | jq .stats.Temparaturefront`
-    REAR_TEMP_TOP=`echo ${MINER_MON} | jq .stats.Temparaturereartop`
-    REAR_TEMP_BOT=`echo ${MINER_MON} | jq .stats.Temparaturerearbot`
+    FRONT_TEMP=`echo ${MINER_MON} | jq .stats.Temperaturefront`
+    REAR_TEMP_TOP=`echo ${MINER_MON} | jq .stats.Temperaturereartop`
+    REAR_TEMP_BOT=`echo ${MINER_MON} | jq .stats.Temperaturerearbot`
 
-    POOL1_URL=`echo ${MINER_MON} | jq .conf.pools[0].url`
-    POOL1_WALLET=`echo ${MINER_MON} | jq .conf.pools[0].user`
-    POOL2_URL=`echo ${MINER_MON} | jq .conf.pools[1].url`
-    POOL2_WALLET=`echo ${MINER_MON} | jq .conf.pools[1].user`
-    POOL3_URL=`echo ${MINER_MON} | jq .conf.pools[2].url`
-    POOL3_WALLET=`echo ${MINER_MON} | jq .conf.pools[2].user`
+    POOL1_URL=`echo ${MINER_MON} | jq .pools[0].URL`
+    POOL1_WALLET=`echo ${MINER_MON} | jq .pools[0].User`
+    POOL2_URL=`echo ${MINER_MON} | jq .pools[1].URL`
+    POOL2_WALLET=`echo ${MINER_MON} | jq .pools[1].User`
+    POOL3_URL=`echo ${MINER_MON} | jq .pools[2].URL`
+    POOL3_WALLET=`echo ${MINER_MON} | jq .pools[2].User`
 
     UNIT_UPTIME=`echo ${MINER_MON} | jq .miner.uptime`
     CGMINER_UPTIME=`echo ${MINER_MON} | jq .stats.Elapsed`
