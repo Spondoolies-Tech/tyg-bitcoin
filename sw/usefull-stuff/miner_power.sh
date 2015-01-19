@@ -7,4 +7,5 @@ HASHRATE=`cat /tmp/asics  | grep :HW: | cut -d : -f3 | cut -d G -f1`
 SUM_VOLT=`cat /tmp/production  | grep vlt | cut -d : -f4 | cut -d ' ' -f 1 | /usr/bin/awk '{s+=$1} END {print s}'`
 NUM_VOLT=`grep -c vlt: /tmp/production`
 AVG_VOLT=$((${SUM_VOLT}/${NUM_VOLT}))
-echo ${SN} ${MODEL} ${HASHRATE} ${NUM_VOLT} ${AVG_VOLT} ${POWER}
+WALLET=`cat /etc/cgminer.conf | tr ',' '\n' | grep user | head -n 1 | cut -d : -f 2`
+echo ${SN},${MODEL},${WALLET},${HASHRATE},${NUM_VOLT},${AVG_VOLT},${POWER}
