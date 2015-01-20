@@ -1,0 +1,15 @@
+#!/bin/bash
+#echo $@
+parms=( "$@" )
+i=0
+n=$#
+SSH_CMD=${parms[$(($n-1))]}
+#echo ${parms}
+#echo ${parms[@]}
+#echo $SSH_CMD
+n=$(($n-1))
+while [ $i -lt $n ] ; do
+	ssher ${parms[$i]} ${SSH_CMD}
+	i=$(($i+1))
+done
+
