@@ -5,12 +5,22 @@ SHOW=0
 if [ "$1" == "-show" ] || [ "$1" == "show" ]
 then
 	SHOW=1
+	echo "SHOW=ON"
 	shift
 fi
 
+if [ "$1" == "-pile" ] || [ "$1" == "pile" ] || [ "$1" == "-pilesize" ] || [ "$1" == "pilesize" ] || [ "$1" == "-size" ] || [ "$1" == "size" ]
+then
+	JOB_IPS_NUMBER_IN_BLOCK=$2
+	echo "JOB_IPS_NUMBER_IN_BLOCK=${JOB_IPS_NUMBER_IN_BLOCK}"
+	shift
+	shift
+fi
+
+
 if [ $# -lt 3 ]
 then
-	echo "usage: $0 [-show] <scriptfile> <ipfile> params ..."
+	echo "usage: $0 [-show] [-pile <size>] <scriptfile> <ipfile> params ..."
 	exit 1
 fi
 
@@ -24,7 +34,7 @@ then
     MAX_JOBS=100
 fi
 
-JOB_IPS_NUMBER_IN_BLOCK=2
+JOB_IPS_NUMBER_IN_BLOCK=5
 JOBS_FILES_SUFFIX_SIZE=4
 
 # clean previous results, very critical
