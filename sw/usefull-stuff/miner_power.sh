@@ -8,4 +8,13 @@ SUM_VOLT=`cat /tmp/production  | grep vlt | cut -d : -f4 | cut -d ' ' -f 1 | /us
 NUM_VOLT=`grep -c vlt: /tmp/production`
 AVG_VOLT=$((${SUM_VOLT}/${NUM_VOLT}))
 WALLET=`cat /etc/cgminer.conf | tr ',' '\n' | grep user | head -n 1 | cut -d : -f 2`
+if [ `/usr/local/bin/spond-manager status` -eq 0 ] 
+then 
+	HASHRATE=0
+	SUM_VOLT=0
+	NUM_VOLT=0
+	AVG_VOLT=0
+	POWER=0
+fi
+
 echo ${SN},${MODEL},${WALLET},${HASHRATE},${NUM_VOLT},${AVG_VOLT},${POWER}
