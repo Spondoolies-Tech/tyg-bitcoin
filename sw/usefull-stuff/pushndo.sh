@@ -1,4 +1,5 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 if [ $# -lt 2 ] ; then
 	echo "Too few parameters !"
