@@ -1,10 +1,9 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 
 
 MINER_IP=$1
-USER=root
-PASS=root
 
 READ_MNG_VPD=/usr/local/bin/readmngvpd.sh
 READ_BOX_VPD=/usr/local/bin/readboxvpd.sh

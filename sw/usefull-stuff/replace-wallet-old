@@ -1,4 +1,6 @@
 #!/bin/bash
+. $(dirname $0)/constants
+
 # argumnents:
 #       1. cgminer conf template file
 #       2. IP address of miner.
@@ -14,11 +16,11 @@ SUBSTYPE=0
 WD=`dirname $0`
 
 stop_spond_manager() {
-    sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} /usr/local/bin/spond-manager stop
+    ${SSHPASS_CMD} ${DEFAULT_USER}@${MINER_IP} /usr/local/bin/spond-manager stop
 }
 
 start_spond_manager() {
-    sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} /usr/local/bin/spond-manager start
+    ${SSHPASS_CMD} ${DEFAULT_USER}@${MINER_IP} /usr/local/bin/spond-manager start
 }
 
 if [ $# -lt 2 ]
@@ -66,7 +68,7 @@ then
 	echo "Couldnt find %h  or %i in wallet entry. using conf file without substitution"
 fi
 
-MINER_HOST_TEMP=`sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} sh -c "hostname"`
+MINER_HOST_TEMP=`${SSHPASS_CMD} ${DEFAULT_USER}@${MINER_IP} sh -c "hostname"`
 MINER_HOST=${MINER_HOST_TEMP:6}
 
 CUSTOMFILE1=`mktemp`

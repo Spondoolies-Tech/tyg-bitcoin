@@ -1,4 +1,5 @@
 #!/bin/bash
+. $(dirname $0)/constants
 MINER_IP=$1
 NEW_SW_PACKAGE_PATH=$2
 CGMINER_TEMPLATE=$3
@@ -6,12 +7,10 @@ CGMINER_TEMPLATE=$3
 PACKAGE=$(basename ${NEW_SW_PACKAGE_PATH})
 WD=$(dirname $0)
 UNSUPPORTED_MODELS=SP10
-USER=root
-PASS=root
 
 copy_package_to_miner() {
-    sshpass -p ${PASS} scp -o StrictHostKeyChecking=no ${NEW_SW_PACKAGE_PATH} \
-        ${USER}@${MINER_IP}:/tmp/${PACKAGE} >/dev/null 2>&1
+    ${SSHPASS_SCP} ${NEW_SW_PACKAGE_PATH} \
+        ${DEFAULT_USER}@${MINER_IP}:/tmp/${PACKAGE} >/dev/null 2>&1
     if [ ! $? == "0" ]
     then
         echo ${MINER_IP},"$0 failed"
@@ -20,8 +19,8 @@ copy_package_to_miner() {
 }
 
 copy_cgminer_template_to_miner() {
-    sshpass -p ${PASS} scp -o StrictHostKeyChecking=no ${CGMINER_TEMPLATE} \
-        ${USER}@${MINER_IP}:/etc/cgminer.conf.template >/dev/null 2>&1
+    ${SSHPASS_SCP} ${CGMINER_TEMPLATE} \
+        ${DEFAULT_USER}@${MINER_IP}:/etc/cgminer.conf.template >/dev/null 2>&1
     if [ ! $? == "0" ]
     then
         echo ${MINER_IP},"$0 failed"
@@ -30,7 +29,7 @@ copy_cgminer_template_to_miner() {
 }
 
 installPackage() {
-    sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} \
+    ${SSHPASS_CMD} ${DEFAULT_USER}@${MINER_IP} \
         /usr/local/bin/upgrade-software-from-file.sh --file=/tmp/${PACKAGE} >/dev/null 2>&1
     if [ ! $? == "0" ]
     then
@@ -40,7 +39,7 @@ installPackage() {
 }
 
 reboot_miner() {
-    sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} \
+    ${SSHPASS_CMD} ${DEFAULT_USER}@${MINER_IP} \
         /sbin/reboot >/dev/null 2>&1
     if [ ! $? == "0" ]
     then
@@ -66,10 +65,10 @@ then
 fi
 
 # check that /model_name file exists
-MODEL=$(sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} cat /model_name 2>/dev/null)
+MODEL=$(${SSHPASS_CMD} ${DEFAULT_USER}@${MINER_IP} cat /model_name 2>/dev/null)
 if [ -z "${MODEL}" ]
 then
-    MODEL=$(sshpass -p ${PASS} ssh -o StrictHostKeyChecking=no ${USER}@${MINER_IP} cat /model_id 2>/dev/null)
+    MODEL=$(${SSHPASS_CMD} ${DEFAULT_USER}@${MINER_IP} cat /model_id 2>/dev/null)
     echo ${MINER_IP},${MODEL},"UNSUPPORTED"
     exit 1
 fi

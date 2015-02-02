@@ -1,4 +1,5 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 SHOW=0
 

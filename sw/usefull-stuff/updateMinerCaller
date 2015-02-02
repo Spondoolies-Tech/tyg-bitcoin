@@ -1,10 +1,11 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 # this is a simple parms arrangement script
 # it's switch order of the params and call the real script which is updateMinerImage
 #
 # we assume this script resides in same folder of the updateMinerImage script!
-SCRIPT=`dirname $0`/updateMinerImage
+SCRIPT=$(dirname $0)/updateMinerImage
 
 if [ ! -e ${SCRIPT} ] ; then
 	echo Script ${SCRIPT} not found

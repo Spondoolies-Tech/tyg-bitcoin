@@ -1,4 +1,5 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 if [ $# -lt 2 ] ; 
     then echo "$0 <uImage_path> <miner-IP> [-check] [-p PATTERN]"
@@ -7,7 +8,6 @@ fi
 IMAGE=$1
 MINER=$2
 CHECK=$3
-SSH_PASS=root
 PATTERN=0_FW
 
 if [ ! -e $IMAGE ] ;
@@ -53,10 +53,10 @@ fi
 
 echo " ${MINER} accessible"
 
-PINGVER=`dirname $0`/pingver
+PINGVER=$(dirname $0)/pingver
 
 MINER_CURVER=`${PINGVER} ${MINER} | cut -d , -f 2`
-MINER_MODEL=`sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} "cat /model_id" 2>/dev/null` 
+MINER_MODEL=`${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} "cat /model_id" 2>/dev/null` 
 
 if [ "$CHECK" == "-check" ] ; then
 	echo -e "\n"
@@ -90,49 +90,49 @@ fi
 
 #> /dev/null 2>&1
 echo "mount /mnt/mmc-boot"
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/mmc-boot > /dev/null 2>&1
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} ls /mnt/mmc-boot/MLO > /dev/null 2>&1
+${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} mount /mnt/mmc-boot > /dev/null 2>&1
+${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} ls /mnt/mmc-boot/MLO > /dev/null 2>&1
 if [ $? -eq 0 ] ; then
-	echo scp $IMAGE root@${MINER} :/mnt/mmc-boot/uImage.new
-	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/mmc-boot/uImage.new > /dev/null 2>&1
+	echo scp $IMAGE ${DEFAULT_USER}@${MINER} :/mnt/mmc-boot/uImage.new
+	${SSHPASS_SCP} $IMAGE ${DEFAULT_USER}@${MINER}:/mnt/mmc-boot/uImage.new > /dev/null 2>&1
 	echo ssh mv /mnt/mmc-boot/uImage.new /mnt/mmc-boot/uImage
-	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mv /mnt/mmc-boot/uImage.new /mnt/mmc-boot/uImage > /dev/null 2>&1
+	${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} mv /mnt/mmc-boot/uImage.new /mnt/mmc-boot/uImage > /dev/null 2>&1
 
 	echo "sync"
-	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} sync
+	${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} sync
 
 	echo "umount /mnt/mmc-boot"
-	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} umount /mnt/mmc-boot
+	${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} umount /mnt/mmc-boot
 
 else
 	echo "${MINER} without MMC. Oh Boy."
 fi
 
 echo "mount /mnt/sd-boot"
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} mount /mnt/sd-boot > /dev/null 2>&1
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} ls /mnt/sd-boot/MLO > /dev/null 2>&1
+${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} mount /mnt/sd-boot > /dev/null 2>&1
+${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} ls /mnt/sd-boot/MLO > /dev/null 2>&1
 if [ $? -eq 0 ] ; then
-	echo scp $IMAGE root@${MINER} :/mnt/sd-boot/uImage
-	sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no $IMAGE root@${MINER}:/mnt/sd-boot/uImage
+	echo scp $IMAGE ${DEFAULT_USER}@${MINER} :/mnt/sd-boot/uImage
+	${SSHPASS_SCP} $IMAGE ${DEFAULT_USER}@${MINER}:/mnt/sd-boot/uImage
 
 	echo "sync"
-	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} sync
+	${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} sync
 
 	echo "umount /mnt/sd-boot"
-	sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} umount /mnt/sd-boot
+	${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} umount /mnt/sd-boot
 
 else
 	echo "${MINER} without SD-CARD"
 fi
 
-#sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/* /mnt/config/etc/mg_custom_mode /mnt/mmc-config/etc/mg_custom_mode > /dev/null 2>&1
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/*  > /dev/null 2>&1
+#${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/* /mnt/config/etc/mg_custom_mode /mnt/mmc-config/etc/mg_custom_mode > /dev/null 2>&1
+${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} rm -f /mnt/config/etc/bin/* /mnt/mmc-config/etc/bin/*  > /dev/null 2>&1
 
 
 sleep 3
 
 echo "reboot"
-sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no root@${MINER} /sbin/reboot
+${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} /sbin/reboot
 
 
 

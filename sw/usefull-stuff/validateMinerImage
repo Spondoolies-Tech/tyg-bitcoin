@@ -1,4 +1,5 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 # gets an IP of miner, and a string
 # connect to the miner via ssh (assumes root/root)
@@ -7,10 +8,8 @@
 
 MINER="$1"
 FVER_DESIRED="$2"
-SSHPASS=root
 
-
-FVER_ACTUAL=`sshpass -p $SSHPASS ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@${MINER} cat /fw_ver`
+FVER_ACTUAL=`${SSHPASS_CMD} -o ConnectTimeout=5 ${DEFAULT_USER}@${MINER} cat /fw_ver`
 
 ERR=$?
 if [ $ERR -eq 0 ] ; then

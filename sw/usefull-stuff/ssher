@@ -1,12 +1,13 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 CMD=${@:2}
 IP=$1
 ping -c 1 -W 1 $IP > /dev/null 2>&1
 if [ $? -eq 0 ] ; then
 
-	FW=`sshpass -p root ssh -o StrictHostKeyChecking=no root@${IP} cat /fw_ver 2>/dev/null`
-	OP=`sshpass -p root ssh -o StrictHostKeyChecking=no root@${IP} ${CMD} 2>/dev/null`
+	FW=`${SSHPASS_CMD} ${DEFAULT_USER}@${IP} cat /fw_ver 2>/dev/null`
+	OP=`${SSHPASS_CMD} ${DEFAULT_USER}@${IP} ${CMD} 2>/dev/null`
 	if [ $? -eq 0 ] ; then 
 		echo ${IP},${FW},${OP}
 	else

@@ -1,4 +1,5 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 #  "Lastgetwork": 1402929178,
 #  "PoolStale%": 0,
@@ -51,14 +52,14 @@ IP=$1
 HEADER=$2
 
 # lets check that miner can be accessed by http
-MINER_MON=$(wget http://admin:admin@${IP}/monitor.php  --timeout=5  --tries=1 -O- 2>/dev/null)
+MINER_MON=$(wget http://admin:${WEB_PASS}@${IP}/monitor.php  --timeout=5  --tries=1 -O- 2>/dev/null)
 if [ $? -eq 0 ]
 then
     echo ${MINER_MON} | jq . >/dev/null 2>&1
     if [ ! $? -eq 0 ]
     then
         wget --post-data "agree=true" "http://admin:admin@${IP}/settings.php" >/dev/null 2>&1
-        MINER_MON=`wget http://admin:admin@${IP}/monitor.php -O- 2>/dev/null`
+        MINER_MON=$(wget http://admin:${WEB_PASS}@${IP}/monitor.php -O- 2>/dev/null)
         echo ${MINER_MON} | jq . >/dev/null 2>&1
         if [ ! $? -eq 0 ]
         then
