@@ -2,7 +2,11 @@ fname() {
 	echo $(echo $0  | sed -e 's/.*\/\(.*\)/\1/g')
 }
 
+miner_ver() {
+        echo $(pingver $1 | cut -d , -f 2)
+}
 
+CGMINER_TEMP_REF_VER=2.5.53
 DEFAULT_USER="root"
 DEFAULT_PASS="root"
 WEB_PASS="admin"
