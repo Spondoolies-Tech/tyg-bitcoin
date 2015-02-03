@@ -4,7 +4,7 @@
 
 IP=$1
 
-. $(dirname $0)/pingver ${IP} 3
+. $(dirname $0)/pingver ${IP} -delay 3
 
 
 #ping -c 1 -W 2 $IP > /dev/null 2>&1

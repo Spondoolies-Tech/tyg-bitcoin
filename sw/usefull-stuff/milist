@@ -60,23 +60,27 @@ echo "${sub_ip[${i}]}"
     fi
 done
 
-exit 
-# calculate value of last subnet 
-let last_subnet_ip_index=${sub_ip[3]}+${SUBNETS_RANGE}
 
+# calculate value of last subnet 
+let last_subnet_ip_index=${sub_ip[2]}+${SUBNETS_RANGE}-1
+
+echo  "last_subnet_ip_index  = $last_subnet_ip_index"
 # check and generate subnets ips file
-IPS_FILE="/tmp/IPS-${sub_ip[3]}_${last_subnet_ip_index}"
+IPS_FILE="/tmp/IPS-${sub_ip[0]}_${sub_ip[1]}_${sub_ip[2]}_${last_subnet_ip_index}"
 if [ ! -f "${IPS_FILE}" ]
 then
-  for subnet in $(eval echo "${sub_ip[1]}.${sub_ip[2]}.{${sub_ip[3]}..${last_subnet_ip_index}}")
+  echo "Creating IPS file ${IPS_FILE}"
+  for subnet in $(eval echo "${sub_ip[0]}.${sub_ip[1]}.{${sub_ip[2]}..${last_subnet_ip_index}}")
   do
-    for ip in {1..255}
+    for ip in {0..255}
     do
+#      echo "${subnet}.${ip} => ${IPS_FILE}"
       echo ${subnet}.${ip} >> ${IPS_FILE}
     done
   done
+else
+  echo "IPS File ${IPS_FILE} Exist"
 fi
-
 echo "######## SCANNING SUBNETS ${sub_ip[1]}.${sub_ip[2]}.{${sub_ip[3]}..${last_subnet_ip_index}} #############"
 createdetected ${IPS_FILE} ${LIST_OF_EXPOSED_MINERS}
 

@@ -30,7 +30,7 @@ fi
 
 IP_FILE=`mktemp`
 
-cat $SRC_IP_FILE | cut -d ' ' -f 1 | cut -d , -f 1 > $IP_FILE
+cat $SRC_IP_FILE | cut -d ' ' -f 1 | cut -d , -f 1 | sed -e 's/\([^#]*\)#.*/\1/g' > $IP_FILE
 
 dos2unix $IP_FILE
 

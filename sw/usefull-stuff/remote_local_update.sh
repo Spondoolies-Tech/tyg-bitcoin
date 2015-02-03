@@ -1,5 +1,15 @@
 #!/bin/bash
 
+#################################################################
+#
+# Remo ( remo@spondoolies-tech.com )
+# 28-Jan 2015
+#
+# Perform group update of miners
+# push tar package (taken from firmware server) into on one of the mimners
+# and send update commands to all the miners, to upgrade from that miner
+# this is very efficient when controller and miners are not on the same LAN
+#################################################################
 . $(dirname $0)/constants
 if [ ! "$1" == "" ] && [ -f $1 ] ; then
 	IPF=$1

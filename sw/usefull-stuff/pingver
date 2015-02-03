@@ -2,12 +2,20 @@
 . $(dirname $0)/constants
 
 IP=$1
+WAIT=1
 
-if [ "$2" == "" ] ; then
-	WAIT=1
-else
-	WAIT=$2
+if [ "$1" == "" ] || [ "$1" == "-delay" ] 
+then
+	echo "Usage: $(fname) <IP> [ -delay <delay-secs> ] "
+	exit 1
 fi
+
+if [ "$2" == "-delay" ] ; then
+	shift
+	WAIT=$2
+	shift
+fi
+
 
 ping -c 1 -W ${WAIT} ${IP} > /dev/null 2>&1
 if [ $? -eq 0 ]

@@ -1,5 +1,13 @@
+fname() {
+	echo $(echo $0  | sed -e 's/.*\/\(.*\)/\1/g')
+}
+
+
 DEFAULT_USER="root"
 DEFAULT_PASS="root"
+WEB_PASS="admin"
 DEFAULT_SUBNET="10.101"
 SSHPASS_CMD="sshpass -p ${DEFAULT_PASS} ssh  -o StrictHostKeyChecking=no"
 SSHPASS_SCP="sshpass -p ${DEFAULT_PASS} scp  -o StrictHostKeyChecking=no"
+IMG_REPO="/home/remo/img"
+MAX_PROC=255
