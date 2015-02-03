@@ -100,8 +100,11 @@ prep_for_old_ver() {
 }
 
 prep_for_new_ver() {
+	echo "CGMINER_TRG=${CGMINER_TRG}.template"
+	CUSTOMFILE2=`mktemp`
 	CGMINER_TRG=${CGMINER_TRG}.template
-	cp ${CGMINER_TMPLATE} ${CUSTOMFILE}
+	echo "cp ${CGMINER_TMPLATE} ${CUSTOMFILE}"
+	cp ${CGMINER_TMPLATE} ${CUSTOMFILE2}
 }
 
 
@@ -131,6 +134,7 @@ fi
  
 
 # copy generated cgminer.conf to miner
+echo "${WD}/cpfile ${MINER_IP} ${CUSTOMFILE2} ${CGMINER_TRG}"
 ${WD}/cpfile ${MINER_IP} ${CUSTOMFILE2} ${CGMINER_TRG}
 rm -f ${CUSTOMFILE1} ${CUSTOMFILE2}
 
