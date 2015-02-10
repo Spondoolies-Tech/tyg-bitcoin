@@ -9,7 +9,7 @@
 MINER="$1"
 FVER_DESIRED="$2"
 
-FVER_ACTUAL=`${SSHPASS_CMD} -o ConnectTimeout=5 ${DEFAULT_USER}@${MINER} cat /fw_ver`
+FVER_ACTUAL=$(miner_ver ${MINER})
 
 ERR=$?
 if [ $ERR -eq 0 ] ; then

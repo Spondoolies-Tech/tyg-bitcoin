@@ -1,4 +1,5 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 #WALLET=1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd
 
@@ -20,12 +21,12 @@ if [ ! $? -eq 0 ] ; then
 	exit 11
 fi
 
-sshpass -p root ssh -o StrictHostKeyChecking=no root@${MINER} grep ${TAG} ${LOOKATTRG} > /dev/null 2>&1
+${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} grep ${TAG} ${LOOKATTRG} > /dev/null 2>&1
 
 if [ $? -eq 0 ] ; then
 	
-	STATUS=`sshpass -p root ssh -o StrictHostKeyChecking=no root@${MINER} cat /tmp/mg_status 2>/dev/null`
-	RATE_TEMP=`sshpass -p root ssh -o StrictHostKeyChecking=no root@${MINER} cat /tmp/mg_rate_temp 2>/dev/null`
+	STATUS=`${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} cat /tmp/mg_status 2>/dev/null`
+	RATE_TEMP=`${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} cat /tmp/mg_rate_temp 2>/dev/null`
 	echo ${MINER},${TAG},${STATUS},${RATE_TEMP}
 fi 
 

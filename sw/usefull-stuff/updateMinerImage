@@ -55,7 +55,7 @@ echo " ${MINER} accessible"
 
 PINGVER=$(dirname $0)/pingver
 
-MINER_CURVER=`${PINGVER} ${MINER} | cut -d , -f 2`
+MINER_CURVER=$(miner_ver ${MINER})
 MINER_MODEL=`${SSHPASS_CMD} ${DEFAULT_USER}@${MINER} "cat /model_id" 2>/dev/null` 
 
 if [ "$CHECK" == "-check" ] ; then
