@@ -1,8 +1,19 @@
 #!/bin/bash
-#echo $@
+. $(dirname $0)/constants
+
+usage() {
+	echo "Usage: $(fname) miner1-IP [miner2-IP ... minerN-IP] \"ssh_command  [ parms ... ]\" "
+}
+
 parms=( "$@" )
 i=0
 n=$#
+
+if [ $n -lt 2 ] ; then
+	echo Too Few Parameters
+	usage
+	exit 1
+fi
 SSH_CMD=${parms[$(($n-1))]}
 #echo ${parms}
 #echo ${parms[@]}
@@ -12,4 +23,5 @@ while [ $i -lt $n ] ; do
 	ssher ${parms[$i]} ${SSH_CMD}
 	i=$(($i+1))
 done
+
 

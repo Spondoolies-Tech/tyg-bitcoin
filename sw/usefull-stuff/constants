@@ -1,5 +1,9 @@
 fname() {
-	echo $(echo $0  | sed -e 's/.*\/\(.*\)/\1/g')
+	local fn=$1
+	if [ "${fn}" == "" ] ; then
+		fn=$0
+	fi
+	echo $(echo ${fn}  | sed -e 's/.*\/\(.*\)/\1/g')
 }
 
 miner_ver() {
@@ -14,4 +18,5 @@ DEFAULT_SUBNET="10.101"
 SSHPASS_CMD="sshpass -p ${DEFAULT_PASS} ssh  -o StrictHostKeyChecking=no"
 SSHPASS_SCP="sshpass -p ${DEFAULT_PASS} scp  -o StrictHostKeyChecking=no"
 IMG_REPO="/home/remo/img"
+SCANS_REPO="/home/remo/scans"
 MAX_PROC=255

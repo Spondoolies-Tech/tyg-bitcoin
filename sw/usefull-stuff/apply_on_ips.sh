@@ -16,7 +16,7 @@ SRC_IP_FILE=$2
 SCRIPT_FILE=$1
 #OPERRATIVE=$3
 #FILTER=$4
-SCRIPT_PARMS=${@:3}
+SCRIPT_PARMS=(${@:3})
 
 if [ ! -e ${SCRIPT_FILE} ] && [ ! -e `which ${SCRIPT_FILE}` ] ; then
 	echo "Script file ${SCRIPT_FILE} not found."
@@ -34,24 +34,10 @@ cat $SRC_IP_FILE | cut -d ' ' -f 1 | cut -d , -f 1 | sed -e 's/\([^#]*\)#.*/\1/g
 
 dos2unix $IP_FILE
 
-
-index=0
-while read line ; do
-	MINERS[$index]="${line}"
-	index=$(($index+1))
-done < ${IP_FILE}
-
-OIFS="$IFS"
-IFS=' '
-read -a PARAMS <<< "${SCRIPT_PARMS}"
-IFS="$OIFS"
-
-#echo miners ${MINERS[@]} ${#MINERS[@]} 
-#echo params ${PARAMS[@]} ${#PARAMS[@]}
+MINERS=($(cat $IP_FILE))
 
 for MINER in ${MINERS[@]}; do
-#	echo "calling ${SCRIPT_FILE} ${MINER} ${PARAMS[@]}" 
-	${SCRIPT_FILE} ${MINER} ${PARAMS[@]}	
+	${SCRIPT_FILE} ${MINER} ${SCRIPT_PARMS[@]}	
 done
 
 rm ${IP_FILE}

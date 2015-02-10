@@ -5,30 +5,36 @@
 
 . $(dirname $0)/constants
 
-function valid_subnet()
+valid_ip()
 {
-    local  ip=$1
-    local  stat=1
+	
+	rc=0
+	text_ip=$1
+	test_ip=(${text_ip//\./\ })
+	if [ ${#test_ip[@]} -ne 4 ]
+	then
+		rc=2
+	else
+		for (( i=0 ; i<4 ; i++ ))
+		do
+			nible=${test_ip[$i]}
+			printf "%g" "$nible"  > /dev/null 2>&1
+			if [ $? -ne 0 ]
+			then
+				rc=3
+				break
+			fi
+			if [ $nible -lt 0 ] || [ $nible -gt 255 ] 
+			then
+				rc=1
+				break
+			fi
+		done
+	
+	fi
 
-    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-        OLDIFS=$IFS
-        IFS='.'
-        ip=($ip)
-        IFS=$OLDIFS
-        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
-            && ${ip[2]} -le 255 && ${ip[3]} -eq 0 ]]
-        stat=$?
-    fi
-    return $stat
-}
+	return $rc
 
-function split_ip()
-{
-	local iptext=$1
-	OLDIFS=$IFS
-	IFS='.'
-	read -ra sub_ip <<< "${iptext}"
-	IFS=$OLDIFS
 }
 
 LIST_OF_EXPOSED_MINERS=/tmp/full-`date +%m.%d.%Y_%H-%M-%S`
@@ -47,18 +53,16 @@ fi
 FIRST_SUBNETS_IN_RANGE=$1
 SUBNETS_RANGE=$2
 
-split_ip ${FIRST_SUBNETS_IN_RANGE}
+valid_ip ${FIRST_SUBNETS_IN_RANGE}
+VS=$?
 
-# check that we have subnet
-for i in {0..3}
-do
-echo "${sub_ip[${i}]}"
-    if [ -z "${sub_ip[${i}]}" ]
-    then
-        echo "bad subnet format"
-        exit 1
-    fi
-done
+if [ $VS -ne 0 ] 
+then
+	echo "Subnet ${FIRST_SUBNETS_IN_RANGE} is not a valid IP address" > /dev/stderr
+	exit $VS
+fi
+
+sub_ip=(${FIRST_SUBNETS_IN_RANGE//\./\ })
 
 
 # calculate value of last subnet 
