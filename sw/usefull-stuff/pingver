@@ -20,7 +20,7 @@ fi
 ping -c 1 -W ${WAIT} ${IP} > /dev/null 2>&1
 if [ $? -eq 0 ]
 then
-	FW=$(${SSHPASS_CMD} -o ConnectTimeout=5 -o ConnectionAttempts=1 \
+	FW=$(${SSHPASS_CMD} \
          ${DEFAULT_USER}@${IP} cat /fw_ver 2>/dev/null)
 	if [ $? -eq 0 ]
     then 
