@@ -19,4 +19,9 @@ SSHPASS_CMD="sshpass -p ${DEFAULT_PASS} ssh  -o StrictHostKeyChecking=no -o Conn
 SSHPASS_SCP="sshpass -p ${DEFAULT_PASS} scp  -o StrictHostKeyChecking=no -o ConnectTimeout=3 -o ConnectionAttempts=1"
 IMG_REPO="/home/remo/img"
 SCANS_REPO="/home/remo/scans"
+BIN_REPO="/home/remo/bin"
 MAX_PROC=255
+if [ $(echo $PATH | grep -c ${BIN_REPO}$) -eq 0 ] && [ $(echo $PATH | grep -c ${BIN_REPO}:) -eq 0 ] 
+then 
+	export PATH=${BIN_REPO}:${PATH}
+fi
