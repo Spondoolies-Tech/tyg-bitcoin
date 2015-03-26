@@ -1,15 +1,14 @@
 #!/bin/bash
 . $(dirname $0)/constants
 
-logger "FROMN CRON - PATH is $PATH"
 
-TIMES=$1
-DELAY=$2
-PREF=$3
-IPFILE=/tmp/0322-dc
-OLDCD=$PWD
+TIMES=$2
+DELAY=$3
+PREF=$4
+IPFILE=$1 
 
-if [ $# -lt 2 ] ; then
+
+if [ $# -lt 3 ] ; then
 	echo not enogh params
 	exit 1
 fi
@@ -39,8 +38,8 @@ pushd ${BIN_REPO}
 
 for (( i=1; i<=$TIMES ; i++ ))
 do
-	echo " inpar -show pushndo.sh ${IPFILE} miner_deep_conf.sh | grep ^1 | tee /home/remo/scans/${PREF}_$(date +%m%d_%H%M%S)_${i}_of_${TIMES}.csv "
-	inpar -show pushndo.sh ${IPFILE} miner_deep_conf.sh | grep ^1 | tee /home/remo/scans/${PREF}_$(date +%m%d_%H%M%S)_${i}_of_${TIMES}.csv 
+	echo " inpar -show pushndo.sh ${IPFILE} miner_deep_conf.sh | grep ^1 | tee ${SCANS_REPO}/${PREF}_$(date +%d%H%M)_${i}_of_${TIMES}.csv "
+	inpar -show pushndo.sh ${IPFILE} miner_deep_conf.sh | grep ^1 | tee ${SCANS_REPO}/${PREF}_$(date +%d%H%M)_${i}_of_${TIMES}.csv 
  	if [ $i -lt ${TIMES} ] ; then
 		sleep ${DELAY}
 	fi
