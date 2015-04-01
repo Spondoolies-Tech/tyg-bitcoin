@@ -1,3 +1,3 @@
 #!/bin/sh
-. /home/remo/git/tyg-bitcoin/sw/usefull-stuff/constants
+. $(dirname $0)/constants
 ${SSHPASS_CMD} ${DEFAULT_USER}@${DEFAULT_SUBNET}.$1
