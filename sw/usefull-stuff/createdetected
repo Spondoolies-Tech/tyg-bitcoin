@@ -1,13 +1,13 @@
 #!/bin/bash
+. $(dirname $0)/constants
 
 if [ $# -lt 1 ] ; then
-	echo "usage: $0 <ipfile> [<outfile>]"
+	echo "usage: $(fname $0) <ipfile> [<outfile>]"
 	exit 1
 fi
 
-WD=`dirname $0`
-INPAR=$WD/inpar
-PINGVER=$WD/pingver
+INPAR=inpar
+PINGVER=pingver
 
 SRC_IP_FILE=$1
 OUT_FILE=$2
@@ -18,12 +18,12 @@ if [ "${OUT_FILE}" == "nofile" ] ; then
 fi
 
 if [ "${OUT_FILE}" == "" ] ; then
-	OUT_FILE=~/scans/detected-`date +%m%d%H%M`.csv
+	OUT_FILE=${SCANS_REPO}/detected-`date +%m%d%H%M`.csv
 fi
 
 
-if [ ! -e ~/scans ] ; then
-	mkdir ~/scans
+if [ ! -e ${SCANS_REPO} ] ; then
+	mkdir ${SCANS_REPO} 
 fi
 
 

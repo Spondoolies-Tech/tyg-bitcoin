@@ -1,0 +1,6 @@
+#!/bin/bash
+. $(dirname $0)/constants
+
+
+createdetected $1 $2 -slow
+
