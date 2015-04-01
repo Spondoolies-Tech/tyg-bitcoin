@@ -1,15 +1,15 @@
 #!/bin/bash
 . $(dirname $0)/constants
 
-
 TIMES=$2
 DELAY=$3
-PREF=$4
+PREF="$4$(date +%d)"
 IPFILE=$1 
 
 
 if [ $# -lt 3 ] ; then
 	echo not enogh params
+	echo "Usage: $(fname $0) <ipfile-abs-path> <times> <delay-seconds> {prefix_txt} "
 	exit 1
 fi
 
@@ -35,6 +35,11 @@ if [ $TIMES -lt 1 ] || [ $TIMES -gt 100 ] || [ $DELAY -lt 60 ] || [ $DELAY -gt 3
 fi
 
 pushd ${BIN_REPO}
+
+if [ ! -e ${IPFILE} ] ; then
+	echo " File ${IPFILE} not found. use absolute path"
+	exit 5
+fi
 
 for (( i=1; i<=$TIMES ; i++ ))
 do
